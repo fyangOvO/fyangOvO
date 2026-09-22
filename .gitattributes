@@ -1,0 +1,39 @@
+# ── 默认：文本文件统一 LF ────────────────────────────────────────
+* text=auto eol=lf
+
+# ── 美术资源走 Git LFS（AI 生成 + 精修，二进制体积大）────────────
+*.png  filter=lfs diff=lfs merge=lfs -text
+*.jpg  filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+*.svg  filter=lfs diff=lfs merge=lfs -text
+*.psd  filter=lfs diff=lfs merge=lfs -text
+*.aseprite filter=lfs diff=lfs merge=lfs -text
+*.ase  filter=lfs diff=lfs merge=lfs -text
+
+# ── 音频 ────────────────────────────────────────────────────────
+*.wav  filter=lfs diff=lfs merge=lfs -text
+*.ogg  filter=lfs diff=lfs merge=lfs -text
+*.mp3  filter=lfs diff=lfs merge=lfs -text
+
+# ── 字体 ────────────────────────────────────────────────────────
+*.ttf  filter=lfs diff=lfs merge=lfs -text
+*.otf  filter=lfs diff=lfs merge=lfs -text
+
+# ── 构建产物 ────────────────────────────────────────────────────
+*.pck  filter=lfs diff=lfs merge=lfs -text
+*.exe  filter=lfs diff=lfs merge=lfs -text
+
+# ── Godot 资源与脚本：按文本处理，走正常 diff ───────────────────
+*.gd     text
+*.tscn   text
+*.tres   text
+*.godot  text
+*.import text
+*.cfg    text
+*.json   text
+*.csv    text
+*.md     text
+
+# ── 明确排除：Godot 自动生成的 uid 映射表 ───────────────────────
+# （保留 .gd.uid 与 *.import —— 团队协作需要，勿忽略）

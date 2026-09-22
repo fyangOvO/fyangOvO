@@ -1,0 +1,91 @@
+{
+  "pools": [
+    {
+      "id": "weapon_offense",
+      "display_name": "武器·攻击向",
+      "affix_ids": [
+        "add_flat_attack", "add_pct_attack", "add_crit_chance",
+        "add_crit_damage", "add_attack_speed", "add_armor_penetration",
+        "add_elemental_damage", "add_skill_level", "add_life_on_hit"
+      ]
+    },
+    {
+      "id": "weapon_caster",
+      "display_name": "武器·施法向",
+      "affix_ids": [
+        "add_max_resource", "add_resource_regen", "add_skill_cost_reduction",
+        "add_cooldown_reduction", "add_skill_level", "add_elemental_damage"
+      ]
+    },
+    {
+      "id": "weapon_defense",
+      "display_name": "武器·防御向",
+      "affix_ids": [
+        "add_flat_armor", "add_pct_armor", "add_block_chance",
+        "add_life_regen", "add_pct_hp", "add_flat_hp"
+      ]
+    },
+    {
+      "id": "weapon_generic",
+      "display_name": "武器·通用",
+      "affix_ids": [
+        "add_flat_attack", "add_pct_attack", "add_crit_chance",
+        "add_attack_speed", "add_flat_hp", "add_life_regen",
+        "add_move_speed", "add_thorns", "add_skill_level"
+      ]
+    },
+    {
+      "id": "armor_offense",
+      "display_name": "防具·攻击向",
+      "affix_ids": [
+        "add_crit_chance", "add_crit_damage", "add_attack_speed",
+        "add_elemental_damage", "add_armor_penetration",
+        "add_pct_attack", "add_flat_attack"
+      ]
+    },
+    {
+      "id": "armor_defense",
+      "display_name": "防具·防御向",
+      "affix_ids": [
+        "add_flat_armor", "add_pct_armor", "add_pct_hp", "add_flat_hp",
+        "add_life_regen", "add_dodge", "add_block_chance",
+        "add_cold_resist", "add_fire_resist", "add_lightning_resist", "add_poison_resist"
+      ]
+    },
+    {
+      "id": "armor_utility",
+      "display_name": "防具·功能向",
+      "affix_ids": [
+        "add_move_speed", "add_pickup_radius", "add_magic_find",
+        "add_gold_gain", "add_xp_gain", "add_kill_heal", "add_thorns"
+      ]
+    },
+    {
+      "id": "armor_generic",
+      "display_name": "防具·通用",
+      "affix_ids": [
+        "add_flat_hp", "add_pct_hp", "add_dodge", "add_life_regen",
+        "add_cold_resist", "add_fire_resist", "add_thorns"
+      ]
+    },
+    {
+      "id": "jewelry_generic",
+      "display_name": "首饰·通用",
+      "affix_ids": [
+        "add_crit_chance", "add_crit_damage", "add_flat_attack", "add_pct_attack",
+        "add_flat_hp", "add_pct_hp", "add_life_on_hit", "add_skill_level",
+        "add_magic_find", "add_gold_gain", "add_block_chance", "add_dodge",
+        "add_cold_resist", "add_fire_resist", "add_lightning_resist", "add_poison_resist",
+        "add_life_regen", "add_max_resource", "add_resource_regen",
+        "add_cooldown_reduction", "add_skill_cost_reduction", "add_move_speed"
+      ]
+    },
+    {
+      "id": "mythic_pool",
+      "display_name": "神话·特殊槽",
+      "affix_ids": [
+        "mythic_all_attributes"
+      ]
+    }
+  ]
+}

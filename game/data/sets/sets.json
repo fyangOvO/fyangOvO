@@ -1,0 +1,47 @@
+[
+	{
+		"id": "frostbite",
+		"display_name": "霜噬",
+		"style_tag": "冰霜流",
+		"emblem_path": "res://assets/sprites/items/set_emblem_frostbite.png",
+		"piece_template_ids": [
+			"set_frostbite_helm", "set_frostbite_chest", "set_frostbite_gloves",
+			"set_frostbite_legs", "set_frostbite_boots", "set_frostbite_mainhand"
+		],
+		"tier_bonuses": [
+			{ "pieces": 2, "description": "+15% 冰霜伤害", "stats": { "cold_resist": 0.0, "elemental_damage": 15.0 } },
+			{ "pieces": 4, "description": "攻击 25% 概率使目标减速 40%，持续 2 秒", "stats": {}, "effect_id": "frostbite_slow" },
+			{ "pieces": 6, "description": "对减速目标暴击率 +20%，暴击附加「霜爆」造成 200% 攻击力冰霜范围伤害", "stats": { "crit_chance": 20.0 }, "effect_id": "frostbite_burst" }
+		]
+	},
+	{
+		"id": "emberpath",
+		"display_name": "烬途",
+		"style_tag": "火伤流",
+		"emblem_path": "res://assets/sprites/items/set_emblem_emberpath.png",
+		"piece_template_ids": [
+			"set_emberpath_helm", "set_emberpath_chest", "set_emberpath_gloves",
+			"set_emberpath_legs", "set_emberpath_boots", "set_emberpath_amulet"
+		],
+		"tier_bonuses": [
+			{ "pieces": 2, "description": "+12% 火焰伤害", "stats": { "elemental_damage": 12.0 } },
+			{ "pieces": 4, "description": "击杀后 5 秒内攻速 +15%", "stats": {}, "effect_id": "emberpath_frenzy" },
+			{ "pieces": 6, "description": "每次击杀叠 1 层「燃」，每层 +2% 攻击力（上限 10 层），持续至出关", "stats": { "pct_attack": 20.0 }, "effect_id": "emberpath_ember" }
+		]
+	},
+	{
+		"id": "oathkeeper",
+		"display_name": "守誓者",
+		"style_tag": "坦克流",
+		"emblem_path": "res://assets/sprites/items/set_emblem_oathkeeper.png",
+		"piece_template_ids": [
+			"set_oathkeeper_helm", "set_oathkeeper_chest", "set_oathkeeper_gloves",
+			"set_oathkeeper_legs", "set_oathkeeper_boots", "set_oathkeeper_offhand"
+		],
+		"tier_bonuses": [
+			{ "pieces": 2, "description": "+15% 护甲", "stats": { "pct_armor": 15.0 } },
+			{ "pieces": 4, "description": "格挡成功后回复 5% 最大生命", "stats": {}, "effect_id": "oathkeeper_block_heal" },
+			{ "pieces": 6, "description": "生命 <30% 时获得 40% 减伤（冷却 60 秒）", "stats": {}, "effect_id": "oathkeeper_last_stand" }
+		]
+	}
+]

@@ -1,0 +1,40 @@
+[
+	{
+		"id": "monster_normal",
+		"tier": "normal",
+		"drop_chance": 0.08,
+		"drop_count_range": [1, 1],
+		"rarity_weights": [78.02, 17.55, 3.50, 0.45, 0.05, 0.02, 0.40, 0.01],
+		"equipment_share": 0.55,
+		"gold_weight": 30.0,
+		"material_weight": 12.0,
+		"consumable_weight": 3.0,
+		"pity_enabled": true
+	},
+	{
+		"id": "monster_elite",
+		"tier": "elite",
+		"drop_chance": 0.60,
+		"drop_count_range": [1, 2],
+		"rarity_weights": [40.30, 34.00, 16.00, 5.00, 1.00, 0.60, 3.00, 0.10],
+		"equipment_share": 0.80,
+		"gold_weight": 25.0,
+		"material_weight": 40.0,
+		"consumable_weight": 5.0,
+		"pity_enabled": true,
+		"pity_bonus_per_stack": 0.20,
+		"pity_max_stacks": 3
+	},
+	{
+		"id": "monster_boss",
+		"tier": "boss",
+		"drop_chance": 1.0,
+		"drop_count_range": [2, 4],
+		"rarity_weights": [6.00, 30.00, 35.00, 15.00, 5.00, 1.80, 7.00, 0.20],
+		"equipment_share": 0.90,
+		"gold_weight": 20.0,
+		"material_weight": 60.0,
+		"consumable_weight": 8.0,
+		"pity_enabled": false
+	}
+]

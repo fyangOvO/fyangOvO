@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "_doc": [
+    "特效表：每个 id = 一个特效。改这里 + 往 assets/fx/ 放同名 PNG 即可新增/替换特效，不用改代码。",
+    "用户覆盖优先：把 PNG 放到 %APPDATA%/Godot/app_userdata/七傳說/content/fx/<texture> 会盖过内置贴图。",
+    "字段：",
+    "  texture    横向序列帧贴图文件名（相对 assets/fx/，或 user://content/fx/）",
+    "  frame_w    单帧宽（px）",
+    "  frame_h    单帧高（px）",
+    "  frames     帧数（贴图宽必须 >= frame_w × frames）",
+    "  fps        播放速度",
+    "  loop       true = 循环（播完不自动释放，调用方负责回收）；false = 播完自释放",
+    "  anchor     center / top_left / bottom_center（相对生成点的对齐方式）",
+    "  z          above_actors / below_actors",
+    "  fade       true = 播放期间线性淡出",
+    "占位贴图由 tools/fx_build_sheets.py 生成（全部像素 ∈ PALETTE_ALL）。"
+  ],
+  "effects": {
+    "hit_spark": {
+      "texture": "hit_spark.png",
+      "frame_w": 32,
+      "frame_h": 32,
+      "frames": 6,
+      "fps": 18.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": false
+    },
+    "slash_arc": {
+      "texture": "slash_arc.png",
+      "frame_w": 48,
+      "frame_h": 48,
+      "frames": 6,
+      "fps": 20.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": true
+    },
+    "level_up_burst": {
+      "texture": "level_up_burst.png",
+      "frame_w": 48,
+      "frame_h": 48,
+      "frames": 8,
+      "fps": 14.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": true
+    },
+    "pickup_glow": {
+      "texture": "pickup_glow.png",
+      "frame_w": 24,
+      "frame_h": 24,
+      "frames": 6,
+      "fps": 12.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": false
+    },
+    "death_puff": {
+      "texture": "death_puff.png",
+      "frame_w": 32,
+      "frame_h": 32,
+      "frames": 6,
+      "fps": 17.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": true
+    },
+    "ember_lord_aura": {
+      "texture": "ember_lord_aura.png",
+      "frame_w": 236,
+      "frame_h": 212,
+      "frames": 7,
+      "fps": 8.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": true
+    },
+    "pyromancer_cast": {
+      "texture": "pyromancer_cast.png",
+      "frame_w": 85,
+      "frame_h": 56,
+      "frames": 2,
+      "fps": 10.0,
+      "loop": false,
+      "anchor": "center",
+      "z": "above_actors",
+      "fade": true
+    }
+  }
+}

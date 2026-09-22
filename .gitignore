@@ -1,0 +1,94 @@
+# ── Godot 运行残留 ────────────────────────────────────────────────
+# 以 --user-data-dir 相对路径运行时会落在项目内，属运行残留非源码
+/.vu/
+/Godot/
+# 2026-09-20：`.workbuddy/` 是**旧版/误写**的工具数据目录（规范目录是
+# `.workbuddy-ai/`）。它曾把 `memory/2026-09-18.md` 提交进版本库，而该路径的
+# tree 对象 `049ed5f6…` 与 blob `9d4f2fb7…` 均已永久缺失（早于本次事故，
+# 疑似历史 prune 所致），导致 `git ls-tree -r HEAD` 直接报错、HEAD 全树不可遍历。
+# 处置：取消追踪 + 忽略；原有唯一内容已另存为
+# `.workbuddy-ai/memory/2026-09-18-legacy-workbuddy-log.md`，磁盘原文件亦未删。
+/.workbuddy/
+# Godot 导入缓存与编辑器状态（game/.gitignore 已再覆盖一层）
+.godot/
+**/.godot/
+
+# ── Python 仿真脚本缓存 ──────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+
+# ── 团队成员偶尔落下的临时证明 / 验证输出 ────────────────────────
+/_st.txt
+/pr_proof*.txt
+/verify_out.txt
+# 2026-09-18：素材采集期间根目录积了 29 个一次性残留（aigei 页面标题转储、
+# 搜索结果 JSON、临时输出），已移入 `.workbuddy-ai/trash/`。加规则防复发。
+# 这些前缀专指「随手落盘的调试输出」，勿用于正式文件；正式产物请放
+# `deliverables/gstack/`，临时脚本产物请写进 `.workbuddy-ai/scratch/`。
+/_dbg*
+/_sw*
+/_tmp*
+/_t[0-9]*.txt
+/_dl_log.txt
+# 误把 JS 片段当命令执行留下的产物（0 字节）
+/a.indexOf(v)
+
+# ── 仓库自身备份（勿入版本库）────────────────────────────────────
+# 2026-09-20：本仓库无 remote，`.git` 曾整体被移入回收站 ⇒ 单点故障。
+# 备份是「`.git` 的完整副本」，绝不能被 git 自己追踪（否则 27MB 对象递归入库）。
+# 见 `.workbuddy-ai/backups/README.md`。
+/.workbuddy-ai/backups/
+
+# ── 回收站（替代 rm：移入而非删除，可恢复）──────────────────────
+# 约定：清理残留一律 `mv` 到 `.workbuddy-ai/trash/<日期>-<原因>/`，不直接删。
+/.workbuddy-ai/trash/
+
+# ── 浏览器登录态（含 Cookie，绝不入库）──────────────────────────
+# 素材站需要登录才能取图；用 agent-browser `--headed --profile <此目录>`
+# 让用户人工登录一次，后续自动化复用该登录态。**目录内含会话 Cookie**，
+# 属凭据，严禁提交。
+/.workbuddy-ai/aigei-profile/
+
+# ── 构建与导出产物 ──────────────────────────────────────────────
+/build/
+/export/
+game/build/
+game/export/
+
+# ── 系统与 IDE ──────────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# ── 个人自玩素材（参见 game/.gitignore 中的更细化规则）────────────────
+# 兜底规则：覆盖全仓任何路径下的"名字含 dnf 的二进制素材"。
+# **约定**：将来若有正当文件名想包含 "dnf" 字样（如 dnf_config.yaml、
+# test_dnf_only.gd 等），请改名避开 dnf 字样，或在该文件顶部加
+# `git add -f file` 显式覆盖。规则本身不需改——这是"素材兜底"的命名公约。
+*dnf*.png
+*dnf*.gif
+*dnf*.webp
+*DNF*.png
+*DNF*.gif
+*DNF*.webp
+_aigei*/
+_aigei_*
+
+# ── 采集暂存 / 工具临时产物（不入仓库）──────────────────────────────
+# `asset_src/` 是外部素材的**下载暂存区**：原始下载物未量化、未过色板、
+# 且可能含第三方版权内容，必须留在本地。经 `game/tools/tiles_quantize.py`
+# 量化合规后的成品才进 `game/assets/tilesets/`。
+asset_src/
+# 各 worker 的临时工作目录与探针输出（根目录级）
+.fxwork/
+_anim_probe.txt
+
+# 2026-09-22：agent 临时补丁脚本/日志（不入库）
+/.workbuddy-ai/tmp/
+# 2026-09-22：版权清理隔离区（不入库）
+deliverables/_quarantine_*/

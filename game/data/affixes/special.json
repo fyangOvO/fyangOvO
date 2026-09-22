@@ -1,0 +1,123 @@
+[
+  {
+    "id": "add_magic_find",
+    "display_name": "掉落幸运",
+    "description_template": "+{value}% 掉落幸运",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 5.0,
+    "value_max": 10.0,
+    "decimal_places": 1,
+    "weight": 45.0,
+    "stat_key": "magic_find"
+  },
+  {
+    "id": "add_xp_gain",
+    "display_name": "经验获取",
+    "description_template": "+{value}% 经验获取",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 3.0,
+    "value_max": 6.0,
+    "decimal_places": 1,
+    "weight": 40.0,
+    "stat_key": "xp_gain"
+  },
+  {
+    "id": "add_gold_gain",
+    "display_name": "金币获取",
+    "description_template": "+{value}% 金币获取",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 6.0,
+    "value_max": 12.0,
+    "decimal_places": 1,
+    "weight": 40.0,
+    "stat_key": "gold_gain"
+  },
+  {
+    "id": "add_thorns",
+    "display_name": "荆棘反伤",
+    "description_template": "受击反弹 {value}% 攻击力",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 8.0,
+    "value_max": 15.0,
+    "decimal_places": 1,
+    "weight": 35.0,
+    "stat_key": "thorns"
+  },
+  {
+    "id": "add_life_on_hit",
+    "display_name": "生命偷取",
+    "description_template": "{value}% 伤害转化为生命",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 1.5,
+    "value_max": 3.0,
+    "decimal_places": 1,
+    "allowed_slots": [
+      "main_hand",
+      "ring_a",
+      "ring_b",
+      "amulet",
+      "gloves"
+    ],
+    "weight": 50.0,
+    "stat_key": "life_on_hit"
+  },
+  {
+    "id": "add_kill_heal",
+    "display_name": "击杀回复",
+    "description_template": "击杀回复 {value} 生命",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": false,
+    "value_min": 5.0,
+    "value_max": 12.0,
+    "decimal_places": 0,
+    "weight": 45.0,
+    "stat_key": "kill_heal"
+  },
+  {
+    "id": "mythic_all_attributes",
+    "display_name": "神话·全属性",
+    "description_template": "+{value}% 全属性",
+    "category": "special",
+    "position": "prefix",
+    "is_percentage": true,
+    "value_min": 6.0,
+    "value_max": 10.0,
+    "decimal_places": 1,
+    "min_rarity": 5,
+    "exclusive_group": "mythic_all_attributes",
+    "can_reroll": false,
+    "obtainable_from_craft": false,
+    "weight": 0.0,
+    "stat_key": "all_attributes"
+  },
+  {
+    "id": "hidden_echo_strike",
+    "display_name": "回响之刃",
+    "description_template": "每第 7 次攻击额外造成 {value}% 伤害",
+    "category": "special",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 40.0,
+    "value_max": 70.0,
+    "decimal_places": 0,
+    "allowed_slots": [
+      "main_hand"
+    ],
+    "min_rarity": 7,
+    "can_reroll": false,
+    "obtainable_from_craft": false,
+    "weight": 0.5,
+    "stat_key": "echo_strike"
+  }
+]

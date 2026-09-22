@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://tools/combat_preview.gd" id="1_preview"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/combat/damage_dummy.tscn" id="3_dummy"]
+
+[node name="CombatPreview" type="Node2D"]
+script = ExtResource("1_preview")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="DummyFront" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(0, 40)
+
+[node name="DummyNear" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(0, 28)
+
+[node name="DummyFar" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(0, 150)
+
+[node name="Fx" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(3, 3)

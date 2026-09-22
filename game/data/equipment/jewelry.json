@@ -1,0 +1,314 @@
+[
+ {
+  "id": "amulet_bone",
+  "display_name": "骨制项链",
+  "slot": "amulet",
+  "base_stats": {
+   "flat_hp": 15.0,
+   "crit_damage": 10.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
+  "drop_weight": 70.0
+ },
+ {
+  "id": "ring_copper",
+  "display_name": "铜环",
+  "slot": "ring_a",
+  "base_stats": {
+   "crit_chance": 4.0,
+   "life_on_hit": 2.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
+  "drop_weight": 90.0
+ },
+ {
+  "id": "ring_rift",
+  "display_name": "裂界指环",
+  "slot": "ring_a",
+  "base_stats": {
+   "crit_chance": 8.0,
+   "crit_damage": 25.0,
+   "move_speed": 10.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "legendary",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
+  "drop_weight": 1.0,
+  "craftable": false
+ },
+ {
+  "id": "ring_rift_b",
+  "display_name": "裂界指环",
+  "slot": "ring_b",
+  "base_stats": {
+   "crit_chance": 8.0,
+   "crit_damage": 25.0,
+   "move_speed": 10.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "legendary",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_ring_b_48.png",
+  "drop_weight": 1.0,
+  "craftable": false
+ },
+ {
+  "id": "mythic_crown_seven_kalpa",
+  "display_name": "七劫之冠",
+  "slot": "helm",
+  "base_stats": {
+   "flat_hp": 60.0,
+   "flat_armor": 20.0,
+   "pct_hp": 6.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense",
+   "mythic_pool"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "mythic",
+  "rarity_max": "mythic",
+  "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
+  "drop_weight": 0.5,
+  "craftable": false
+ },
+ {
+  "id": "mythic_staff_final_echo",
+  "display_name": "终末回响",
+  "slot": "main_hand",
+  "weapon_archetype": "staff",
+  "base_stats": {
+   "flat_attack": 20.0,
+   "elemental_damage": 22.0,
+   "skill_level": 2.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_caster",
+   "mythic_pool"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "mythic",
+  "rarity_max": "mythic",
+  "icon_path": "res://assets/icons/equipment/equip_staff_48.png",
+  "drop_weight": 0.5,
+  "craftable": false
+ },
+ {
+  "id": "hidden_amulet_first_tale",
+  "display_name": "七傳說·其一",
+  "slot": "amulet",
+  "base_stats": {
+   "all_attributes": 5.0,
+   "flat_hp": 40.0,
+   "magic_find": 15.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 10,
+  "item_level_max": 20,
+  "rarity_min": "hidden",
+  "rarity_max": "hidden",
+  "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
+  "drop_weight": 0.1,
+  "craftable": false,
+  "undismantlable": true,
+  "growth_stat_key": "all_attributes",
+  "growth_max": 5.0
+ },
+ {
+  "id": "hidden_boots_scavenger",
+  "display_name": "拾荒者的执念",
+  "slot": "boots",
+  "base_stats": {
+   "move_speed": 18.0,
+   "gold_gain": 25.0,
+   "pickup_radius": 30.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_utility"
+  ],
+  "item_level_min": 10,
+  "item_level_max": 20,
+  "rarity_min": "hidden",
+  "rarity_max": "hidden",
+  "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
+  "drop_weight": 0.1,
+  "craftable": false,
+  "undismantlable": true,
+  "growth_stat_key": "move_speed",
+  "growth_max": 15.0
+ },
+ {
+  "id": "amulet_ember",
+  "display_name": "余烬护符",
+  "slot": "amulet",
+  "base_stats": {
+   "flat_attack": 9.0,
+   "crit_damage": 6.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 6,
+  "item_level_max": 18,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
+  "drop_weight": 90.0
+ },
+ {
+  "id": "ring_frost",
+  "display_name": "霜戒",
+  "slot": "ring_a",
+  "base_stats": {
+   "flat_attack": 7.0,
+   "flat_hp": 25.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 8,
+  "item_level_max": 20,
+  "rarity_min": "magic",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
+  "drop_weight": 80.0
+ },
+ {
+  "id": "ring_storm",
+  "display_name": "雷暴之戒",
+  "slot": "ring_b",
+  "base_stats": {
+   "flat_attack": 10.0,
+   "attack_speed": 6.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 5,
+  "item_level_max": 17,
+  "rarity_min": "common",
+  "rarity_max": "rare",
+  "icon_path": "res://assets/icons/equipment/equip_ring_b_48.png",
+  "drop_weight": 95.0
+ },
+ {
+  "id": "amulet_veil",
+  "display_name": "影纱吊坠",
+  "slot": "amulet",
+  "base_stats": {
+   "flat_attack": 12.0,
+   "crit_chance": 6.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 9,
+  "item_level_max": 20,
+  "rarity_min": "rare",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
+  "drop_weight": 55.0
+ },
+ {
+  "id": "ring_blood",
+  "display_name": "嗜血之戒",
+  "slot": "ring_a",
+  "base_stats": {
+   "flat_hp": 35.0,
+   "life_on_hit": 3.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 10,
+  "item_level_max": 20,
+  "rarity_min": "magic",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
+  "drop_weight": 68.0
+ },
+ {
+  "id": "amulet_sun",
+  "display_name": "烈日圣印",
+  "slot": "amulet",
+  "base_stats": {
+   "flat_attack": 15.0,
+   "crit_damage": 10.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 12,
+  "item_level_max": 20,
+  "rarity_min": "rare",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
+  "drop_weight": 45.0
+ },
+ {
+  "id": "ring_echo",
+  "display_name": "回响之戒",
+  "slot": "ring_b",
+  "base_stats": {
+   "flat_attack": 8.0,
+   "resource_regen": 5.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 4,
+  "item_level_max": 16,
+  "rarity_min": "common",
+  "rarity_max": "rare",
+  "icon_path": "res://assets/icons/equipment/equip_ring_b_48.png",
+  "drop_weight": 100.0
+ },
+ {
+  "id": "amulet_guard",
+  "display_name": "守护者勋章",
+  "slot": "amulet",
+  "base_stats": {
+   "flat_hp": 40.0,
+   "flat_armor": 8.0
+  },
+  "affix_pool_ids": [
+   "jewelry_generic"
+  ],
+  "item_level_min": 3,
+  "item_level_max": 15,
+  "rarity_min": "common",
+  "rarity_max": "magic",
+  "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
+  "drop_weight": 110.0
+ }
+]

@@ -1,0 +1,113 @@
+[
+  {
+    "id": "add_flat_attack",
+    "display_name": "攻击力",
+    "description_template": "+{value} 攻击力",
+    "category": "attack",
+    "position": "prefix",
+    "is_percentage": false,
+    "value_min": 4.0,
+    "value_max": 6.0,
+    "decimal_places": 0,
+    "weight": 120.0,
+    "stat_key": "flat_attack"
+  },
+  {
+    "id": "add_pct_attack",
+    "display_name": "攻击力",
+    "description_template": "+{value}% 攻击力",
+    "category": "attack",
+    "position": "prefix",
+    "is_percentage": true,
+    "value_min": 5.0,
+    "value_max": 8.0,
+    "decimal_places": 1,
+    "weight": 100.0,
+    "stat_key": "pct_attack"
+  },
+  {
+    "id": "add_elemental_damage",
+    "display_name": "元素伤害",
+    "description_template": "+{value}% 元素伤害",
+    "category": "attack",
+    "position": "prefix",
+    "is_percentage": true,
+    "value_min": 6.0,
+    "value_max": 10.0,
+    "decimal_places": 1,
+    "weight": 80.0,
+    "stat_key": "elemental_damage"
+  },
+  {
+    "id": "add_crit_chance",
+    "display_name": "暴击率",
+    "description_template": "+{value}% 暴击率",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 3.0,
+    "value_max": 5.0,
+    "decimal_places": 1,
+    "weight": 90.0,
+    "stat_key": "crit_chance"
+  },
+  {
+    "id": "add_crit_damage",
+    "display_name": "暴击伤害",
+    "description_template": "+{value}% 暴击伤害",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 12.0,
+    "value_max": 20.0,
+    "decimal_places": 1,
+    "weight": 85.0,
+    "stat_key": "crit_damage"
+  },
+  {
+    "id": "add_attack_speed",
+    "display_name": "攻击速度",
+    "description_template": "+{value}% 攻击速度",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 4.0,
+    "value_max": 7.0,
+    "decimal_places": 1,
+    "weight": 80.0,
+    "stat_key": "attack_speed"
+  },
+  {
+    "id": "add_armor_penetration",
+    "display_name": "护甲穿透",
+    "description_template": "+{value}% 护甲穿透",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 5.0,
+    "value_max": 9.0,
+    "decimal_places": 1,
+    "weight": 60.0,
+    "stat_key": "armor_penetration"
+  },
+  {
+    "id": "add_skill_level",
+    "display_name": "技能等级",
+    "description_template": "+{value} 技能等级",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": false,
+    "value_min": 1.0,
+    "value_max": 1.0,
+    "decimal_places": 0,
+    "scales_with_item_level": false,
+    "allowed_slots": [
+      "main_hand",
+      "off_hand",
+      "amulet"
+    ],
+    "min_rarity": 3,
+    "weight": 12.0,
+    "stat_key": "skill_level"
+  }
+]

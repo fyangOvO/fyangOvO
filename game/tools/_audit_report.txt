@@ -1,0 +1,32 @@
+===== forest =====
+  atlas.png (256, 160) mode=RGBA  tile_size=32  grid=8x5
+  ground     21 variants
+  wall        4 variants
+  obstacle   12 variants
+  out-of-range coords: 0
+  cells used: 37 / 40  (92% fill)
+  ground    alpha: avg=1.00  tiles_with_<60%_coverage=0
+  wall      alpha: avg=1.00  tiles_with_<60%_coverage=0
+  obstacle  alpha: avg=0.41  tiles_with_<60%_coverage=9
+
+===== volcanic =====
+  atlas.png (256, 160) mode=RGBA  tile_size=32  grid=8x5
+  ground     17 variants
+  wall        6 variants
+  obstacle   11 variants
+  out-of-range coords: 0
+  cells used: 34 / 40  (85% fill)
+  ground    alpha: avg=1.00  tiles_with_<60%_coverage=0
+  wall      alpha: avg=1.00  tiles_with_<60%_coverage=0
+  obstacle  alpha: avg=0.37  tiles_with_<60%_coverage=9
+
+===== frost =====
+  atlas.png (256, 192) mode=RGBA  tile_size=32  grid=8x6
+  ground     17 variants
+  wall       13 variants
+  obstacle   13 variants
+  out-of-range coords: 0
+  cells used: 43 / 48  (90% fill)
+  ground    alpha: avg=1.00  tiles_with_<60%_coverage=0
+  wall      alpha: avg=1.00  tiles_with_<60%_coverage=0
+  obstacle  alpha: avg=0.65  tiles_with_<60%_coverage=6

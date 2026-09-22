@@ -1,0 +1,88 @@
+[
+  {
+    "id": "add_max_resource",
+    "display_name": "最大资源",
+    "description_template": "+{value} 最大资源",
+    "category": "resource",
+    "position": "prefix",
+    "is_percentage": false,
+    "value_min": 15.0,
+    "value_max": 25.0,
+    "decimal_places": 0,
+    "weight": 100.0,
+    "stat_key": "max_resource"
+  },
+  {
+    "id": "add_resource_regen",
+    "display_name": "资源回复速度",
+    "description_template": "+{value}% 资源回复速度",
+    "category": "resource",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 8.0,
+    "value_max": 14.0,
+    "decimal_places": 1,
+    "weight": 80.0,
+    "stat_key": "resource_regen"
+  },
+  {
+    "id": "add_skill_cost_reduction",
+    "display_name": "技能减耗",
+    "description_template": "-{value}% 技能消耗",
+    "category": "resource",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 4.0,
+    "value_max": 7.0,
+    "decimal_places": 1,
+    "weight": 55.0,
+    "stat_key": "skill_cost_reduction"
+  },
+  {
+    "id": "add_cooldown_reduction",
+    "display_name": "冷却缩减",
+    "description_template": "-{value}% 冷却时间",
+    "category": "resource",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 4.0,
+    "value_max": 7.0,
+    "decimal_places": 1,
+    "weight": 50.0,
+    "stat_key": "cooldown_reduction"
+  },
+  {
+    "id": "add_pickup_radius",
+    "display_name": "拾取范围",
+    "description_template": "+{value} 拾取范围",
+    "category": "resource",
+    "position": "suffix",
+    "is_percentage": false,
+    "value_min": 10.0,
+    "value_max": 20.0,
+    "decimal_places": 0,
+    "weight": 45.0,
+    "stat_key": "pickup_radius"
+  },
+  {
+    "id": "add_move_speed",
+    "display_name": "移动速度",
+    "description_template": "+{value}% 移动速度",
+    "category": "resource",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 4.0,
+    "value_max": 7.0,
+    "decimal_places": 1,
+    "allowed_slots": [
+      "boots",
+      "legs",
+      "chest",
+      "amulet",
+      "ring_a",
+      "ring_b"
+    ],
+    "weight": 75.0,
+    "stat_key": "move_speed"
+  }
+]

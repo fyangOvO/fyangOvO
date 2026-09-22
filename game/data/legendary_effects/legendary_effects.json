@@ -1,0 +1,323 @@
+{
+  "_meta": {
+    "version": 1,
+    "purpose": "传奇特效池（GDD 0.3 节 3.5：触发条件 + 效果 + 冷却/上限 三要素范式）。遗留项 #3：池需 ≥ 30 件。",
+    "source": "GDD 3.5 节 5 件示例 + 3.2.2 节 2 件神话示例 + 工程侧扩展（同部位特效池，供 3.4 重铸抽取）",
+    "trigger_types": ["on_hit", "on_crit", "on_kill", "on_elite_kill", "on_damage_taken", "on_low_hp", "on_pickup_gold", "on_skill_cast", "on_resource_spend", "on_block"],
+    "effect_types": ["stack", "deal_damage", "heal", "gain_resource", "buff_stat", "extra_loot", "revive_protect", "ms_boost", "damage_reduction", "reflect", "resource_refund", "summon"]
+  },
+  "effects": [
+    {
+      "id": "jin_shi_ran_po_ren",
+      "name": "烬誓·燃魄刃",
+      "slot": "main_hand",
+      "rarity_min": 4,
+      "trigger": { "type": "on_crit", "stacks_until": 5 },
+      "effect": { "type": "stack", "on_full": { "type": "deal_damage", "damage_pct": 3.0, "element": "fire", "area": true } },
+      "cooldown": 0.0,
+      "description": "每次暴击为目标附加 1 层「烬」，叠满 5 层引爆，造成 300% 攻击力的火焰范围伤害"
+    },
+    {
+      "id": "kuang_lan_chao_xi_ren",
+      "name": "狂澜·潮汐刃",
+      "slot": "main_hand",
+      "rarity_min": 4,
+      "trigger": { "type": "on_hit" },
+      "effect": { "type": "buff_stat", "stat": "move_speed", "value": -15.0, "duration": 2.0, "target": "enemy" },
+      "cooldown": 0.0,
+      "description": "攻击命中时使目标移动速度 -15%，持续 2 秒（可刷新）"
+    },
+    {
+      "id": "lie_kong_lei_bao_chui",
+      "name": "裂空·雷暴锤",
+      "slot": "main_hand",
+      "rarity_min": 4,
+      "trigger": { "type": "on_crit", "pct": 0.3 },
+      "effect": { "type": "deal_damage", "damage_pct": 1.2, "element": "lightning", "area": true },
+      "cooldown": 1.0,
+      "description": "暴击时 30% 概率劈落连锁闪电，对目标周围造成 120% 攻击力的闪电伤害（冷却 1 秒）"
+    },
+    {
+      "id": "zhong_mo_hui_xiang",
+      "name": "终末回响",
+      "slot": "main_hand",
+      "rarity_min": 5,
+      "mythic": true,
+      "trigger": { "type": "on_skill_cast", "pct": 0.2 },
+      "effect": { "type": "resource_refund", "pct": 1.0, "cooldown_half": true },
+      "cooldown": 0.0,
+      "description": "施放技能时 20% 概率不消耗资源且冷却减半"
+    },
+    {
+      "id": "shou_hu_jian_bi",
+      "name": "守护·坚壁",
+      "slot": "off_hand",
+      "rarity_min": 4,
+      "trigger": { "type": "on_block" },
+      "effect": { "type": "heal", "heal_pct": 0.02 },
+      "cooldown": 0.0,
+      "description": "格挡成功后回复 2% 最大生命"
+    },
+    {
+      "id": "an_shi_zhou_yin_shu",
+      "name": "暗蚀·咒印书",
+      "slot": "off_hand",
+      "rarity_min": 4,
+      "trigger": { "type": "on_kill", "pct": 0.25 },
+      "effect": { "type": "summon", "creature": "ghost", "count": 1, "duration": 8.0 },
+      "cooldown": 3.0,
+      "description": "击杀敌人时 25% 概率召唤 1 只幽魂作战（持续 8 秒，冷却 3 秒）"
+    },
+    {
+      "id": "ju_neng_ao_shu_qiu",
+      "name": "聚能·奥术球",
+      "slot": "off_hand",
+      "rarity_min": 4,
+      "trigger": { "type": "on_skill_cast", "stacks_until": 4 },
+      "effect": { "type": "stack", "on_full": { "type": "deal_damage", "damage_pct": 1.5, "element": "arcane", "area": true } },
+      "cooldown": 0.0,
+      "description": "每次施放技能积累 1 层奥能，叠满 4 层释放一道奥术冲击波（150% 攻击力范围伤害）"
+    },
+    {
+      "id": "qi_chong_hui_xiang_zhi_guan",
+      "name": "七重回响之冠",
+      "slot": "helm",
+      "rarity_min": 4,
+      "trigger": { "type": "on_resource_spend", "amount": 100 },
+      "effect": { "type": "summon", "creature": "echo_copy", "count": 1, "damage_pct": 0.4 },
+      "cooldown": 0.0,
+      "description": "每消耗 100 点资源，下一次技能额外触发一次 40% 伤害的复制"
+    },
+    {
+      "id": "qi_jie_zhi_guan",
+      "name": "七劫之冠",
+      "slot": "helm",
+      "rarity_min": 5,
+      "mythic": true,
+      "trigger": { "type": "on_low_hp", "hp_below_pct": 0.1, "stacks_until": 9 },
+      "effect": { "type": "stack", "on_full": { "type": "buff_stat", "stat": "all_damage", "value": 6.0, "duration": 999.0, "max_stacks": 9 } },
+      "cooldown": 0.0,
+      "description": "每损失 10% 生命，伤害 +6%（满血无加成，残血最高 +54%）"
+    },
+    {
+      "id": "qing_xing_dong_cha_guan",
+      "name": "清醒·洞察冠",
+      "slot": "helm",
+      "rarity_min": 4,
+      "trigger": { "type": "on_crit", "pct": 0.35 },
+      "effect": { "type": "gain_resource", "amount": 5 },
+      "cooldown": 0.5,
+      "description": "暴击时 35% 概率回复 5 点资源（冷却 0.5 秒）"
+    },
+    {
+      "id": "jian_ren_tie_lu_kui",
+      "name": "坚韧·铁颅盔",
+      "slot": "helm",
+      "rarity_min": 4,
+      "trigger": { "type": "on_damage_taken", "stacks_until": 5 },
+      "effect": { "type": "stack", "on_full": { "type": "buff_stat", "stat": "armor_pct", "value": 8.0, "duration": 4.0 } },
+      "cooldown": 0.0,
+      "description": "受到攻击时叠 1 层坚韧，叠满 5 层获得 +8% 护甲，持续 4 秒"
+    },
+    {
+      "id": "bu_xiu_zhe_de_can_qu",
+      "name": "不朽者的残躯",
+      "slot": "chest",
+      "rarity_min": 4,
+      "trigger": { "type": "on_low_hp", "hp_below_pct": 0.01 },
+      "effect": { "type": "revive_protect", "heal_pct": 0.3, "drain_resource": true },
+      "cooldown": 90.0,
+      "description": "受致命伤害时消耗全部资源，免疫本次伤害并回复 30% 生命（冷却 90 秒）"
+    },
+    {
+      "id": "pan_shi_bu_dong_jia",
+      "name": "磐石·不动甲",
+      "slot": "chest",
+      "rarity_min": 4,
+      "trigger": { "type": "on_damage_taken", "stacks_until": 6 },
+      "effect": { "type": "stack", "on_full": { "type": "buff_stat", "stat": "armor_pct", "value": 10.0, "duration": 5.0 } },
+      "cooldown": 0.0,
+      "description": "受到攻击叠 1 层磐石，叠满 6 层获得 +10% 护甲，持续 5 秒"
+    },
+    {
+      "id": "chi_yang_lie_yan_xiong",
+      "name": "炽阳·烈焰胸",
+      "slot": "chest",
+      "rarity_min": 4,
+      "trigger": { "type": "on_hit", "pct": 0.2 },
+      "effect": { "type": "deal_damage", "damage_pct": 0.5, "element": "fire", "dot": 3.0, "dot_ticks": 3 },
+      "cooldown": 0.0,
+      "description": "攻击命中时 20% 概率点燃目标，3 秒内共造成 50% 攻击力的火焰伤害"
+    },
+    {
+      "id": "you_an_yi_ying_pao",
+      "name": "幽暗·影蚀袍",
+      "slot": "chest",
+      "rarity_min": 4,
+      "trigger": { "type": "on_kill" },
+      "effect": { "type": "buff_stat", "stat": "dodge", "value": 20.0, "duration": 2.5 },
+      "cooldown": 1.0,
+      "description": "击杀敌人后 2.5 秒内闪避 +20%（冷却 1 秒）"
+    },
+    {
+      "id": "ji_feng_lie_shou_zhua",
+      "name": "疾风·猎手爪",
+      "slot": "gloves",
+      "rarity_min": 4,
+      "trigger": { "type": "on_hit", "stacks_until": 4 },
+      "effect": { "type": "stack", "on_full": { "type": "buff_stat", "stat": "attack_speed", "value": 15.0, "duration": 4.0 } },
+      "cooldown": 0.0,
+      "description": "攻击命中叠 1 层疾风，叠满 4 层获得 +15% 攻击速度，持续 4 秒"
+    },
+    {
+      "id": "cui_du_she_ya_tao",
+      "name": "淬毒·蛇牙套",
+      "slot": "gloves",
+      "rarity_min": 4,
+      "trigger": { "type": "on_hit", "pct": 0.15 },
+      "effect": { "type": "deal_damage", "damage_pct": 0.8, "element": "poison", "dot": 2.0, "dot_ticks": 4 },
+      "cooldown": 0.0,
+      "description": "攻击命中时 15% 概率施毒，4 秒内共造成 80% 攻击力的中毒伤害"
+    },
+    {
+      "id": "sui_jia_po_jun_quan",
+      "name": "碎甲·破军拳",
+      "slot": "gloves",
+      "rarity_min": 4,
+      "trigger": { "type": "on_crit", "pct": 0.4 },
+      "effect": { "type": "buff_stat", "stat": "enemy_armor_reduction", "value": 10.0, "duration": 3.0, "target": "enemy" },
+      "cooldown": 1.0,
+      "description": "暴击时 40% 概率使目标护甲 -10%，持续 3 秒（冷却 1 秒）"
+    },
+    {
+      "id": "xun_jie_ji_xing_tui",
+      "name": "迅捷·疾行腿",
+      "slot": "legs",
+      "rarity_min": 4,
+      "trigger": { "type": "on_kill" },
+      "effect": { "type": "ms_boost", "value": 15.0, "duration": 3.0 },
+      "cooldown": 0.5,
+      "description": "击杀敌人后移动速度 +15%，持续 3 秒（冷却 0.5 秒）"
+    },
+    {
+      "id": "tie_bi_zhong_zhuang_tui",
+      "name": "铁壁·重装腿",
+      "slot": "legs",
+      "rarity_min": 4,
+      "trigger": { "type": "on_damage_taken", "pct": 0.3 },
+      "effect": { "type": "damage_reduction", "value": 5.0, "duration": 3.0 },
+      "cooldown": 0.5,
+      "description": "受到攻击时 30% 概率获得 +5% 减伤，持续 3 秒（冷却 0.5 秒）"
+    },
+    {
+      "id": "shi_yi_zhe_zhi_xue",
+      "name": "拾遗者之靴",
+      "slot": "boots",
+      "rarity_min": 4,
+      "trigger": { "type": "on_pickup_gold", "pct": 0.15 },
+      "effect": { "type": "extra_loot", "loot_quality": "magic", "limit_per_run": 5 },
+      "cooldown": 0.0,
+      "description": "拾取金币时 15% 概率额外掉出 1 件随机魔法物品（每关上限 5 次）"
+    },
+    {
+      "id": "ta_yan_huo_xing_xue",
+      "name": "踏焰·火行靴",
+      "slot": "boots",
+      "rarity_min": 4,
+      "trigger": { "type": "on_damage_taken" },
+      "effect": { "type": "reflect", "pct": 0.25, "element": "fire" },
+      "cooldown": 0.0,
+      "description": "受到攻击时反弹 25% 伤害给攻击者（火焰）"
+    },
+    {
+      "id": "shun_ying_huan_bu_xue",
+      "name": "瞬影·幻步靴",
+      "slot": "boots",
+      "rarity_min": 4,
+      "trigger": { "type": "on_kill", "pct": 0.2 },
+      "effect": { "type": "ms_boost", "value": 40.0, "duration": 1.5 },
+      "cooldown": 2.0,
+      "description": "击杀敌人时 20% 概率爆发 40% 移速 1.5 秒（冷却 2 秒）"
+    },
+    {
+      "id": "ning_shen_zhuan_zhu_zhui",
+      "name": "凝神·专注坠",
+      "slot": "amulet",
+      "rarity_min": 4,
+      "trigger": { "type": "on_skill_cast", "stacks_until": 3 },
+      "effect": { "type": "stack", "on_full": { "type": "resource_refund", "pct": 0.5 } },
+      "cooldown": 0.0,
+      "description": "每施放 3 次技能，下一次技能资源消耗 -50%"
+    },
+    {
+      "id": "xue_qi_xi_xue_lian",
+      "name": "血契·吸血链",
+      "slot": "amulet",
+      "rarity_min": 4,
+      "trigger": { "type": "on_crit" },
+      "effect": { "type": "heal", "heal_pct": 0.03 },
+      "cooldown": 0.2,
+      "description": "暴击时回复 3% 最大生命（冷却 0.2 秒）"
+    },
+    {
+      "id": "wang_quan_tong_yu_zhui",
+      "name": "王权·统御坠",
+      "slot": "amulet",
+      "rarity_min": 4,
+      "trigger": { "type": "on_elite_kill" },
+      "effect": { "type": "buff_stat", "stat": "all_attributes", "value": 8.0, "duration": 15.0 },
+      "cooldown": 0.0,
+      "description": "击杀精英后全属性 +8%，持续 15 秒"
+    },
+    {
+      "id": "lie_jie_zhi_huan",
+      "name": "裂界指环",
+      "slot": "ring_a",
+      "rarity_min": 4,
+      "trigger": { "type": "on_elite_kill" },
+      "effect": { "type": "ms_boost", "value": 25.0, "duration": 8.0, "element_attach": true },
+      "cooldown": 0.0,
+      "description": "击杀精英后 8 秒内移动速度 +25%，且攻击附带该精英的伤害类型"
+    },
+    {
+      "id": "tan_lan_ju_bao_jie",
+      "name": "贪婪·聚宝戒",
+      "slot": "ring_a",
+      "rarity_min": 4,
+      "trigger": { "type": "on_pickup_gold" },
+      "effect": { "type": "buff_stat", "stat": "gold_gain", "value": 10.0, "duration": 5.0 },
+      "cooldown": 0.0,
+      "description": "拾取金币后 5 秒内金币获取 +10%（可叠加）"
+    },
+    {
+      "id": "feng_bao_lei_jie",
+      "name": "风暴·雷戒",
+      "slot": "ring_a",
+      "rarity_min": 4,
+      "trigger": { "type": "on_crit", "pct": 0.25 },
+      "effect": { "type": "deal_damage", "damage_pct": 0.8, "element": "lightning", "area": true },
+      "cooldown": 1.5,
+      "description": "暴击时 25% 概率引雷，对周围造成 80% 攻击力的闪电伤害（冷却 1.5 秒）"
+    },
+    {
+      "id": "fu_su_sheng_ming_jie",
+      "name": "复苏·生命戒",
+      "slot": "ring_b",
+      "rarity_min": 4,
+      "trigger": { "type": "on_low_hp", "hp_below_pct": 0.3 },
+      "effect": { "type": "heal", "heal_pct": 0.1 },
+      "cooldown": 12.0,
+      "description": "生命低于 30% 时回复 10% 最大生命（冷却 12 秒）"
+    },
+    {
+      "id": "ying_zhe_zhi_hun_jie",
+      "name": "影者之魂戒",
+      "slot": "ring_b",
+      "rarity_min": 4,
+      "trigger": { "type": "on_kill", "stacks_until": 8 },
+      "effect": { "type": "stack", "on_full": { "type": "buff_stat", "stat": "all_damage", "value": 12.0, "duration": 6.0 } },
+      "cooldown": 0.0,
+      "description": "击杀叠 1 层魂力，叠满 8 层获得 +12% 全伤害，持续 6 秒"
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+[
+ {
+  "id": "sword_iron",
+  "display_name": "铁剑",
+  "slot": "main_hand",
+  "weapon_archetype": "sword",
+  "base_stats": {
+   "flat_attack": 10.0,
+   "crit_chance": 3.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_sword_48.png",
+  "drop_weight": 120.0,
+  "craftable": true
+ },
+ {
+  "id": "axe_cleaver",
+  "display_name": "劈骨斧",
+  "slot": "main_hand",
+  "weapon_archetype": "axe",
+  "base_stats": {
+   "flat_attack": 14.0,
+   "crit_chance": 2.0,
+   "attack_speed": -4.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_axe_48.png",
+  "drop_weight": 90.0
+ },
+ {
+  "id": "hammer_earthshaker",
+  "display_name": "撼地锤",
+  "slot": "main_hand",
+  "weapon_archetype": "hammer",
+  "base_stats": {
+   "flat_attack": 16.0,
+   "attack_speed": -8.0,
+   "flat_armor": 3.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 3,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_hammer_48.png",
+  "drop_weight": 70.0
+ },
+ {
+  "id": "dagger_shadow",
+  "display_name": "影刺",
+  "slot": "main_hand",
+  "weapon_archetype": "dagger",
+  "base_stats": {
+   "flat_attack": 7.0,
+   "crit_chance": 6.0,
+   "attack_speed": 12.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_dagger_48.png",
+  "drop_weight": 85.0
+ },
+ {
+  "id": "staff_ashen",
+  "display_name": "烬木法杖",
+  "slot": "main_hand",
+  "weapon_archetype": "staff",
+  "base_stats": {
+   "flat_attack": 9.0,
+   "elemental_damage": 12.0,
+   "max_resource": 20.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_caster"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_staff_48.png",
+  "drop_weight": 80.0
+ },
+ {
+  "id": "bow_longbow",
+  "display_name": "游猎长弓",
+  "slot": "main_hand",
+  "weapon_archetype": "longbow",
+  "base_stats": {
+   "flat_attack": 11.0,
+   "crit_damage": 15.0,
+   "attack_speed": -2.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_bow_48.png",
+  "drop_weight": 75.0
+ },
+ {
+  "id": "shield_tower",
+  "display_name": "塔盾",
+  "slot": "off_hand",
+  "weapon_archetype": "shield",
+  "base_stats": {
+   "flat_armor": 12.0,
+   "block_chance": 8.0,
+   "flat_hp": 25.0
+  },
+  "affix_pool_ids": [
+   "weapon_defense",
+   "weapon_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_shield_48.png",
+  "drop_weight": 100.0
+ },
+ {
+  "id": "sword_ash_vow",
+  "display_name": "烬誓·燃魄刃",
+  "slot": "main_hand",
+  "weapon_archetype": "sword",
+  "base_stats": {
+   "flat_attack": 18.0,
+   "elemental_damage": 15.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "legendary",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_sword_48.png",
+  "drop_weight": 1.0,
+  "craftable": false
+ },
+ {
+  "id": "sword_flame",
+  "display_name": "烈焰剑",
+  "slot": "main_hand",
+  "weapon_archetype": "sword",
+  "base_stats": {
+   "flat_attack": 22.0,
+   "crit_chance": 3.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 8,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_sword_48.png",
+  "drop_weight": 95.0,
+  "craftable": true
+ },
+ {
+  "id": "axe_blood",
+  "display_name": "血斧",
+  "slot": "main_hand",
+  "weapon_archetype": "axe",
+  "base_stats": {
+   "flat_attack": 18.0,
+   "flat_hp": 15.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_defense"
+  ],
+  "item_level_min": 4,
+  "item_level_max": 16,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_axe_48.png",
+  "drop_weight": 100.0,
+  "craftable": true
+ },
+ {
+  "id": "hammer_glacier",
+  "display_name": "冰川锤",
+  "slot": "main_hand",
+  "weapon_archetype": "hammer",
+  "base_stats": {
+   "flat_attack": 26.0,
+   "armor_penetration": 5.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 10,
+  "item_level_max": 20,
+  "rarity_min": "magic",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_hammer_48.png",
+  "drop_weight": 75.0,
+  "craftable": true
+ },
+ {
+  "id": "dagger_venom",
+  "display_name": "淬毒匕首",
+  "slot": "main_hand",
+  "weapon_archetype": "dagger",
+  "base_stats": {
+   "flat_attack": 14.0,
+   "attack_speed": 8.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 6,
+  "item_level_max": 18,
+  "rarity_min": "common",
+  "rarity_max": "rare",
+  "icon_path": "res://assets/icons/equipment/equip_dagger_48.png",
+  "drop_weight": 110.0,
+  "craftable": true
+ },
+ {
+  "id": "staff_storm",
+  "display_name": "风暴法杖",
+  "slot": "main_hand",
+  "weapon_archetype": "staff",
+  "base_stats": {
+   "flat_attack": 20.0,
+   "crit_chance": 5.0
+  },
+  "affix_pool_ids": [
+   "weapon_caster",
+   "weapon_generic"
+  ],
+  "item_level_min": 7,
+  "item_level_max": 20,
+  "rarity_min": "magic",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_staff_48.png",
+  "drop_weight": 85.0,
+  "craftable": true
+ },
+ {
+  "id": "bow_spirit",
+  "display_name": "灵风长弓",
+  "slot": "main_hand",
+  "weapon_archetype": "longbow",
+  "base_stats": {
+   "flat_attack": 12.0,
+   "attack_speed": 12.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 14,
+  "rarity_min": "common",
+  "rarity_max": "rare",
+  "icon_path": "res://assets/icons/equipment/equip_bow_48.png",
+  "drop_weight": 115.0,
+  "craftable": true
+ }
+]

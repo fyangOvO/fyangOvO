@@ -1,0 +1,56 @@
+[
+  {
+    "id": "warrior",
+    "display_name": "战士",
+    "title": "不屈之盾",
+    "playstyle": "近战 · 高生命 · 正面硬撼",
+    "description": "挥舞巨剑贴脸输出，生命与护甲冠绝三职，是队伍里最可靠的承伤者。剑技范围大、容易上手，适合喜欢正面硬刚的玩家。",
+    "stats": {
+      "max_hp": 95,
+      "attack": 15,
+      "armor": 12,
+      "move_speed": 3.4,
+      "crit_chance": 0.05
+    },
+    "skills": ["cleave", "spin_slash", "dash_strike", "power_strike", "shadow_blink"],
+    "default_skill_bar": ["cleave", "spin_slash", "dash_strike"],
+    "portrait": "portrait_warrior",
+    "color": "D9A441"
+  },
+  {
+    "id": "archer",
+    "display_name": "弓箭手",
+    "title": "迅影之矢",
+    "playstyle": "远程 · 高暴击 · 放风筝",
+    "description": "以弓矢在安全距离输出，暴击率冠绝三职。高移速让她能边退边射，把敌人钉死在射程之外，适合喜欢游走拉扯的玩家。",
+    "stats": {
+      "max_hp": 70,
+      "attack": 13,
+      "armor": 6,
+      "move_speed": 4.2,
+      "crit_chance": 0.20
+    },
+    "skills": ["piercing_shot", "arrow_rain", "venom_shot", "shadow_blink"],
+    "default_skill_bar": ["piercing_shot", "arrow_rain", "venom_shot"],
+    "portrait": "portrait_archer",
+    "color": "8FBF5F"
+  },
+  {
+    "id": "mage",
+    "display_name": "法师",
+    "title": "秘法洪流",
+    "playstyle": "法术 · 高爆发 · 元素掌控",
+    "description": "掌握火与冰的元素之力，技能爆发全职业最高，但身板脆弱。一套连招倾泻后迅速拉开距离，适合追求极致伤害数字的玩家。",
+    "stats": {
+      "max_hp": 60,
+      "attack": 19,
+      "armor": 4,
+      "move_speed": 3.6,
+      "crit_chance": 0.08
+    },
+    "skills": ["fireball", "frost_nova", "lightning_chain", "poison_cloud", "shadow_blink"],
+    "default_skill_bar": ["fireball", "frost_nova", "lightning_chain"],
+    "portrait": "portrait_mage",
+    "color": "7FA8E8"
+  }
+]

@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/self_check.gd" id="1_selfcheck"]
+
+[node name="SelfCheck" type="Node2D"]
+script = ExtResource("1_selfcheck")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="PanelContainer" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="UI/Panel"]
+theme_override_constants/margin_left = 64
+theme_override_constants/margin_top = 64
+theme_override_constants/margin_right = 64
+theme_override_constants/margin_bottom = 64
+
+[node name="Report" type="RichTextLabel" parent="UI/Panel/Margin"]
+layout_mode = 2
+bbcode_enabled = true
+scroll_active = true

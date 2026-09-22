@@ -1,0 +1,275 @@
+[
+ {
+  "id": "helm_hide",
+  "display_name": "兽皮兜帽",
+  "slot": "helm",
+  "base_stats": {
+   "flat_hp": 20.0,
+   "flat_armor": 4.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
+  "drop_weight": 110.0
+ },
+ {
+  "id": "helm_seven_echo",
+  "display_name": "七重回响之冠",
+  "slot": "helm",
+  "base_stats": {
+   "flat_hp": 45.0,
+   "flat_armor": 15.0,
+   "max_resource": 30.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "legendary",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
+  "drop_weight": 1.0,
+  "craftable": false
+ },
+ {
+  "id": "chest_chainmail",
+  "display_name": "锁子甲",
+  "slot": "chest",
+  "base_stats": {
+   "flat_hp": 45.0,
+   "flat_armor": 14.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_chest_48.png",
+  "drop_weight": 110.0
+ },
+ {
+  "id": "chest_undying",
+  "display_name": "不朽者的残躯",
+  "slot": "chest",
+  "base_stats": {
+   "flat_hp": 90.0,
+   "flat_armor": 30.0,
+   "pct_hp": 8.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "legendary",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_chest_48.png",
+  "drop_weight": 1.0,
+  "craftable": false
+ },
+ {
+  "id": "gloves_leather",
+  "display_name": "皮革手套",
+  "slot": "gloves",
+  "base_stats": {
+   "attack_speed": 6.0,
+   "crit_chance": 3.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_offense"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_gauntlet_48.png",
+  "drop_weight": 105.0
+ },
+ {
+  "id": "legs_plate",
+  "display_name": "板甲护腿",
+  "slot": "legs",
+  "base_stats": {
+   "flat_armor": 11.0,
+   "flat_hp": 25.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_legs_48.png",
+  "drop_weight": 105.0
+ },
+ {
+  "id": "boots_wanderer",
+  "display_name": "旅人软靴",
+  "slot": "boots",
+  "base_stats": {
+   "move_speed": 8.0,
+   "dodge": 4.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_utility"
+  ],
+  "item_level_min": 1,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
+  "drop_weight": 105.0
+ },
+ {
+  "id": "boots_relic_hunter",
+  "display_name": "拾遗者之靴",
+  "slot": "boots",
+  "base_stats": {
+   "move_speed": 15.0,
+   "dodge": 8.0,
+   "magic_find": 20.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_utility"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "legendary",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
+  "drop_weight": 1.0,
+  "craftable": false
+ },
+ {
+  "id": "helm_golem",
+  "display_name": "石像头盔",
+  "slot": "helm",
+  "base_stats": {
+   "flat_hp": 28.0,
+   "flat_armor": 10.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 8,
+  "item_level_max": 20,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
+  "drop_weight": 92.0
+ },
+ {
+  "id": "chest_ember",
+  "display_name": "烬织胸甲",
+  "slot": "chest",
+  "base_stats": {
+   "flat_hp": 45.0,
+   "flat_armor": 8.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_utility"
+  ],
+  "item_level_min": 7,
+  "item_level_max": 19,
+  "rarity_min": "common",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_chest_48.png",
+  "drop_weight": 88.0
+ },
+ {
+  "id": "gloves_cold",
+  "display_name": "冰织手套",
+  "slot": "gloves",
+  "base_stats": {
+   "flat_hp": 18.0,
+   "flat_armor": 5.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_offense"
+  ],
+  "item_level_min": 10,
+  "item_level_max": 20,
+  "rarity_min": "magic",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_gauntlet_48.png",
+  "drop_weight": 70.0
+ },
+ {
+  "id": "legs_guardian",
+  "display_name": "守望腿甲",
+  "slot": "legs",
+  "base_stats": {
+   "flat_hp": 52.0,
+   "flat_armor": 6.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 6,
+  "item_level_max": 18,
+  "rarity_min": "common",
+  "rarity_max": "rare",
+  "icon_path": "res://assets/icons/equipment/equip_legs_48.png",
+  "drop_weight": 105.0
+ },
+ {
+  "id": "boots_wind",
+  "display_name": "疾风靴",
+  "slot": "boots",
+  "base_stats": {
+   "flat_hp": 15.0,
+   "move_speed": 10.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_utility"
+  ],
+  "item_level_min": 3,
+  "item_level_max": 15,
+  "rarity_min": "common",
+  "rarity_max": "rare",
+  "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
+  "drop_weight": 120.0
+ },
+ {
+  "id": "helm_crown_titan",
+  "display_name": "泰坦王冠",
+  "slot": "helm",
+  "base_stats": {
+   "flat_hp": 60.0,
+   "flat_armor": 12.0,
+   "crit_chance": 4.0
+  },
+  "affix_pool_ids": [
+   "armor_generic",
+   "armor_defense"
+  ],
+  "item_level_min": 12,
+  "item_level_max": 20,
+  "rarity_min": "rare",
+  "rarity_max": "legendary",
+  "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
+  "drop_weight": 40.0
+ }
+]

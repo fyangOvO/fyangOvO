@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "source_path": "D:\\七傳說\\game\\build\\account_preview.png",
+  "source_filename": "account_preview.png",
+  "source_hash": "219d52e903ef",
+  "source_size_bytes": 43551,
+  "kind": "image",
+  "rendered_at_utc": "2026-09-16T14:57:54+00:00",
+  "output_dir": "D:\\七傳說\\.preview\\219d52e903ef",
+  "page_count": 1,
+  "rendered_page_count": 1,
+  "collage_count": 0,
+  "extracted_text_chars": 0,
+  "text_relpath": null,
+  "thumbnail_relpath": null,
+  "pages": [
+    {
+      "page": 1,
+      "relpath": "pages\\p001.png",
+      "size_bytes": 43551,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "collages": [],
+  "warnings": [
+    "image probe failed: No module named 'PIL'",
+    "Pillow unavailable for thumbnail",
+    "Pillow unavailable: No module named 'PIL'"
+  ],
+  "options": {
+    "max_pages": 12,
+    "collage": true,
+    "page_range": null,
+    "thumbnail": true,
+    "text_only": false,
+    "jpeg_quality": 85,
+    "out_max_dim": 2048
+  },
+  "summary": {
+    "dimensions": "unknown"
+  }
+}

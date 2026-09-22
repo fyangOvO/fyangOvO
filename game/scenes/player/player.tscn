@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/combat/mana_pool.gd" id="2_mana"]
+[ext_resource type="Script" path="res://scripts/combat/skill_controller.gd" id="3_skill"]
+[ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="4_health"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(20, 22)
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+motion_mode = 1
+script = ExtResource("1_player")
+
+[node name="BodySprite" type="Sprite2D" parent="."]
+texture_filter = 1
+
+[node name="WeaponLayer" type="Node2D" parent="."]
+
+[node name="MainHandAnchor" type="Marker2D" parent="WeaponLayer"]
+position = Vector2(-11, -25)
+
+[node name="OffHandAnchor" type="Marker2D" parent="WeaponLayer"]
+position = Vector2(11, -25)
+
+[node name="FxLayer" type="Node2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -11)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ManaPool" type="Node" parent="."]
+script = ExtResource("2_mana")
+
+[node name="SkillController" type="Node" parent="."]
+script = ExtResource("3_skill")
+player_path = NodePath("..")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("4_health")

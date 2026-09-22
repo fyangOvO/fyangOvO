@@ -1,0 +1,101 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/run/level_scene.gd" id="1_level"]
+[ext_resource type="Script" path="res://scripts/run/level_view.gd" id="2_view"]
+[ext_resource type="Script" path="res://scripts/ui/health_bar.gd" id="3_hpbar"]
+[ext_resource type="Script" path="res://scripts/ui/result_panel.gd" id="4_result"]
+[ext_resource type="Script" path="res://scripts/juice/screen_shake.gd" id="5_shake"]
+
+[node name="Level" type="Node2D"]
+script = ExtResource("1_level")
+
+[node name="LevelView" type="Node2D" parent="."]
+texture_filter = 1
+script = ExtResource("2_view")
+
+[node name="Actors" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+script = ExtResource("5_shake")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="QuestPlate" type="Panel" parent="HUD"]
+offset_left = 16.0
+offset_top = 64.0
+offset_right = 304.0
+offset_bottom = 112.0
+mouse_filter = 2
+
+[node name="QuestMarker" type="TextureRect" parent="HUD"]
+offset_left = 28.0
+offset_top = 76.0
+offset_right = 52.0
+offset_bottom = 100.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Objective" type="Label" parent="HUD"]
+offset_left = 60.0
+offset_top = 72.0
+offset_right = 212.0
+offset_bottom = 104.0
+mouse_filter = 2
+vertical_alignment = 1
+
+[node name="LevelBanner" type="TextureRect" parent="HUD"]
+offset_left = 192.0
+offset_top = 8.0
+offset_right = 448.0
+offset_bottom = 56.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="LevelBannerText" type="Label" parent="HUD"]
+offset_left = 192.0
+offset_top = 8.0
+offset_right = 448.0
+offset_bottom = 56.0
+mouse_filter = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Banner" type="Label" parent="HUD"]
+offset_left = 16.0
+offset_top = 328.0
+offset_right = 336.0
+offset_bottom = 352.0
+mouse_filter = 2
+
+[node name="HpFrame" type="Panel" parent="HUD"]
+offset_left = 16.0
+offset_top = 120.0
+offset_right = 304.0
+offset_bottom = 152.0
+mouse_filter = 2
+
+[node name="HpBar" type="Control" parent="HUD"]
+offset_left = 24.0
+offset_top = 128.0
+offset_right = 196.0
+offset_bottom = 144.0
+script = ExtResource("3_hpbar")
+
+[node name="MpBar" type="Control" parent="HUD"]
+offset_left = 204.0
+offset_top = 128.0
+offset_right = 300.0
+offset_bottom = 144.0
+script = ExtResource("3_hpbar")
+bar_texture_name = "bar_mp"
+value_kind = "mana"
+
+[node name="ResultPanel" type="Control" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_result")

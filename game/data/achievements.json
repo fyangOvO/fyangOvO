@@ -1,0 +1,24 @@
+{
+  "achievements": {
+    "kill_100": { "name": "初出茅庐", "desc": "累计击杀 100 只怪物", "type": "kills", "target": 100, "reward": "武器光效·白焰" },
+    "kill_1000": { "name": "屠夫之路", "desc": "累计击杀 1000 只怪物", "type": "kills", "target": 1000, "reward": "武器光效·血焰" },
+    "kill_5000": { "name": "万人斩", "desc": "累计击杀 5000 只怪物", "type": "kills", "target": 5000, "reward": "角色配色·黑金" },
+    "clear_1": { "name": "初通关", "desc": "通关第 1 关", "type": "clears", "target": 1, "reward": "角色配色·翠绿" },
+    "clear_10": { "name": "十关之约", "desc": "累计通关 10 关", "type": "clears", "target": 10, "reward": "武器光效·青雷" },
+    "clear_20": { "name": "百关之师", "desc": "累计通关 20 关", "type": "clears", "target": 20, "reward": "角色配色·白金" },
+    "clear_100": { "name": "梦魇征服者", "desc": "累计通关 100 关（含重刷）", "type": "clears", "target": 100, "reward": "角色配色·赤金" },
+    "gold_100k": { "name": "小有积蓄", "desc": "累计获得金币 10 万", "type": "gold_earned", "target": 100000, "reward": "武器光效·金辉" },
+    "gold_1m": { "name": "富甲一方", "desc": "累计获得金币 100 万", "type": "gold_earned", "target": 1000000, "reward": "角色配色·鎏金" },
+    "level_20": { "name": "小有所成", "desc": "账号达到 20 级", "type": "account_level", "target": 20, "reward": "角色配色·湛蓝" },
+    "level_40": { "name": "独当一面", "desc": "账号达到 40 级", "type": "account_level", "target": 40, "reward": "角色配色·深紫" },
+    "level_60": { "name": "巅峰之路", "desc": "账号达到 60 级", "type": "account_level", "target": 60, "reward": "角色配色·曜日" },
+    "mythic_1": { "name": "神话初见", "desc": "获得第 1 件红装", "type": "mythic_acquired", "target": 1, "reward": "武器光效·神话辉光" },
+    "hidden_1": { "name": "彩蛋发现者", "desc": "获得第 1 件彩装", "type": "hidden_acquired", "target": 1, "reward": "武器光效·虹彩" },
+    "set_2": { "name": "套装初成", "desc": "同时穿戴 2 件同套装", "type": "set_pieces", "target": 2, "reward": "角色配色·霜蓝" },
+    "set_6": { "name": "套装大成", "desc": "同时穿戴 6 件同套装", "type": "set_pieces", "target": 6, "reward": "角色配色·燎原" },
+    "streak_100": { "name": "永动机", "desc": "单局连杀达到 100", "type": "streak", "target": 100, "reward": "武器光效·极光" },
+    "score_2000": { "name": "完美一局", "desc": "单局评分达到 2000", "type": "run_score", "target": 2000, "reward": "角色配色·曜金" },
+    "reroll_10": { "name": "赌徒", "desc": "累计洗练 10 次", "type": "rerolls", "target": 10, "reward": "武器光效·霓虹" },
+    "talent_15": { "name": "天赋异禀", "desc": "点亮 15 个天赋节点", "type": "talent_nodes", "target": 15, "reward": "角色配色·翡翠" }
+  }
+}

@@ -1,0 +1,43 @@
+# Godot 4 自动生成的导入缓存与编辑器状态（必须忽略，体积大且与机器相关）
+.godot/
+# 若 Godot 以相对路径解析数据目录，会把 user:// 与编辑器设置落到项目内的 Godot/ 下。
+# 这是运行残留，不是源码。（锚定到项目根，避免误伤同名子目录）
+/Godot/
+# 导出产物
+build/
+export/
+# Godot 编辑器自动生成的 .import 元数据保留（团队协作需要），因此不忽略 *.import
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# ── DNF 风格素材（个人自玩素材，物理隔离不入仓库）────────────────────
+# 见 deliverables/gstack/art-direction-dnf-integration-plan-2026-09-18.md
+# 与 game/assets/dnf/README.md。覆盖常见二进制格式；用户手动下载后放入。
+# 注：game/.gitignore 中的路径是相对 game/，所以这里写 assets/dnf/** 而非 game/assets/dnf/**
+assets/dnf/**/*.png
+assets/dnf/**/*.gif
+assets/dnf/**/*.webp
+assets/dnf/**/*.jpg
+assets/dnf/**/*.jpeg
+assets/dnf/**/*.psd
+assets/dnf/**/*.ai
+assets/dnf/**/*.mp3
+assets/dnf/**/*.ogg
+assets/dnf/**/*.wav
+assets/dnf/**/*.mp4
+assets/dnf/**/*.zip
+assets/dnf/**/*.rar
+assets/dnf/**/*.7z
+# 但保留说明文档与 Godot 导入元数据（如果将来生成）
+!assets/dnf/README.md
+!assets/dnf/**/*.md
+!assets/dnf/_manifest/
+!assets/dnf/**/*.import
+!assets/dnf/**/*.tres
+!assets/dnf/**/*.gd
