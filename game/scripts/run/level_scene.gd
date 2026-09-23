@@ -143,6 +143,13 @@ var _skill_bar: SkillBarUI = null
 ## 拾取提示流（步骤 6 · 右上角逐条）
 var _pickup_toasts: PickupToastHUD = null
 
+## 8C BOSS 觉醒卡：BOSS 远端沉睡，玩家接近 AWAKEN_TRIGGER_DIST 触发觉醒立绘卡，
+## 卡结束后解除冻结正式开战（DNF 觉醒立绘风格，步骤 8C）。
+const AWAKEN_TRIGGER_DIST: float = 200.0
+var _pending_boss: EnemyBase = null
+var _boss_awakened: bool = false
+var _awaken_card: BossAwakenCard = null
+
 ## 目标
 ##
 ## `_objective_kind` 是**运行时**目标类型，初值等于 `_level_def.objective_type`。
@@ -175,6 +182,8 @@ func _ready() -> void:
 	# 任务 11.9 埋点：`damage_dealt` 是**双向**总线（玩家打敌人 / 敌人打玩家都走它），
 	# 交火判定只认玩家打出去的，所以处理器里要按「目标是不是玩家」过滤。
 	EventBus.damage_dealt.connect(_on_damage_dealt)
+	# 8C BOSS 阶段切换 → 顶部阶段横幅（觉醒卡只覆盖开战第 1 阶段）
+	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
 	_progression = RunProgression.new(_on_run_level_up)
 	# 相机缩放：全项目唯一来源是 GameConstants.CAMERA_ZOOM_BASE，不在 .tscn 里硬编码
 	_camera.zoom = GameConstants.CAMERA_ZOOM_BASE
@@ -189,6 +198,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _player != null and is_instance_valid(_player):
 		_camera.global_position = _player.global_position
+	_check_boss_awaken()
 	if not _finished:
 		_buff_system.tick(delta)
 	# 增益 HUD 的**轮询兜底**（事件驱动为主，见 `_build_buff_hud`）：低频比对签名，变化才改文本
@@ -473,6 +483,7 @@ func _spawn_monsters() -> void:
 		if entry_boss_ids.has(mid) or mid == boss_id:
 			_boss_total += 1
 			_mark_kind(e, "boss")
+			_freeze_boss_until_awaken(e)
 
 	# 1b) BOSS 锚点：按 `boss_id` 刷在地图远端（BOSS 房）
 	if use_anchor:
@@ -480,6 +491,7 @@ func _spawn_monsters() -> void:
 		if be != null:
 			_boss_total += 1
 			_mark_kind(be, "boss")
+			_freeze_boss_until_awaken(be)
 
 	# 2) 精英：**三条**通路都要认，否则「精英关」的计数与实际场上的精英对不上。
 	#    ① 固定锚点 —— LevelData.elite_count（生成器摆在地图远端）
@@ -608,6 +620,96 @@ func _pick_weighted(pool: Array) -> String:
 		if r <= 0.0:
 			return str(p["id"])
 	return str(pool[pool.size() - 1]["id"])
+
+
+# =============================================================================
+# 8C BOSS 觉醒卡（沉睡 → 接近 → 觉醒立绘卡 → 开战）
+# =============================================================================
+
+## BOSS 沉睡：暂停 AI（_physics_process），保留待机动画渲染
+func _freeze_boss_until_awaken(boss: EnemyBase) -> void:
+	boss.set_physics_process(false)
+	if _pending_boss == null:
+		_pending_boss = boss
+
+
+## 每帧检查：玩家进入 BOSS 触发圈 → 觉醒（只触发一次）
+func _check_boss_awaken() -> void:
+	if _boss_awakened or _pending_boss == null or not is_instance_valid(_pending_boss):
+		return
+	if _player == null or not is_instance_valid(_player):
+		return
+	if _player.global_position.distance_to(_pending_boss.global_position) > AWAKEN_TRIGGER_DIST:
+		return
+	_trigger_boss_awaken()
+
+
+## 弹觉醒立绘卡 + 震屏；卡片结束回调里解除冻结
+func _trigger_boss_awaken() -> void:
+	_boss_awakened = true
+	var boss := _pending_boss
+	var boss_id := ""
+	var display_name := "BOSS"
+	if boss.data != null:
+		boss_id = str(boss.data.id)
+		display_name = str(boss.data.display_name)
+	var phase_count := 1
+	var cfg: Dictionary = boss.boss_config
+	if not cfg.is_empty():
+		phase_count = maxi(int(cfg.get("phase_count", 1)), 1)
+	_awaken_card = BossAwakenCard.awaken(self, boss_id, display_name,
+		phase_count, _on_boss_awaken_finished)
+	_shake_camera()
+
+
+func _on_boss_awaken_finished() -> void:
+	_awaken_card = null
+	if _pending_boss != null and is_instance_valid(_pending_boss):
+		_pending_boss.set_physics_process(true)
+		_pending_boss = null
+	# 觉醒吼（低吼扫频）：开战瞬间
+	AudioManager.play("boss_phase")
+
+
+## 相机震屏（觉醒卡出现瞬间的冲击感，0.4s 衰减归零）
+func _shake_camera() -> void:
+	var t := create_tween()
+	for i in 8:
+		var amp := 5.0 * (1.0 - float(i) / 8.0)
+		t.tween_callback(func() -> void:
+			_camera.offset = Vector2(randf_range(-amp, amp), randf_range(-amp, amp)))
+		t.tween_interval(0.05)
+	t.tween_callback(func() -> void: _camera.offset = Vector2.ZERO)
+
+
+## BOSS 阶段切换横幅（2/3/4 阶段：顶部金色横幅 1.6s 淡入淡出）
+func _on_boss_phase_changed(_enemy: Node, phase: int, _skills: Array) -> void:
+	if _finished:
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "PhaseBanner"
+	add_child(layer)
+	var bar := ColorRect.new()
+	bar.color = Color(0.03, 0.04, 0.06, 0.0)
+	bar.position = Vector2(0.0, 20.0)
+	bar.size = Vector2(640.0, 44.0)
+	layer.add_child(bar)
+	var lab := Label.new()
+	lab.text = "第 %s 階段 · 覺醒之力" % BossPhaseController.PHASE_NAMES[
+		clampi(phase - 1, 0, BossPhaseController.PHASE_NAMES.size() - 1)]
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.add_theme_font_size_override("font_size", 16)
+	lab.add_theme_color_override("font_color", GameConstants.COLOR_ACCENT_GOLD)
+	lab.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lab.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	bar.add_child(lab)
+	var tw := create_tween()
+	tw.tween_property(bar, "color:a", 0.55, 0.15)
+	tw.parallel().tween_property(lab, "modulate:a", 1.0, 0.15)
+	tw.tween_interval(1.1)
+	tw.tween_property(bar, "color:a", 0.0, 0.35)
+	tw.parallel().tween_property(lab, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(layer.queue_free)
 
 
 func _cell_to_world(cell: Vector2i) -> Vector2:
