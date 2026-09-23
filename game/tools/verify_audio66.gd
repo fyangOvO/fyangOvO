@@ -38,7 +38,7 @@ func _ready() -> void:
 func _test_registry() -> void:
 	print("--- A. 注册表 ---")
 	var ids := AudioManager.ids()
-	_ok("注册表 8 条音效", ids.size() == 8)
+	_ok("注册表 9 条音效", ids.size() == 9)
 	var want := ["hit_melee", "hit_crit", "enemy_die", "pickup_gold",
 		"pickup_item", "levelup", "boss_phase", "ui_click"]
 	var miss := 0

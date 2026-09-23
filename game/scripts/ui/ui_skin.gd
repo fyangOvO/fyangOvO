@@ -111,6 +111,9 @@ const TEX: Dictionary = {
 	"portrait_warrior": "portraits/char_warrior.png",
 	"portrait_archer": "portraits/char_archer.png",
 	"portrait_mage": "portraits/char_mage.png",
+	# ── 2026-09-23 步骤 8A：消耗品药水图标（48×48 像素风，与技能图标同套）──
+	"potion_life": "potion_life_48.png",
+	"potion_mana": "potion_mana_48.png",
 }
 
 ## 稀有度（`GameConstants.Rarity` 下標）→ 格子貼圖名。

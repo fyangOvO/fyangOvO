@@ -16,6 +16,7 @@ const SFX_REGISTRY := {
 	"levelup": {"file": "levelup.wav", "volume_db": -4.0},
 	"boss_phase": {"file": "boss_phase.wav", "volume_db": -6.0},
 	"ui_click": {"file": "ui_click.wav", "volume_db": -12.0},
+	"potion_drink": {"file": "potion_drink.wav", "volume_db": -6.0},
 }
 
 ## id → 预载 AudioStreamWAV（首次访问惰性加载）

@@ -10,7 +10,7 @@
 class_name LootDrop
 extends Node2D
 
-## 掉落类型：gold / material / equipment（LootRoller 产出字段）
+## 掉落类型：gold / material / equipment / consumable（LootRoller 产出字段）
 var drop_type: String = "gold"
 
 ## 数量（金币/材料）
@@ -138,6 +138,15 @@ func _draw() -> void:
 			_draw_box(Vector2.ZERO, 8, Color("D9A521"), Color("0B0D10"))
 		"material":
 			_draw_box(Vector2.ZERO, 8, Color("4C8BF5"), Color("0B0D10"))
+		"consumable":
+			var c := Color("E04848") if item_id == "life_potion" else Color("4890E0")
+			_draw_box(Vector2.ZERO, 16, c, Color("0B0D10"))
+			var con: Dictionary = ConfigLoader.consumables.get(item_id, {})
+			var icon_name := str(con.get("icon", ""))
+			if not icon_name.is_empty():
+				var tex := UISkin.texture(icon_name)
+				if tex != null:
+					draw_texture_rect(tex, Rect2(-8.0, -8.0, 16.0, 16.0), false)
 		"equipment":
 			var c := GameConstants.rarity_color(rarity) if rarity >= 0 else Color.WHITE
 			_draw_box(Vector2.ZERO, GameConstants.LOOT_EQUIPMENT_ICON_SIZE, c, Color("0B0D10"))

@@ -897,6 +897,8 @@ const ACTION_ATTACK: StringName = &"attack_primary"
 
 ## 主动技能槽位动作（1/2/3 键 + 手柄；与 data/skills/ 的条目一一对应）
 const SKILL_BAR_ACTIONS: Array[String] = ["skill_1", "skill_2", "skill_3"]
+## 消耗品快捷动作（步骤 8A：Q/R 喝药）
+const CONSUMABLE_ACTIONS: Array[String] = ["consume_1", "consume_2"]
 
 ## 技能施放前摇（秒）。像素风铁律下不做复杂蓄力，统一 0.12s 出伤害，靠动画帧表现。
 const SKILL_CAST_WINDUP: float = 0.12
@@ -1170,6 +1172,8 @@ const DAMAGE_NUMBER_CRIT_FONT_SIZE: int = 15
 ## 飘字颜色：普通亮白 / 暴击橙红（与元素着色区分开，保持可读性）
 const COLOR_DAMAGE_NORMAL: Color = Color("DCE2E8")
 const COLOR_DAMAGE_CRIT: Color = Color("FF7A3D")
+## 治疗飘字（步骤 8A · 药水回血）
+const COLOR_HEAL: Color = Color("4CCB6E")
 
 ## 受击闪白时长（秒）；敌人占位同样式（_flash_hit）
 const HIT_FLASH_DURATION: float = 0.08
@@ -1282,7 +1286,7 @@ const SKILL_ICON: Dictionary = {
 	"venom_shot": "skill_icon_poison_cloud",
 }
 
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 const SAVE_DIR: String = "user://saves"
 const SAVE_MAX_SLOTS: int = 8
 const SAVE_BACKUP_ROTATION: int = 3 ## 每槽保留的备份份数

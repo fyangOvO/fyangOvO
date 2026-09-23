@@ -344,6 +344,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"dodge"):
 		_try_dodge()
 		return
+	# 消耗品快捷（步骤 8A）：Q=生命药水 / R=法力药水（闪避中也允许喝药）
+	if event.is_action_pressed(&"consume_1"):
+		use_consumable("life_potion")
+		return
+	if event.is_action_pressed(&"consume_2"):
+		use_consumable("mana_potion")
+		return
 	# 技能输入（1/2/3 键 + 手柄）；闪避中忽略，防止位移技能与冲刺打架
 	if _is_dodging():
 		return
@@ -583,6 +590,11 @@ var materials: int = 0
 ## instance 为完整 EquipmentInstance.to_dict()（含词缀，任务 3.2 起由掉落时生成）
 var inventory: Array[Dictionary] = []
 
+## 消耗品（会话，步骤 8A）：{ 消耗品ID: 数量 }（药水：掉落/商店入账，Q/R 喝）
+var consumables: Dictionary = {}
+## 消耗品冷却截止时间（毫秒）：{ id: ms }
+var _consumable_cd_until_ms: Dictionary = {}
+
 
 ## 拾取入口（LootDrop 调用）
 func pickup_loot(entry: Dictionary) -> void:
@@ -596,6 +608,14 @@ func pickup_loot(entry: Dictionary) -> void:
 			materials += int(entry.get("amount", 0))
 			AudioManager.play("pickup_gold")
 			print("[Loot] 拾取 魔石 ×%d（累计 %d）" % [entry.get("amount", 0), materials])
+		"consumable":
+			var cid := str(entry.get("item_id", ""))
+			if not cid.is_empty():
+				consumables[cid] = int(consumables.get(cid, 0)) + int(entry.get("amount", 1))
+			AudioManager.play("pickup_item")
+			EventBus.consumables_changed.emit(consumables.duplicate(), "pickup")
+			print("[Loot] 拾取 消耗品 %s ×%d（持有 %d）"
+				% [cid, entry.get("amount", 1), consumables.get(cid, 0)])
 		"equipment":
 			AudioManager.play("pickup_item")
 			var item: Dictionary = {
@@ -615,6 +635,54 @@ func pickup_loot(entry: Dictionary) -> void:
 			var nm: String = tmpl.display_name if tmpl != null else str(item["item_id"])
 			print("[Loot] 拾取 %s（%s · iLvl %d · %d 条词缀，背包 %d 件）"
 					% [nm, rn, item["item_level"], item["affix_count"], inventory.size()])
+
+
+# ============ 消耗品（步骤 8A · 药水） ============
+
+## 消耗品：当前持有数量（无则 0）
+func consumable_count(id: String) -> int:
+	return int(consumables.get(id, 0))
+
+
+## 消耗品全量快照（UI 刷新用）
+func get_consumables() -> Dictionary:
+	return consumables.duplicate()
+
+
+## 消耗品剩余冷却（秒；0 = 可用）
+func get_consumable_cd_remaining(id: String) -> float:
+	var until_ms: int = int(_consumable_cd_until_ms.get(id, 0))
+	return maxf(float(until_ms - Time.get_ticks_msec()) / 1000.0, 0.0)
+
+
+## 使用消耗品（药水）。返回 {ok, reason, healed, kind}。
+## 数量不足 / 冷却中 / 未知 ID → 失败且不扣任何东西。
+func use_consumable(id: String) -> Dictionary:
+	var cfg: Dictionary = ConfigLoader.consumables.get(id, {})
+	if cfg.is_empty():
+		return {"ok": false, "reason": "未知消耗品"}
+	if consumable_count(id) <= 0:
+		return {"ok": false, "reason": "数量不足"}
+	if get_consumable_cd_remaining(id) > 0.0:
+		return {"ok": false, "reason": "冷却中"}
+	var kind := str(cfg.get("kind", ""))
+	var pct := clampf(float(cfg.get("percent", 0.0)), 0.0, 1.0)
+	var healed := 0.0
+	if kind == "heal_hp" and health != null:
+		healed = health.get_max_hp() * pct
+		health.restore(healed)
+	elif kind == "heal_mp" and mana_pool != null:
+		healed = mana_pool.maximum * pct
+		mana_pool.restore(healed)
+	consumables[id] = maxi(int(consumables.get(id, 0)) - 1, 0)
+	_consumable_cd_until_ms[id] = Time.get_ticks_msec() + int(float(cfg.get("cooldown", 3.0)) * 1000.0)
+	AudioManager.play("potion_drink")
+	EventBus.consumables_changed.emit(consumables.duplicate(), "used")
+	if healed > 0.0 and not is_queued_for_deletion():
+		JuiceFX.spawn_heal_number(healed, global_position)
+	print("[Consumable] 使用 %s：回复 %.0f（%s 剩余 %d）"
+		% [id, healed, str(cfg.get("display_name", id)), consumable_count(id)])
+	return {"ok": true, "reason": "", "healed": healed, "kind": kind}
 
 
 # =============================================================================

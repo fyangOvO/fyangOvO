@@ -37,6 +37,7 @@ const DIR_LEVELS: String = DATA_ROOT + "/levels"
 const DIR_LOOT_TABLES: String = DATA_ROOT + "/loot_tables"
 const DIR_SETS: String = DATA_ROOT + "/sets"
 const DIR_SKILLS: String = DATA_ROOT + "/skills"
+const DIR_CONSUMABLES: String = DATA_ROOT + "/consumables"
 const DIR_CLASSES: String = DATA_ROOT + "/classes"
 
 ## 档位 → 默认掉落表 ID 的映射（与 `game/data/loot_tables/` 中的文件名一致）
@@ -61,6 +62,7 @@ var loot_tables: Dictionary = {}         ## String → LootTable
 var sets: Dictionary = {}                ## String → SetData
 var skills: Dictionary = {}              ## String → SkillData
 var classes: Dictionary = {}             ## String → Dictionary（职业模板，任务 7.1 角色选择）
+var consumables: Dictionary = {}       ## String → Dictionary（消耗品/药水，步骤 8A）
 
 ## 加载过程中的错误信息（启动时若有内容，说明数据文件有问题）
 var load_errors: Array[String] = []
@@ -94,6 +96,7 @@ func load_all() -> void:
 	sets.clear()
 	skills.clear()
 	classes.clear()
+	consumables.clear()
 	load_errors.clear()
 
 	# 确保用户内容目录存在（`user://content/{characters,fx,tilesets,levels}/`）。
@@ -123,6 +126,7 @@ func load_all() -> void:
 	_load_set_dir(DIR_SETS)
 	_load_skill_dir(DIR_SKILLS)
 	_load_class_dir(DIR_CLASSES)
+	_load_consumable_dir(DIR_CONSUMABLES)
 
 	_cross_validate()
 
@@ -155,6 +159,7 @@ func get_entry_counts() -> Dictionary:
 		"sets": sets.size(),
 		"skills": skills.size(),
 		"classes": classes.size(),
+		"consumables": consumables.size(),
 	}
 
 
@@ -325,6 +330,38 @@ func _load_class_dir(dir_path: String) -> void:
 				"default_skill_bar": default_bar,
 				"portrait": String(raw.get("portrait", "")),
 				"color": String(raw.get("color", "F5D77A")),
+			}
+
+
+## 消耗品（步骤 8A · 药水）：`data/consumables/*.json`
+## 结构 `[{id, display_name, kind(heal_hp/heal_mp), percent, cooldown, price, icon, desc}]`。
+## 原样存 Dictionary；语义（回血/回蓝/冷却）由 PlayerController.use_consumable 消费。
+func _load_consumable_dir(dir_path: String) -> void:
+	for entry in _scan_data_files(dir_path):
+		for raw in _read_entries(entry):
+			var cid := String(raw.get("id", ""))
+			if cid.is_empty():
+				load_errors.append("消耗品文件 '%s' 中存在缺少 id 的条目" % entry)
+				continue
+			if consumables.has(cid):
+				load_errors.append("消耗品 ID 重复：'%s'" % cid)
+				continue
+			var kind := String(raw.get("kind", ""))
+			if kind != "heal_hp" and kind != "heal_mp":
+				load_errors.append("消耗品 '%s' 的 kind 非法（须 heal_hp/heal_mp）：'%s'" % [cid, kind])
+			if float(raw.get("percent", 0.0)) <= 0.0 or float(raw.get("percent", 0.0)) > 1.0:
+				load_errors.append("消耗品 '%s' 的 percent 须在 (0,1]" % cid)
+			if float(raw.get("cooldown", 0.0)) <= 0.0:
+				load_errors.append("消耗品 '%s' 的 cooldown 须 > 0" % cid)
+			consumables[cid] = {
+				"id": cid,
+				"display_name": String(raw.get("display_name", cid)),
+				"kind": kind,
+				"percent": float(raw.get("percent", 0.0)),
+				"cooldown": float(raw.get("cooldown", 3.0)),
+				"price": float(raw.get("price", 0.0)),
+				"icon": String(raw.get("icon", "")),
+				"desc": String(raw.get("desc", "")),
 			}
 
 

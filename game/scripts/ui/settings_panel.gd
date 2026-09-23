@@ -18,7 +18,7 @@ extends Control
 const KEY_ACTIONS := [
 	["move_up", "上移"], ["move_down", "下移"], ["move_left", "左移"], ["move_right", "右移"],
 	["attack_primary", "普攻"], ["dodge", "闪避"], ["skill_1", "技能 1"], ["skill_2", "技能 2"],
-	["skill_3", "技能 3"], ["interact", "交互"],
+	["skill_3", "技能 3"], ["consume_1", "生命药水"], ["consume_2", "法力药水"], ["interact", "交互"],
 ]
 
 ## 面板关闭回调（由主菜单注入 `_clear_overlay`）

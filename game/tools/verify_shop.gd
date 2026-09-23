@@ -48,7 +48,7 @@ func _test_generate() -> void:
 	var shop := RunShop.new()
 	shop.player = _make_player(9999.0)
 	shop.generate_stock(4, 5, _rng)
-	_ok("生成 4 件商品", shop.stock.size() == 4)
+	_ok("生成 5 件商品（2装备+生命/法力药水+材料）", shop.stock.size() == 5)
 	var kinds := {}
 	for entry in shop.stock:
 		kinds[entry["kind"]] = true
@@ -70,7 +70,8 @@ func _test_pricing() -> void:
 	var material_found := false
 	for entry in shop.stock:
 		if entry["kind"] == "potion":
-			_ok("药水 50 金", int(entry["price"]) == 50)
+			_ok("药水定价（生命50/法力40）",
+				int(entry["price"]) == 50 or int(entry["price"]) == 40)
 			potion_found = true
 		elif entry["kind"] == "material":
 			_ok("材料 30 金", int(entry["price"]) == 30)
@@ -105,7 +106,7 @@ func _test_buy() -> void:
 	_ok("装备购买成功", res["ok"])
 	_ok("金币扣除精确", int(shop.player["gold"]) == before - int(price))
 	_ok("装备入包（+1）", shop.player["inventory"].count() == inv_before + 1)
-	_ok("商品从库存移除（4→3）", shop.stock.size() == 3)
+	_ok("商品从库存移除（5→4）", shop.stock.size() == 4)
 
 
 # =============================================================================

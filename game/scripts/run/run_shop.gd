@@ -43,8 +43,12 @@ func generate_stock(count: int, level: int, rng: RandomNumberGenerator = null) -
 		stock.append({"kind": "equipment", "label": item.get_display_name(),
 			"price": price, "item": item})
 	# 药水
-	stock.append({"kind": "potion", "label": "生命药水（回复 30%% 最大生命）",
+	stock.append({"kind": "potion", "item_id": "life_potion", "amount": 1,
+		"label": "生命药水（回复 30%% 最大生命）",
 		"price": POTION_PRICE})
+	stock.append({"kind": "potion", "item_id": "mana_potion", "amount": 1,
+		"label": "法力药水（回复 40%% 最大法力）",
+		"price": 40.0})
 	# 材料
 	var mats := ["dust", "essence"]
 	stock.append({"kind": "material", "label": "秘银尘 ×5（分解材料）",
@@ -97,6 +101,13 @@ func buy(index: int) -> Dictionary:
 	if entry["kind"] == "equipment":
 		if inv == null or not inv.add(entry["item"]):
 			return {"ok": false, "reason": "背包已满"}
+	# 药水 → 消耗品背包（步骤 8A 修假闭环：此前只扣款、物品凭空消失）
+	if entry["kind"] == "potion":
+		var cid := str(entry.get("item_id", "life_potion"))
+		var c: Dictionary = player.get("consumables", {}) if player.get("consumables") is Dictionary else {}
+		c[cid] = int(c.get(cid, 0)) + int(entry.get("amount", 1))
+		player["consumables"] = c
+		EventBus.consumables_changed.emit(c.duplicate(), "shop")
 	player["gold"] = float(player.get("gold", 0.0)) - price
 	EventBus.gold_changed.emit(player["gold"])
 	stock.remove_at(index)

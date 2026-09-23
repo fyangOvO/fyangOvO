@@ -200,13 +200,13 @@ func _run_self_check() -> void:
 		and ConfigLoader.get_equipment_template("helm_crown_titan") != null)
 
 	# 任务 6.6：音效/音乐（8 条合成占位音效 + 播放管线）
-	var audio_ok := AudioManager.ids().size() == 8
+	var audio_ok := AudioManager.ids().size() == 9
 	var audio_files_ok := true
 	for aid in AudioManager.ids():
 		var ameta: Dictionary = AudioManager.SFX_REGISTRY[aid]
 		if not ResourceLoader.exists("res://data/audio/%s" % ameta.get("file", "")):
 			audio_files_ok = false
-	_add_check("音效注册表 8 条（打击/暴击/死亡/金币/装备/升级/BOSS/点击）", audio_ok)
+	_add_check("音效注册表 9 条（打击/暴击/死亡/金币/装备/升级/BOSS/点击/药水）", audio_ok)
 	_add_check("音效文件全部可加载（data/audio/*.wav）",
 		audio_files_ok and AudioManager.has("boss_phase")
 		and AudioManager.has("ui_click"))
@@ -510,7 +510,7 @@ func _run_self_check() -> void:
 	var shop := RunShop.new()
 	shop.player = {"gold": 9999.0, "inventory": Inventory.create(8, 5)}
 	shop.generate_stock(4, 12, RandomNumberGenerator.new())
-	if shop.stock.size() != 4:
+	if shop.stock.size() != 5:
 		shop_ok = false
 	var kind_seen := {}
 	for entry in shop.stock:

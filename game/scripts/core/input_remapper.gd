@@ -28,6 +28,7 @@ const MANAGED_ACTIONS: Array[StringName] = [
 	&"move_up", &"move_down", &"move_left", &"move_right",
 	&"dodge", &"attack_primary",
 	&"skill_1", &"skill_2", &"skill_3", &"skill_4",
+	&"consume_1", &"consume_2",
 	&"interact", &"inventory", &"character_panel", &"pause",
 ]
 

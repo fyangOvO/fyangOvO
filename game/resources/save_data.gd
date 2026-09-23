@@ -66,6 +66,9 @@ extends Resource
 ## 材料。键为材料 ID（"magic_stone" / "mithril_dust" / "legend_essence"），值为数量
 @export var materials: Dictionary = {}
 
+## 消耗品（步骤 8A · 药水等）。键为消耗品 ID，值为数量
+@export var consumables: Dictionary = {}
+
 # =============================================================================
 # 装备
 # =============================================================================
@@ -150,6 +153,7 @@ static func create_new(p_slot: int, p_class_id: String = GameConstants.CLASS_DEF
 		"mithril_dust": 0,
 		"legend_essence": 0,
 	}
+	data.consumables = {}
 	data.unlocked_levels = ["ch1_l01"]
 	data.cleared_levels = []
 	data.unlocked_difficulty_tier = GameConstants.DifficultyTier.NM1
@@ -264,6 +268,7 @@ func to_dict() -> Dictionary:
 		"unlocked_talent_nodes": unlocked_talent_nodes,
 		"gold": gold,
 		"materials": materials,
+		"consumables": consumables,
 		"inventory": inv,
 		"equipped": eq,
 		"stash": st,
@@ -301,6 +306,7 @@ static func from_dict(data: Dictionary) -> SaveData:
 	out.unlocked_talent_nodes = _to_string_array(data.get("unlocked_talent_nodes", []))
 	out.gold = maxi(int(data.get("gold", 0)), 0)
 	out.materials = data.get("materials", {}) if data.get("materials") is Dictionary else {}
+	out.consumables = data.get("consumables", {}) if data.get("consumables") is Dictionary else {}
 	out.inventory = _to_item_array(data.get("inventory", []))
 	out.stash = _to_item_array(data.get("stash", []))
 	out.unlocked_levels = _to_string_array(data.get("unlocked_levels", []))
@@ -354,6 +360,9 @@ func migrate() -> bool:
 			2:
 				skill_bar = ConfigLoader.class_default_skill_bar(class_id)
 				save_version = 3
+			3:
+				consumables = {}
+				save_version = 4
 			_:
 				save_version = GameConstants.SAVE_VERSION
 	save_version = GameConstants.SAVE_VERSION

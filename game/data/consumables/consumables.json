@@ -1,0 +1,22 @@
+[
+	{
+		"id": "life_potion",
+		"display_name": "生命药水",
+		"kind": "heal_hp",
+		"percent": 0.30,
+		"cooldown": 3.0,
+		"price": 50,
+		"icon": "potion_life",
+		"desc": "回复 30% 最大生命"
+	},
+	{
+		"id": "mana_potion",
+		"display_name": "法力药水",
+		"kind": "heal_mp",
+		"percent": 0.40,
+		"cooldown": 3.0,
+		"price": 40,
+		"icon": "potion_mana",
+		"desc": "回复 40% 最大法力"
+	}
+]

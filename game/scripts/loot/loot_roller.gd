@@ -81,8 +81,21 @@ static func _roll_one(table: LootTable, level: int, difficulty: int,
 		return _roll_gold(level)
 	if rr < (gold_w + mat_w) / total_rest:
 		return _roll_material(level)
-	# 消耗品尚未实现（阶段 3.8 后），回退金币
-	return _roll_gold(level)
+	# 消耗品（步骤 8A 接通：药水掉落，不再回退金币）
+	return _roll_consumable(level)
+
+
+## 消耗品（步骤 8A · 药水）：从已加载的消耗品表随机一枚；数量 1。
+## 数据驱动：遍历 ConfigLoader.consumables 的 id，避免硬编码列表漂移。
+static func _roll_consumable(level: int) -> Dictionary:
+	var ids: Array[String] = []
+	for k in ConfigLoader.consumables.keys():
+		ids.append(str(k))
+	if ids.is_empty():
+		ids = ["life_potion"]
+	var id := ids[randi() % ids.size()]
+	return { "type": "consumable", "amount": 1, "item_id": id,
+		"rarity": -1, "item_level": level }
 
 
 ## 金币：round(4 × 1.12^(L-1) × randf_range(0.8, 1.2))，至少 1

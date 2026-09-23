@@ -26,6 +26,13 @@ func setup(amount: float, is_crit: bool) -> void:
 		label.add_theme_font_size_override("font_size", GameConstants.DAMAGE_NUMBER_FONT_SIZE)
 
 
+## 治疗飘字（步骤 8A · 药水回血）：绿色、正常字号
+func setup_heal(amount: float) -> void:
+	setup(amount, false)
+	var label: Label = $Label
+	label.add_theme_color_override("font_color", GameConstants.COLOR_HEAL)
+
+
 func _process(delta: float) -> void:
 	# 寿命用真实时间（毫秒）：顿帧（time_scale<1）期间飘字不加速老化
 	var t := float(Time.get_ticks_msec() - _start_ms) / 1000.0 / _duration

@@ -401,6 +401,7 @@ func _build() -> void:
 	_refresh_level_banner()
 	_build_difficulty_stars()
 	_build_skill_bar()
+	_build_quick_slot()
 	print("[Level] 进入「%s」Lv.%d · 难度 %d · 敌人 %d（精英 %d / BOSS %d）· 目标：%s"
 		% [_level_def.display_name, _level_def.level, difficulty_tier,
 			_alive.size(), _elite_total, _boss_total, _objective_desc])
@@ -995,6 +996,9 @@ func _build_difficulty_stars() -> void:
 ## 右緣留 16px ⇒ x = 640 - 16 - 152 = 472；y = 360 - 16 - 48 = 296。
 ## 避讓：左下 `HUD/Banner`(16,328,336,352) 在 x≤336，本欄自 x=472 起 ⇒ 無重疊。
 const SKILL_BAR_ORIGIN: Vector2 = Vector2(472.0, 296.0)
+## 消耗品快捷栏原点（步骤 8A）：2 槽 × 48 + 1 间隙 × 4 = 100，
+## 左对齐技能栏并留 4px ⇒ x = 472 - 4 - 100 = 368；y 与技能栏同行 296。
+const QUICK_SLOT_ORIGIN: Vector2 = Vector2(368.0, 296.0)
 ## 槽邊長（px）。與 `skill_slot_48.png` / `skill_icon_*_48.png` 原生尺寸一致 ⇒ **1× 整數**。
 const SKILL_SLOT_PX: float = 48.0
 ## 槽間距（px）。
@@ -1022,6 +1026,17 @@ func _build_skill_bar() -> void:
 	$HUD.add_child(bar)
 	_skill_bar = bar
 	print("[Level] 技能栏：SkillBarUI %d 槽（出战 %d）" % [SkillBarUI.SLOT_COUNT, bar.get_slot_count()])
+
+
+## 消耗品快捷栏（步骤 8A · 药水）：Q=生命 / R=法力，图标+数量+冷却遮罩。
+## 必须与 `_build_skill_bar` 一样在 `_player` 建好之后调用。
+func _build_quick_slot() -> void:
+	var slot := QuickSlotUI.new()
+	slot.name = "QuickSlot"
+	slot.position = QUICK_SLOT_ORIGIN
+	slot.setup(_player)
+	$HUD.add_child(slot)
+	print("[Level] 消耗品快捷栏：QuickSlotUI %d 槽" % QuickSlotUI.SLOT_COUNT)
 
 
 ## 章節/關卡名橫幅文字（底板貼圖見 `_apply_hud_skin`）。`_build()` 取得關卡定義後呼叫。

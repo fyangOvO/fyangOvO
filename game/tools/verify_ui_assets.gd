@@ -59,6 +59,8 @@ const EXPECT_TEX: Dictionary = {
 	# ── 2026-09-22 首頁定稿：標題 LOGO + 三職業立繪 + 火把 ──
 	"title_emblem": Vector2i(336, 112),
 	"title_text": Vector2i(240, 64),
+	"potion_life": Vector2i(48, 48),
+	"potion_mana": Vector2i(48, 48),
 	"torch": Vector2i(80, 80),
 	"portrait_warrior": Vector2i(188, 250),
 	"portrait_archer": Vector2i(188, 250),

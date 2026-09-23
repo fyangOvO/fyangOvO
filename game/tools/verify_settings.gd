@@ -45,7 +45,7 @@ func _run() -> void:
 
 	# C. 音效注册表：8 项全部可加载
 	var ids: Array[String] = AudioManager.ids()
-	_ok("AudioManager 注册 8 项", ids.size() == 8)
+	_ok("AudioManager 注册 9 项", ids.size() == 9)
 	var all_ok: bool = true
 	for id in ids:
 		var meta: Dictionary = AudioManager.SFX_REGISTRY[id]

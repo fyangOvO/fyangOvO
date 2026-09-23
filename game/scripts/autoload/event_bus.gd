@@ -45,6 +45,9 @@ signal gold_changed(new_amount: int, delta: int)
 ## 材料变动。materials 为 {材料ID: 数量} 的增量字典。
 signal materials_changed(materials: Dictionary, reason: String)
 
+## 消耗品变动（步骤 8A · 药水）。consumables 为 {ID: 数量} 全量快照。
+signal consumables_changed(consumables: Dictionary, reason: String)
+
 # =============================================================================
 # 二、成长（局外：账号等级 / 经验）
 # =============================================================================

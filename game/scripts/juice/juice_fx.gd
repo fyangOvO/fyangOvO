@@ -144,6 +144,21 @@ func _spawn_damage_number(target: Node, amount: float, is_crit: bool) -> void:
 	num.setup(amount, is_crit)
 
 
+## 治疗飘字（步骤 8A · 药水回血）：玩家头顶绿色 +数值（贴图/代码统一走 DamageNumber）
+func spawn_heal_number(amount: float, at: Vector2) -> void:
+	if amount <= 0.0:
+		return
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var num := FALLBACK_DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber
+	scene.add_child(num)
+	num.global_position = at + Vector2(
+		randf_range(-GameConstants.DAMAGE_NUMBER_SCATTER, GameConstants.DAMAGE_NUMBER_SCATTER),
+		GameConstants.DAMAGE_NUMBER_OFFSET_Y)
+	num.setup_heal(amount)
+
+
 ## 死亡位置生成像素粒子（贴图烟尘不可用时的兜底）
 func _spawn_burst(pos: Vector2, color: Color) -> void:
 	var scene := get_tree().current_scene
