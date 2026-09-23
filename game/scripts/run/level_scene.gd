@@ -667,8 +667,8 @@ func _on_boss_awaken_finished() -> void:
 	if _pending_boss != null and is_instance_valid(_pending_boss):
 		_pending_boss.set_physics_process(true)
 		_pending_boss = null
-	# 觉醒吼（低吼扫频）：开战瞬间
-	AudioManager.play("boss_phase")
+	# 觉醒开战吼（8E：boss_roar 专用，低沉咆哮+号角；阶段转换仍用 boss_phase）
+	AudioManager.play("boss_roar")
 
 
 ## 相机震屏（觉醒卡出现瞬间的冲击感，0.4s 衰减归零）

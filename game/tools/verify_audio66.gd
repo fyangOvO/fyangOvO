@@ -38,9 +38,9 @@ func _ready() -> void:
 func _test_registry() -> void:
 	print("--- A. 注册表 ---")
 	var ids := AudioManager.ids()
-	_ok("注册表 9 条音效", ids.size() == 9)
+	_ok("注册表 10 条音效", ids.size() == 10)
 	var want := ["hit_melee", "hit_crit", "enemy_die", "pickup_gold",
-		"pickup_item", "levelup", "boss_phase", "ui_click"]
+		"pickup_item", "levelup", "boss_roar", "boss_phase", "ui_click"]
 	var miss := 0
 	for w in want:
 		if not AudioManager.has(w):

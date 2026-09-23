@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://dc80j1h683tn1"
-path="res://.godot/imported/levelup.wav-13f366b668fed52ca8c7afba3d530d0c.sample"
+uid="uid://bykbhnkb1l7l8"
+path="res://.godot/imported/boss_roar.wav-a7ffef6a115528f67645172a06e69e4c.sample"
 
 [deps]
 
-source_file="res://data/audio/levelup.wav"
-dest_files=["res://.godot/imported/levelup.wav-13f366b668fed52ca8c7afba3d530d0c.sample"]
+source_file="res://data/audio/boss_roar.wav"
+dest_files=["res://.godot/imported/boss_roar.wav-a7ffef6a115528f67645172a06e69e4c.sample"]
 
 [params]
 
