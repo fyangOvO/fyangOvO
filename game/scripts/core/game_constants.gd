@@ -475,9 +475,9 @@ const ARMOR_DR_CONSTANT_PER_LEVEL: float = 50.0
 ##   L1 普通怪：HP 100.7 / DMG 5.61
 ##   L20 普通怪：HP ≈ 11,635 / DMG ≈ 237.83
 const MONSTER_HP_AT_L1: float = 100.7
-const MONSTER_HP_GROWTH: float = 1.284
+const MONSTER_HP_GROWTH: float = 1.22   ## 9.x 调优：1.284 → 1.22（裸装 Lv20 TTK 从 ~150 击降到 ~45 击）
 const MONSTER_DMG_AT_L1: float = 5.61
-const MONSTER_DMG_GROWTH: float = 1.218
+const MONSTER_DMG_GROWTH: float = 1.16   ## 9.x 调优：1.218 → 1.16（后期承伤从 1.5 击 → 4-5 击，不再猝死）
 
 ## 怪物档位倍率
 const MONSTER_ELITE_HP_MULT: float = 4.5

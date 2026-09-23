@@ -105,6 +105,8 @@ var _attack_timer: float = 0.0
 
 ## 受击闪白倒计时
 var _flash_timer: float = 0.0
+## 9.x 受击硬直（hitstun）：真掉血时短暂打断 AI 追击（移动 ×0.25），提升打击感
+var _hitstun_timer: float = 0.0
 
 ## 当前朝向（移动方向；攻击时朝玩家。2.5 攻击命中判定以它为扇区中轴）
 var facing: Vector2 = Vector2.DOWN
@@ -141,6 +143,9 @@ const KNOCKBACK_DECAY: float = 1200.0
 
 ## 击退速度下限（px/s）：低于此值直接归零，避免肉眼看不见的残余速度继续参与移动。
 const KNOCKBACK_STOP_EPSILON: float = 4.0
+## 9.x 受击硬直参数
+const HITSTUN_DURATION: float = 0.12
+const HITSTUN_SPEED_MULT: float = 0.25
 
 const LOOT_SCENE := preload("res://scenes/loot/loot_drop.tscn")
 
@@ -711,10 +716,13 @@ func _physics_process(delta: float) -> void:
 	_refresh_player()
 	_tick_state(delta)
 	_tick_flash(delta)
+	if _hitstun_timer > 0.0:
+		_hitstun_timer = maxf(_hitstun_timer - delta, 0.0)
 
 	# 通道 1：AI 速度（`_tick_state` 已写进 velocity）。先存进局部变量，
 	# 免得击退污染下一帧的巡逻 / 追击速度。
-	var move_velocity := velocity
+	# 9.x 受击硬直：hitstun 期间 AI 移动速度打 0.25 折（打断追击，受击更有反馈）
+	var move_velocity := velocity * (HITSTUN_SPEED_MULT if _hitstun_timer > 0.0 else 1.0)
 	# 通道 2：击退（见 `apply_knockback`）。两通道**相加**后交给 move_and_slide 裁定地形。
 	#
 	# ⚠️ 这里必须是「重算」而不是 `velocity += _knockback_velocity`：
@@ -889,6 +897,7 @@ func take_damage(amount: float, source: Node) -> void:
 		health.take_damage(amount, source)
 		if health.get_current_hp() < hp_before:
 			_play_anim_oneshot(ANIM_HURT, HURT_ANIM_DURATION)
+			_hitstun_timer = HITSTUN_DURATION  # 9.x：真掉血才打断追击
 		_check_boss_phase()
 
 
@@ -956,14 +965,38 @@ func _summon_minions() -> void:
 			randf_range(-50.0, 50.0))
 
 
-## 范围技能（践踏 / 熔岩喷发）：以 BOSS 为中心 AoE，命中玩家则结算伤害
+## 范围技能（践踏 / 熔岩喷发）：以 BOSS 为中心 AoE。
+## 9.x：改为「警示 → 延迟命中」两段——先在地面画 0.6s 红色圆环（可反应），
+## 再结算伤害。避免瞬发不可避（公平性/手感）。
+const AOE_TELEGRAPH_TIME: float = 0.6
+const AOE_RADIUS: float = 110.0
+
 func _aoe_strike() -> void:
 	if _player == null:
 		return
-	var radius := 110.0
-	if global_position.distance_to(_player.global_position) > radius:
-		return
+	_spawn_aoe_telegraph(AOE_RADIUS)
 	var dmg := data.get_damage(level, difficulty_tier) * _boss_dmg_mult * 0.9
+	var timer := get_tree().create_timer(AOE_TELEGRAPH_TIME)
+	timer.timeout.connect(func() -> void: _aoe_impact(dmg))
+
+
+## 警示视觉：地面红色闪烁圆环（Node2D 自绘，0.6s 后自毁）
+func _spawn_aoe_telegraph(radius: float) -> void:
+	var host := get_parent()
+	if host == null:
+		return
+	var tel := AoETelegraph.new()
+	tel.position = global_position
+	host.add_child(tel)
+	tel.setup(radius, AOE_TELEGRAPH_TIME)
+
+
+## 命中结算（警示结束后调用）
+func _aoe_impact(dmg: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	if global_position.distance_to(_player.global_position) > AOE_RADIUS:
+		return
 	if _player.has_method("take_damage"):
 		_player.take_damage(dmg, self)
 	EventBus.damage_dealt.emit(_player, dmg, false, data.element)
@@ -1122,3 +1155,28 @@ func _solid_texture(w: int, h: int, color: Color) -> ImageTexture:
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	img.fill(color)
 	return ImageTexture.create_from_image(img)
+
+
+## 范围技能警示视觉（9.x 内部类）：红色闪烁圆环，淡出后自毁
+class AoETelegraph extends Node2D:
+	var _radius: float = 110.0
+	var _life: float = 0.6
+	var _t: float = 0.0
+
+	func setup(radius: float, life: float) -> void:
+		_radius = radius
+		_life = life
+		z_index = 40  # 盖在地面/敌人之上
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _t >= _life:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		var alpha := 0.85 * (1.0 - _t / _life)
+		var blink := 0.6 + 0.4 * sin(_t * 24.0)
+		var col := Color(1.0, 0.25, 0.15, alpha * blink)
+		draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 40, col, 3.0)
+		draw_arc(Vector2.ZERO, _radius * 0.88, 0.0, TAU, 32, Color(1.0, 0.5, 0.3, alpha * 0.5), 2.0)
