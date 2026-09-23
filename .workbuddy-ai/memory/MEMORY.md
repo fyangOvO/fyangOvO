@@ -40,16 +40,14 @@ D:\七傳說\game\build\七傳說.exe
 
 | 遠程 | 用途 | 2026-09-23 時狀態 |
 |---|---|---|
-| `https://github.com/fyangOvO/game.git` | **正式發佈目標**（用戶指定） | 已推到 `295ced7`（與本地 HEAD 一致） |
-| `https://github.com/fyangOvO/fyangOvO.git` | 本地 `origin` 配置指向它 | 停在 `e4f2dcd`（步驟 8E） |
+| `origin` = `https://github.com/fyangOvO/fyangOvO.git` | ✅ **正式同步目標（用戶 2026-09-23 指定）** | 已推到 `148777c`（與本地 HEAD 一致） |
+| `https://github.com/fyangOvO/game.git` | ❌ **不要再管它**（用戶明確指示） | 停在 `148777c`（同一次推送的副本） |
 
-- **本倉庫啟用了 Git LFS**（推送時上傳 36 個 LFS 對象 / 12 MB）。憑據助手為
-  `PortableGit/.../git-credential-manager.exe`（HTTPS，憑據已緩存，可直接 push）。
-- ⚠️ **`origin` 與正式目標不一致**：`origin` 指向 `fyangOvO/fyangOvO`，而用戶要的是 `fyangOvO/game`。
-  本次用一次性 URL 推送（`git push https://github.com/fyangOvO/game.git main`）繞開，
-  **未改 origin 配置**。下次推送仍需注意，或先問用戶是否把 origin 改指 `game`。
-- 兩個遠程都是**公開倉庫** ⇒ 推送前務必確認目標，別把東西推錯地方。
-- 本地 `main` 的**根提交 = `a8c6f6c`**（步驟 0-6 單一根提交），故推到 `game` 是純快進，無需強推。
+- ✅ **推送一律 `git push origin main`**，**不要**再往 `game` 推（用戶原話：「后续也是同步到这不要管game了」）。
+  `origin` 配置**保持指向 `fyangOvO/fyangOvO`，不要改**。
+- **本倉庫啟用了 Git LFS**（首次推送 `game` 上傳 36 個 LFS 對象 / 12 MB）。
+  憑據助手為 `PortableGit/.../git-credential-manager.exe`（HTTPS，憑據已緩存，可直接 push）。
+- 本地 `main` 的**根提交 = `a8c6f6c`**（步驟 0-6 單一根提交），故推送都是純快進，無需強推。
 
 ### ⚠️ 仓库安全铁律（2026-09-20 事故后确立，必须遵守）
 2026-09-20 一次 `git stash push -u` 被 SIGTERM 中断后 `.git` 整体被移入回收站，
