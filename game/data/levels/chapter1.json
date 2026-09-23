@@ -171,9 +171,9 @@
 		"objective_type": "clear_all",
 		"objective_value": 0,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 13, "count_max": 20, "weight": 110.0, "spawn_group": "guard" },
-			{ "monster_id": "brute_butcher", "count_min": 2, "count_max": 3, "weight": 8.0, "spawn_group": "guard" },
-			{ "monster_id": "slime_acid", "count_min": 7, "count_max": 11, "weight": 60.0, "spawn_group": "ambient" }
+			{ "monster_id": "skeleton_warrior", "count_min": 13, "count_max": 37, "weight": 110.0, "spawn_group": "guard" },
+			{ "monster_id": "brute_butcher", "count_min": 2, "count_max": 5, "weight": 8.0, "spawn_group": "guard" },
+			{ "monster_id": "slime_acid", "count_min": 7, "count_max": 20, "weight": 60.0, "spawn_group": "ambient" }
 		],
 		"total_monster_budget": 62,
 		"elite_spawn_enabled": true,
@@ -243,8 +243,8 @@
 		"objective_type": "kill_boss",
 		"objective_value": 0,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 13, "count_max": 18, "weight": 120.0, "spawn_group": "guard" },
-			{ "monster_id": "wraith_frost", "count_min": 2, "count_max": 2, "weight": 4.0, "spawn_group": "guard" },
+			{ "monster_id": "skeleton_warrior", "count_min": 13, "count_max": 56, "weight": 120.0, "spawn_group": "guard" },
+			{ "monster_id": "wraith_frost", "count_min": 2, "count_max": 9, "weight": 4.0, "spawn_group": "guard" },
 			{ "monster_id": "boss_bone_tyrant", "count_min": 1, "count_max": 1, "weight": 1.0, "spawn_group": "guard", "is_boss": true }
 		],
 		"total_monster_budget": 66,
