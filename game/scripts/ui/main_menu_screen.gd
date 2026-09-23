@@ -258,10 +258,12 @@ func _on_start() -> void:
 
 func _on_settings() -> void:
 	_clear_overlay()
-	_make_overlay("设置")
+	# 步骤 7：SettingsPanel 是全屏浮层自管理（含标题/关闭按钮），
+	# 不再套 _make_overlay —— 旧版 520×460 + overlay 标题/边距总高超 560px 被 360 视口裁掉。
 	var sp := SettingsPanel.new()
-	_overlay_box.add_child(sp)
-	_overlay_box.add_child(_make_btn("关闭", _clear_overlay))
+	sp.on_close = _clear_overlay
+	add_child(sp)
+	_overlay = sp
 
 
 func _on_quit() -> void:
@@ -387,6 +389,7 @@ func _make_btn(text: String, cb: Callable) -> Button:
 	btn.custom_minimum_size = Vector2(360, 40)
 	btn.add_theme_font_size_override("font_size", 13)
 	btn.pressed.connect(cb)
+	AudioManager.hook_click(btn)
 	return btn
 
 

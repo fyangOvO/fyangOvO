@@ -61,6 +61,12 @@ func _ready() -> void:
 func _on_damage_dealt(target: Node, amount: float, is_crit: bool, _element: String) -> void:
 	if target == null or not is_instance_valid(target):
 		return
+	# 6.6 音效：暴击 → 暴击音；普通命中 → 打击音（覆盖玩家受击与敌人受击；
+	# 荆棘反弹 / DoT 不经本总线，保持静默，与改动前一致）
+	if is_crit:
+		AudioManager.play("hit_crit")
+	else:
+		AudioManager.play("hit_melee")
 	# 飘字是**文本**反馈，贴图替代不了 ⇒ 恒走代码绘制
 	_spawn_damage_number(target, amount, is_crit)
 	# 命中火花 / 暴击斩弧：贴图优先（无贴图 = 无此效果，与引入贴图层之前的手感一致）

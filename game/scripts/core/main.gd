@@ -34,6 +34,8 @@ func _ready() -> void:
 	# 任务 9.3：启动日志（崩溃后可定位）
 	GameLog.info("游戏启动：引擎 %s / 自检 %s / 冒烟 %s"
 		% [Engine.get_version_info().get("string", "?"), str(verify_only), str(smoke_only)])
+	# 8.2 设置持久化：启动即加载并应用（音量 / 垂直同步 / 全屏）
+	SettingsStore.load()
 
 	if verify_only:
 		# 自检面板自己负责「打印报告 + 按退出码 quit」，这里只把它挂上来

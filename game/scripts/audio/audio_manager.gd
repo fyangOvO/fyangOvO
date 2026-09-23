@@ -63,6 +63,11 @@ static func has(id: String) -> bool:
 	return SFX_REGISTRY.has(id)
 
 
+## 为按钮统一挂 UI 点击音（菜单 / 据点 / 角色选择等所有入口按钮）
+static func hook_click(btn: BaseButton) -> void:
+	btn.pressed.connect(func() -> void: play("ui_click"))
+
+
 static func ids() -> Array[String]:
 	var out: Array[String] = []
 	for k in SFX_REGISTRY:

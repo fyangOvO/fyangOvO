@@ -844,6 +844,8 @@ func _attack_player() -> void:
 	if AffixController.has(affixes, "echo") and randf() < 0.3:
 		if _player.has_method("take_damage"):
 			_player.take_damage(dmg, self)
+			# 6.6 音效：回响补击不经 damage_dealt 总线，此处补打击声
+			AudioManager.play("hit_melee")
 	# 6.3 BOSS 阶段技能：召唤（按阶段数量生成杂兵）/ 范围技能对玩家生效
 	if not _boss_skills.is_empty():
 		_cast_boss_skill()
@@ -879,9 +881,6 @@ func take_damage(amount: float, source: Node) -> void:
 	if AffixController.has(affixes, "thorn") and source != null \
 			and source.has_method("take_damage"):
 		source.take_damage(amount * 0.15, self)
-	# 6.6 音效：被玩家命中 → 打击声（荆棘反弹的二次受击不重复响）
-	if source != null and source.is_in_group(&"player"):
-		AudioManager.play("hit_melee")
 	_flash_hit()
 	if health != null:
 		# 受擊動畫只在**真的掉血**時播（無敵 / 護盾全吸收 / 0 傷害都不播），

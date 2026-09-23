@@ -134,6 +134,7 @@ func _build_class_list() -> void:
 		btn.position = CLASS_LIST_RECT.position + Vector2(0.0, float(i) * (CLASS_BTN_SIZE.y + CLASS_BTN_GAP))
 		btn.size = CLASS_BTN_SIZE
 		btn.pressed.connect(func() -> void: _select_class(cid))
+		AudioManager.hook_click(btn)
 		btn.tooltip_text = "%s · %s" % [
 			String(cls.get("display_name", cid)), String(cls.get("title", "")),
 		]
@@ -326,6 +327,7 @@ func _make_bottom_btn(text: String, kind: String, size: Vector2) -> Button:
 	for state in ["normal", "hover", "pressed"]:
 		if boxes.has(state):
 			btn.add_theme_stylebox_override(state, boxes[state])
+	AudioManager.hook_click(btn)
 	return btn
 
 

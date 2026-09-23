@@ -226,6 +226,7 @@ func _refresh_levels(data: SaveData) -> void:
 		btn.tooltip_text = "推荐等级 %d%s" % [
 			lv.recommended_player_level, "" if unlocked else "（未解锁：需先通关上一关）"]
 		btn.pressed.connect(_on_level_picked.bind(lv.id))
+		AudioManager.hook_click(btn)
 		_level_list.add_child(btn)
 
 
@@ -727,12 +728,14 @@ func _build_ui() -> void:
 		btn.custom_minimum_size = Vector2(80, 34)
 		btn.add_theme_font_size_override("font_size", 13)
 		btn.pressed.connect(_toggle_panel.bind(pid))
+		AudioManager.hook_click(btn)
 		bar.add_child(btn)
 	var back := Button.new()
 	back.text = "回主菜单"
 	back.custom_minimum_size = Vector2(100, 34)
 	back.add_theme_font_size_override("font_size", 13)
 	back.pressed.connect(_on_back_to_menu)
+	AudioManager.hook_click(back)
 	bar.add_child(back)
 
 	# 关卡列表（可滚动）
