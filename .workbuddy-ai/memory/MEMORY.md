@@ -116,6 +116,47 @@ D:\七傳說\game\build\七傳說.exe
   现已改为 **`_merge_blocking_rects()` 矩形并集**：`ch1_l01` 496→95（降 81%）、`ch1_l02` 574→127（降 78%）。
   等价性由 `verify_level_gen` 的 canary 逐格枚举点做集合比较盯死。
 
+### ⚠️ 導出包內 `DirAccess` 枚舉 `res://` **全廢** ⇒ 多幀素材靜默退化（2026-09-23 挖出，P0 級）
+
+**症狀**：導出包裡玩家是一坨**占位色塊**；怪物能顯示但**全部靜止不動**。
+
+**實測證據**（在導出包內打印）：
+```
+DirAccess.open("res://assets/pack/creatures/player")      → 打得開，但 png = 0
+DirAccess.open("res://assets/pack/creatures/spider_cave") → png = 0
+ResourceLoader.exists("res://.../char_player_idle_s_01.png") → true   ← 按路徑載入正常
+```
+
+**根因**：`export_presets.cfg` 的 `export_filter="all_resources"` 只把 PNG 的**導入產物**
+（`.ctex`）寫進 PCK，**源 `.png` 不進檔案表**（只留 remap 條目）⇒
+- `ResourceLoader.load("res://x.png")` ✅ 正常（remap 生效）
+- `DirAccess.open(dir)` ✅ 打得開，但 `list_dir()` **回 0 個檔案** ❌
+
+**後果鏈**：`EnemyBase.pack_load_set()` 靠 `DirAccess` 枚舉 → 導出包裡**必然失敗** →
+① 怪物退到單幀兜底 `assets/sprites/enemies/<id>.png`（**能顯示但不會動**）；
+② **玩家沒有單幀兜底** ⇒ 直接落回占位色塊。
+
+**⚠️ 這個 bug 在編輯器 / 工程內永遠看不到**（`res://` 是真目錄，枚舉正常）——
+只有跑 `七傳說.exe --smoke` 才暴露。**所以「導出後冒煙」不是可選項。**
+
+**修法**（2026-09-23 已修，`enemy_base.gd`）：`pack_load_set()` 不再枚舉目錄，
+改用 **`pack_probe_names()`**：依命名約定 `char_<id>_<action>_<dir>_<NN>.png`
+（動作 6 種 / 方向 8 種 / 幀 1–6）逐個 `ResourceLoader.exists()` 探測（幀號 01 起、遇缺即停）。
+全量掃描 `assets/pack/creatures/*` 實測：**所有檔名 100% 符合該約定**。
+`dnf_load_dir()` 保留（`user://` 是真目錄，枚舉可靠），與 `dnf_load_names()` 共用解析管線。
+
+**⇒ 通則：導出包裡「按已知路徑載入」可靠，「枚舉 `res://` 目錄」不可靠。**
+凡是要在導出包裡讀 `res://` 的一批檔案，一律走**顯式清單 / 命名約定探測**。
+
+### 玩家精靈 = 由職業驅動（2026-09-23 接入）
+- 三職業美術原本只在 `assets/characters/<動作>_<方向>/char_<職業>_*.png`（**非**加載器認的佈局），
+  而 `assets/pack/creatures/player/` 只是**戰士的副本** ⇒ 三個職業長得一樣。
+- 已歸集為 `assets/pack/creatures/{warrior,archer,mage}/`（各 71 幀，標準命名）。
+- `PlayerController.art_id`（**可注入，必須在 `add_child()` 之前設**）取代寫死的 `PLAYER_ART_ID`；
+  `level_scene._player_art_id_from_class()` 依存檔 `class_id` 注入，查不到該職業素材則回退。
+- 三職業形象：戰士=白髮巨劍 / 法師=藍袍法杖 / 弓箭手=綠披風長弓。
+- 實拍驗證工具（用完即刪，範本可參考）：`tools/capture_step6.gd` 同款寫法。
+
 ### ⚠️ `.tscn` 节点声明漏 `type=` 会被 Godot **静默丢弃**（2026-09-21 挖出）
 `scenes/enemies/enemy_base.tscn` 的 `CollisionShape2D` 曾漏写 `type="CollisionShape2D"`
 ⇒ Godot 不报错、不崩溃，**只是那个节点不存在** ⇒ **从 2.4 到 2.6 所有敌人根本没有碰撞体**。

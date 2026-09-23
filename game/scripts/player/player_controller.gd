@@ -157,6 +157,15 @@ const HAND_SPREAD_Y_DAMP: float = 0.5
 ## `user://content/characters/player/`
 const PLAYER_ART_ID: String = "player"
 
+## 實際取用的素材目錄名（`assets/pack/creatures/<art_id>/`）。
+##
+## 2026-09-23：三職業各有獨立美術（`assets/characters/` → 歸集為
+## `assets/pack/creatures/{warrior,archer,mage}/`），故改為**由職業驅動**：
+## `level_scene` 依存檔 `class_id` 注入，選什麼職業就長什麼樣。
+## ⚠️ **必須在 `add_child()` 之前設定** —— `_ready()` 就用它解析美術。
+## 未注入（空串）時回退 `PLAYER_ART_ID`，兼容既有呼叫方與舊存檔。
+var art_id: String = PLAYER_ART_ID
+
 ## 真實精靈狀態（未接真素材時全不啟用 → 行為與原佔位完全相同）
 var _real_frames: Array = []
 var _real_fps: float = 12.0
@@ -280,9 +289,10 @@ func _ready() -> void:
 	# ⚠️ 修的是既有缺陷：此前真素材命中就跳过建节点 ⇒ 占位武器「根本不存在」。
 	if use_placeholder_art:
 		_build_placeholder_art()
-	# 優先鏈（**用戶可替換**，美術全為豆包原創）：① user://content/characters/player/
-	# → ①·5 pack/creatures/player 多幀 → ② 內建單張 → ③ 占位色塊。
-	var art := EnemyBase.resolve_character_set(PLAYER_ART_ID)
+	# 優先鏈（**用戶可替換**，美術全為豆包原創）：① user://content/characters/<art_id>/
+	# → ①·5 pack/creatures/<art_id> 多幀 → ② 內建單張 → ③ 占位色塊。
+	# `<art_id>` 由職業驅動（warrior / archer / mage），見 `art_id` 宣告。
+	var art := EnemyBase.resolve_character_set(art_id)
 	if art["ok"]:
 		_apply_real_art(art)
 	_apply_facing()

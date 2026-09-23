@@ -387,6 +387,8 @@ func _build() -> void:
 	# 2) 玩家
 	var spawn_cell: Vector2i = _layout.get("player_spawn", Vector2i(1, 1))
 	_player = PLAYER_SCENE.instantiate() as PlayerController
+	# ⚠️ **必須在 `add_child()` 之前**注入：`PlayerController._ready()` 就用它解析美術。
+	_player.art_id = _player_art_id_from_class()
 	_actors.add_child(_player)
 	_player.global_position = _cell_to_world(spawn_cell)
 	_apply_account_stats()
@@ -415,6 +417,22 @@ func _build() -> void:
 	print("[Level] 进入「%s」Lv.%d · 难度 %d · 敌人 %d（精英 %d / BOSS %d）· 目标：%s"
 		% [_level_def.display_name, _level_def.level, difficulty_tier,
 			_alive.size(), _elite_total, _boss_total, _objective_desc])
+
+
+## 玩家美術目錄名 = 存檔裡的職業 id（`warrior` / `archer` / `mage`）。
+##
+## 2026-09-23：三職業各有獨立美術（`assets/pack/creatures/<職業>/`），故玩家精靈
+## 改為**由職業驅動**。這裡只做「查得到就用」的守門：該職業素材目錄必須真有 `idle_s` 首幀，
+## 否則回退歷史目錄名 `PLAYER_ART_ID`（避免職業 id 異常時玩家退回占位色塊）。
+func _player_art_id_from_class() -> String:
+	var cid := GameConstants.CLASS_DEFAULT
+	var data := SaveManager.current_data
+	if data != null and not data.class_id.is_empty():
+		cid = data.class_id
+	var probe := "%s/%s/char_%s_idle_s_01.png" % [EnemyBase.PACK_CREATURE_ROOT, cid, cid]
+	if ResourceLoader.exists(probe):
+		return cid
+	return PlayerController.PLAYER_ART_ID
 
 
 ## 账号属性 + **局内增益** → 玩家。

@@ -490,6 +490,34 @@ static func dnf_load_user_dir(id: String) -> Dictionary:
 	return r
 
 
+## 素材包幀集的三段命名約定：`char_<id>_<action>_<dir>_<NN>.png`。
+## 2026-09-23 全量掃描 `assets/pack/creatures/*` 實測：所有檔名 100% 符合此約定
+## （動作 6 種 / 方向 8 種 / 幀號 1–6）。
+const PACK_ACTIONS: Array[String] = ["idle", "walk", "attack", "hurt", "death", "die"]
+const PACK_DIRS: Array[String] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
+const PACK_MAX_FRAMES: int = 8
+
+## 依命名約定 + `ResourceLoader.exists()` 探測出幀檔名清單（幀號 01 起，遇缺即停）。
+##
+## ⚠️ **為什麼不能靠 `DirAccess` 枚舉 `res://`**（2026-09-23 導出包實測）：
+##    導出時 `export_filter="all_resources"` 只把 PNG 的**導入產物**（`.ctex`）寫進 PCK，
+##    源 `.png` 不進檔案表（只留 remap 條目）⇒ `DirAccess.open(dir)` 打得開、
+##    `list_dir()` 卻回 **0 個 .png**；而 `ResourceLoader.exists()/load()` 照樣正常。
+##    後果：所有多幀素材在導出包裡**靜默退化** —— 怪物退到單幀兜底（畫面變成不動的貼圖）、
+##    玩家沒有兜底 ⇒ 直接變占位色塊。此 bug 在編輯器裡永遠看不到，只有跑 `--smoke` 才暴露。
+static func pack_probe_names(id: String, dir_path: String) -> Array[String]:
+	var out: Array[String] = []
+	for action in PACK_ACTIONS:
+		for d in PACK_DIRS:
+			for i in range(1, PACK_MAX_FRAMES + 1):
+				var fname := "char_%s_%s_%s_%02d.png" % [id, action, d, i]
+				if ResourceLoader.exists("%s/%s" % [dir_path, fname]):
+					out.append(fname)
+				else:
+					break
+	return out
+
+
 ## 載入素材包多幀集：`res://assets/pack/creatures/<id>/`（**committed · 豆包原創**）。
 ## 畫布由紋理實測決定（不讀 manifest）。static 快取鍵加 `pack::` 前綴，與用戶
 ## 覆蓋（鍵 `user::`）隔離，互不污染。
@@ -497,7 +525,8 @@ static func pack_load_set(id: String) -> Dictionary:
 	var key := "pack::%s" % id
 	if _dnf_cache.has(key):
 		return _dnf_cache[key]
-	var r := dnf_load_dir(id, "%s/%s" % [PACK_CREATURE_ROOT, id])
+	var dir_path := "%s/%s" % [PACK_CREATURE_ROOT, id]
+	var r := dnf_load_names(id, dir_path, pack_probe_names(id, dir_path))
 	if r["ok"]:
 		r["source"] = "pack"
 	_dnf_cache[key] = r
@@ -512,6 +541,9 @@ static func clear_cache() -> void:
 
 ## 解析**任意**單幀 PNG 目錄為 `{動作 → 方向 → 幀}` 的 clip 集（豆包素材 / 用戶覆蓋通用）。
 ## `who` 僅作診斷用；方向/動作一律由**檔名**推導。畫布由紋理實測決定、fps 用預設。
+##
+## ⚠️ 本函式靠 `DirAccess` 枚舉目錄 —— **只在 `user://` 下可靠**。
+##    `res://` 的素材包請走 `pack_load_set()`（導出包裡枚舉不到，見 `pack_probe_names`）。
 static func dnf_load_dir(who: String, dir_path: String) -> Dictionary:
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
@@ -524,6 +556,12 @@ static func dnf_load_dir(who: String, dir_path: String) -> Dictionary:
 			names.append(f)
 		f = dir.get_next()
 	dir.list_dir_end()
+	return dnf_load_names(who, dir_path, names)
+
+
+## 幀檔名清單 → clip 集。與 `dnf_load_dir` 共用同一套解析/建構管線，
+## 差別只在「清單怎麼來」（枚舉 vs 命名約定探測）。
+static func dnf_load_names(who: String, dir_path: String, names: Array[String]) -> Dictionary:
 	if names.is_empty():
 		return _dnf_empty(who)
 	names.sort()
