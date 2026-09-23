@@ -42,11 +42,11 @@ const CONTENT_BOTTOM: float = 300.0
 const CLASS_LIST_RECT: Rect2 = Rect2(24, 52, 128, 196)
 const CLASS_BTN_SIZE: Vector2 = Vector2(128, 40)
 const CLASS_BTN_GAP: float = 8.0
-## 立绘大图（188×250 原尺寸）
+## 立绘大图（200×250，512×768 高清 DNF 风立绘 KEEP_ASPECT_COVERED 填满）
 const PORTRAIT_POS: Vector2 = Vector2(160, 46)
-const PORTRAIT_SIZE: Vector2 = Vector2(188, 250)
+const PORTRAIT_SIZE: Vector2 = Vector2(200, 250)
 ## 右列：信息区
-const INFO_RECT: Rect2 = Rect2(356, 46, 260, 254)
+const INFO_RECT: Rect2 = Rect2(368, 46, 256, 254)
 ## 数值预览（2 列 5 行）
 const STAT_GRID_RECT: Rect2 = Rect2(356, 152, 260, 84)
 ## 技能展示
@@ -142,13 +142,13 @@ func _build_class_list() -> void:
 		_class_buttons.append({"id": cid, "btn": btn})
 
 
-## 立绘大图：188×250 原尺寸（像素风 1×）
+## 立绘大图：512×768 高清 DNF 风立绘，KEEP_ASPECT_COVERED 填满 200×250（上下微裁，特写更有张力）
 func _build_portrait() -> void:
 	_portrait = TextureRect.new()
 	_portrait.name = "Portrait"
-	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_portrait.position = PORTRAIT_POS
 	_portrait.size = PORTRAIT_SIZE

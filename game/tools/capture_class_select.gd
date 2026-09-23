@@ -14,9 +14,9 @@ extends Node2D
 const MENU_SCENE: String = "res://scenes/main/main_menu.tscn"
 const OUT_DIR: String = "D:/七傳說/deliverables"
 const CLASSES: Array = [
-	{"id": "warrior", "file": "角色选择_战士_2026-09-22.png"},
-	{"id": "archer", "file": "角色选择_弓箭手_2026-09-22.png"},
-	{"id": "mage", "file": "角色选择_法师_2026-09-22.png"},
+	{"id": "warrior", "file": "角色选择_战士_2026-09-23.png"},
+	{"id": "archer", "file": "角色选择_弓箭手_2026-09-23.png"},
+	{"id": "mage", "file": "角色选择_法师_2026-09-23.png"},
 ]
 
 var _fail: int = 0

@@ -62,9 +62,10 @@ const EXPECT_TEX: Dictionary = {
 	"potion_life": Vector2i(48, 48),
 	"potion_mana": Vector2i(48, 48),
 	"torch": Vector2i(80, 80),
-	"portrait_warrior": Vector2i(188, 250),
-	"portrait_archer": Vector2i(188, 250),
-	"portrait_mage": Vector2i(188, 250),
+	# ── 2026-09-23 角色选择页立绘升级：512×768 DNF 觉醒风高清立绘 ──
+	"portrait_warrior": Vector2i(512, 768),
+	"portrait_archer": Vector2i(512, 768),
+	"portrait_mage": Vector2i(512, 768),
 }
 
 var _fail: int = 0

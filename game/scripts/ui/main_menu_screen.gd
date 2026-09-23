@@ -129,12 +129,12 @@ func _build_portrait() -> void:
 	var tr := TextureRect.new()
 	tr.name = "HeroPortrait"
 	tr.texture = tex
-	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.position = PORTRAIT_POS
-	tr.size = Vector2(tex.get_width(), tex.get_height())
+	tr.size = Vector2(188, 250)
 	add_child(tr)
 
 
