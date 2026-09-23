@@ -29,10 +29,31 @@ D:\七傳說\game\build\七傳說.exe
 ### 协作约定
 - 规划与报告产物统一存放于 `deliverables/gstack/`
 - 命名规范：`<场景类型>-<主题简称>-<YYYY-MM-DD>.md`
+- ⚠️ **用戶明確要求（2026-09-23）：「幹活簡潔明瞭，不要做多餘的事情，或者做之前問我」。**
+  ⇒ 少寫長報告、少做自選動作（擅自重寫報告、刷備份、大範圍改檔都是反面案例）；
+  **動手前先確認**。用戶原話還帶了情緒（「你还不如豆包」），別再犯。
+- ⚠️ **提交 git 是常規動作**：`git add` / `commit` / `push` 都允許；
+  但**推送前必須確認目標遠程**（有兩個公開倉，見「遠程倉庫現狀」節）。
+
+### ⚠️ 远程仓库现状（2026-09-23 实测更正）
+❗ **舊記憶寫的「本倉庫無 remote（純本地），`.git` 是唯一副本」是錯的 —— 2026-09-23 實測有兩個公開遠程：**
+
+| 遠程 | 用途 | 2026-09-23 時狀態 |
+|---|---|---|
+| `https://github.com/fyangOvO/game.git` | **正式發佈目標**（用戶指定） | 已推到 `295ced7`（與本地 HEAD 一致） |
+| `https://github.com/fyangOvO/fyangOvO.git` | 本地 `origin` 配置指向它 | 停在 `e4f2dcd`（步驟 8E） |
+
+- **本倉庫啟用了 Git LFS**（推送時上傳 36 個 LFS 對象 / 12 MB）。憑據助手為
+  `PortableGit/.../git-credential-manager.exe`（HTTPS，憑據已緩存，可直接 push）。
+- ⚠️ **`origin` 與正式目標不一致**：`origin` 指向 `fyangOvO/fyangOvO`，而用戶要的是 `fyangOvO/game`。
+  本次用一次性 URL 推送（`git push https://github.com/fyangOvO/game.git main`）繞開，
+  **未改 origin 配置**。下次推送仍需注意，或先問用戶是否把 origin 改指 `game`。
+- 兩個遠程都是**公開倉庫** ⇒ 推送前務必確認目標，別把東西推錯地方。
+- 本地 `main` 的**根提交 = `a8c6f6c`**（步驟 0-6 單一根提交），故推到 `game` 是純快進，無需強推。
 
 ### ⚠️ 仓库安全铁律（2026-09-20 事故后确立，必须遵守）
-本仓库**无 remote**（纯本地），`.git` 是唯一副本。2026-09-20 一次 `git stash push -u`
-被 SIGTERM 中断后 `.git` 整体被移入回收站，全库险些灭失。因此：
+2026-09-20 一次 `git stash push -u` 被 SIGTERM 中断后 `.git` 整体被移入回收站，
+全库险些灭失（**当时确实没有 remote**，`.git` 是唯一副本 —— 远程是后来才配的）。因此：
 - **禁用**：`git stash`（尤其 `-u`/`-a`）、`git gc`、`git prune`、`git reset`、
   `git checkout`、`git clean`、`git read-tree`、`git filter-branch`。
   仅允许 `git add` / `commit` / `status` / `log` / `diff`。
