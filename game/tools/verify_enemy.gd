@@ -49,6 +49,7 @@ func _ready() -> void:
 	await _test_take_damage()
 	await _test_attack()
 	await _test_regression()
+	await _test_ai_dispatch()
 	_finish()
 
 
@@ -60,11 +61,12 @@ func _on_damage_taken(source: Node, amount: float, element: String) -> void:
 	_taken_events.append([source, amount, element])
 
 
-## 生成一只 spider_cave（L1 / NM1），出生在 pos
-func _spawn_enemy(pos: Vector2) -> EnemyBase:
+## 生成一只怪（默认 spider_cave / L1 / NM1），出生在 pos。
+## `monster_id` 参数化是给 G 段「AI 分派」用的 —— 那里要按 ai_id 各取一只承载怪。
+func _spawn_enemy(pos: Vector2, monster_id: String = "spider_cave", lv: int = 1) -> EnemyBase:
 	var e := ENEMY_SCENE.instantiate() as EnemyBase
-	e.monster_id = "spider_cave"
-	e.level = 1
+	e.monster_id = monster_id
+	e.level = lv
 	e.difficulty_tier = GameConstants.DifficultyTier.NM1
 	add_child(e)
 	e.global_position = pos
@@ -285,6 +287,90 @@ func _test_regression() -> void:
 	_ok("玩家普攻正常", _player.try_attack())
 	_ok("玩家技能施放正常", _player.get_skill_controller().try_cast("spin_slash"))
 	await _wait_frames(2)
+
+
+# =============================================================================
+# G. AI 行为分派（W5-1 · 6 种 ai_id 各有具名 match 分支）
+# =============================================================================
+#
+# 断言写「设计意图」而非「实现快照」：
+#   * 6 种 ai_id 在同一距离下的 CHASE 行为**互不相同** —— 这是 W5-1 的全部价值
+#     （D1 拍板「一次做全」的理由正是「8 种新怪行为上仍只有 1 种 ⇒ 672 帧白做」）
+#   * 9 个新字段只对**显式写值**的怪生效；16 只老怪全走缺省 ⇒ 行为与改动前逐位一致
+#
+# ⚠️ 与策划校验 `05-check_monster_level_boss.py` 的 C5 互补：
+#   C5 管「源码里 6 个具名分支在不在」；本段管「分支真的产生了不同行为」。
+#   两者缺一都会漏：只有 C5 ⇒ 6 个空壳 case 也能骗过；只有本段 ⇒ 少一个 case
+#   时若该 ai_id 恰好没承载怪就测不出来。
+
+## 在**固定距离**上直接调用 `_tick_chase`（跳过状态机 / 巡逻位移 / 地形），
+## 返回该帧 velocity 与该怪数据。`dist` 必须 > 该怪 `attack_range`，否则会转 ATTACK。
+func _probe_chase(monster_id: String, dist: float, frames: int = 1) -> Dictionary:
+	var e := _spawn_enemy(Vector2(2000, 2000), monster_id)
+	await _wait_frames(1)  # 等 _ready 完成（数据载入 / 组注册）
+	var ms := 0.0
+	var ai := ""
+	if e.data != null:
+		ms = e.data.move_speed
+		ai = e.data.ai_id
+	_reset_player()
+	_player.global_position = e.global_position + Vector2(0, dist)
+	e._player = _player
+	for i in frames:
+		e._tick_chase(1.0 / 60.0, dist)
+	var v: Vector2 = e.velocity
+	e.queue_free()
+	await _wait_frames(1)
+	return {"v": v, "move_speed": ms, "ai_id": ai}
+
+
+func _test_ai_dispatch() -> void:
+	print("--- G. AI 行为分派（W5-1）---")
+	# 6 种 ai_id 各取 monsters.json 里现成的一只承载怪（不凭空构造，避免与数据脱钩）。
+	# dist 取「> 该怪 attack_range 且 < LOSE(240)」，保证落到 CHASE 分派。
+	var v_melee := await _probe_chase("spider_cave", 110.0)
+	_ok("melee_chaser：直冲（朝玩家 +y，|v| = move_speed）",
+		v_melee["v"].y > 0.0
+		and absf(v_melee["v"].length() - v_melee["move_speed"]) <= v_melee["move_speed"] * 0.15)
+
+	var v_boss := await _probe_chase("boss_bone_tyrant", 110.0)
+	_ok("boss_phased：直冲（同 melee_chaser；招式由阶段系统接管）",
+		v_boss["v"].y > 0.0
+		and absf(v_boss["v"].length() - v_boss["move_speed"]) <= v_boss["move_speed"] * 0.15)
+
+	var v_err := await _probe_chase("shade_stalker", 110.0)
+	_info("erratic_chaser 追击速度 = (%.1f, %.1f)" % [v_err["v"].x, v_err["v"].y])
+	_ok("erratic_chaser：追击方向被正弦扰动（存在垂直分量 |x| > 1）",
+		absf(v_err["v"].x) > 1.0)
+
+	var v_lob := await _probe_chase("frost_lobber", 150.0)
+	_info("lobber 速度 = %.1f px/s（move_speed %.1f × 0.5 = %.1f）"
+		% [v_lob["v"].length(), v_lob["move_speed"], v_lob["move_speed"] * 0.5])
+	_ok("lobber：半速移动（|v| = move_speed × 0.5）",
+		absf(v_lob["v"].length() - v_lob["move_speed"] * 0.5) <= v_lob["move_speed"] * 0.15)
+
+	var v_kite := await _probe_chase("storm_wisp", 155.0)
+	_ok("ranged_kiter：太远则进（|v| = move_speed）",
+		v_kite["v"].y > 0.0
+		and absf(v_kite["v"].length() - v_kite["move_speed"]) <= v_kite["move_speed"] * 0.15)
+
+	# melee_charger：进入 charge_range 先蓄力（停下），蓄力结束高速冲刺
+	var v_chg_windup := await _probe_chase("plague_bearer", 100.0, 2)
+	_ok("melee_charger：进入 charge_range 先蓄力（速度 = 0）", v_chg_windup["v"].length() <= 0.01)
+	var v_chg_dash := await _probe_chase("plague_bearer", 100.0, 40)
+	_info("melee_charger 蓄力后速度 = %.1f px/s（期望 > move_speed %.1f）"
+		% [v_chg_dash["v"].length(), v_chg_dash["move_speed"]])
+	_ok("melee_charger：蓄力结束高速冲刺（|v| > move_speed）",
+		v_chg_dash["v"].length() > v_chg_dash["move_speed"])
+
+	# 新字段对老怪透明：老怪全走缺省（preferred_range = 0）
+	var v_slime := await _probe_chase("slime_acid", 60.0)
+	_ok("老 lobber（slime_acid, pref=0）：半速直冲（缺省透明）",
+		v_slime["v"].y > 0.0
+		and absf(v_slime["v"].length() - v_slime["move_speed"] * 0.5) <= v_slime["move_speed"] * 0.15)
+	var v_wr := await _probe_chase("wraith_frost", 120.0)
+	_ok("老 ranged_kiter（wraith_frost, pref=0）：直冲不横移（缺省透明）",
+		v_wr["v"].y > 0.0 and absf(v_wr["v"].x) <= 1.0)
 
 
 func _finish() -> void:

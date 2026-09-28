@@ -910,8 +910,11 @@ func _tick_patrol(delta: float) -> void:
 
 
 ## 追击：朝玩家直线移动；距离恢复前不换向（俯视 ARPG 无寻路，直线最贴近直觉）
-## 6 种 ai_id 的 CHASE 行为在 `_chase_kite / _chase_erratic / _chase_lobber /
-## _chase_charger` 内分派（任务 W5-1）；melee_chaser / boss_phased 保持默认直冲。
+## 6 种 ai_id 的 CHASE 行为**全部**在本 match 内具名分派（任务 W5-1）：
+##   melee_chaser / boss_phased → `_chase_melee`（基准直冲）
+##   ranged_kiter → `_chase_kite`｜erratic_chaser → `_chase_erratic`
+##   lobber → `_chase_lobber`｜melee_charger → `_chase_charger`
+## `_:` 只服务**未知 ai_id**（数据错配），不作为任何一种已声明行为的落点。
 func _tick_chase(delta: float, dist: float) -> void:
 	if _player == null or dist > _lose_range():
 		velocity = Vector2.ZERO
@@ -925,6 +928,9 @@ func _tick_chase(delta: float, dist: float) -> void:
 		return
 	var dir := global_position.direction_to(_player.global_position)
 	match data.ai_id:
+		"melee_chaser":
+			# 直线追击（基准行为）：直冲贴身
+			_chase_melee(dir)
 		"ranged_kiter":
 			_chase_kite(delta, dist, dir)
 		"erratic_chaser":
@@ -933,9 +939,13 @@ func _tick_chase(delta: float, dist: float) -> void:
 			_chase_lobber(delta, dist, dir)
 		"melee_charger":
 			_chase_charger(delta, dist, dir)
+		"boss_phased":
+			# BOSS 阶段：移速低，追击同 melee_chaser；招式由
+			# `_check_boss_phase` / `_cast_boss_skill` 接管（ai_id 此处仅作标签）
+			_chase_melee(dir)
 		_:
-			# melee_chaser / boss_phased：默认直冲（BOSS 行为由阶段系统接管）
-			velocity = dir * _move_speed()
+			# 未知 ai_id（数据错配）：退回基准直冲，不静默站桩
+			_chase_melee(dir)
 	facing = velocity.normalized()
 
 
@@ -975,14 +985,26 @@ func _tick_attack(delta: float, dist: float) -> void:
 #     `_attack_lob` + `_lob_impact` 的 inline 新版 AoE，参数化半径 / 蓄力。
 #   * 投射物 inline 在 `scripts/enemies/enemy_projectile.gd`，不新建 .tscn。
 #
-# 行为 → ai_id 映射：
+# 行为 → ai_id 映射（6 种全部在 `_tick_chase` / `_tick_attack` 的 match 中具名分派）：
+#   melee_chaser    直线追击（基准）：CHASE 直冲，ATTACK 近战弧
 #   ranged_kiter    CHASE 保持 preferred_range，ATTACK 发投射物
-#   erratic_chaser  CHASE 方向加正弦扰动，ATTACK 同近前
+#   erratic_chaser  CHASE 方向加正弦扰动，ATTACK 近战弧
 #   lobber          CHASE 半速 + 保持距离，ATTACK 落点 AoE
-#   melee_charger   CHASE 蓄力→冲刺，ATTACK 同近前（撞人由冲刺速度完成命中）
-#   melee_chaser    默认直冲 / 近战（不显式分支，落到 _tick_* 的 `_:` 分支）
-#   boss_phased     默认直冲 / 近战（BOSS 走阶段系统 `_check_boss_phase` /
-#                   `_cast_boss_skill`；ai_id 仅作标签）
+#   melee_charger   CHASE 蓄力→冲刺，ATTACK 近战弧（撞人由冲刺速度完成命中）
+#   boss_phased     直线追击（同 melee_chaser）；招式走阶段系统
+#                   `_check_boss_phase` / `_cast_boss_skill`，ai_id 此处仅作标签
+#
+# ⚠️ ATTACK 侧只有 ranged_kiter / lobber 需要独立分支（其余 4 种同为近战弧，
+#    落到 `_attack_player()`）；但 CHASE 侧 6 种**各有具名 case** —— 这是
+#    策划校验 `05-check_monster_level_boss.py` 的 C5 断言的直接对象，别把
+#    melee_chaser / boss_phased 再塞回 `_:`。
+
+
+## W5-1 · melee_chaser / boss_phased 追擊：直線直沖（基準行為）。
+##   抽成獨立函式，讓 6 種 ai_id 在 `_tick_chase` 各有具名分支，
+##   並使 `_:` 只承擔「未知 ai_id 兜底」而不承載任何已聲明行為。
+func _chase_melee(dir: Vector2) -> void:
+	velocity = dir * _move_speed()
 
 
 ## W5-1 · ranged_kiter 追擊：保持 `data.preferred_range`
