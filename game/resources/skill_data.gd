@@ -8,20 +8,32 @@
 ##       由 `scripts/combat/skill_controller.gd` 在运行时执行，本类只存定义。
 ##
 ## 数据来源：`game/data/skills/*.json`
+##
+## 2026-09-28（第一步 B0 · 工单 1-D1）：
+##   · `SkillType` 由 4 值扩到 **7 值**（新增 PROJECTILE / GROUND / BUFF）
+##   · 新增 13 个字段（持续区域 / 投射物 / 增益 / 召唤 / 眩晕 / 分支）
+##   · `validate()` 按新形态补分支；`multiplier <= 0` 校验收紧为「仅 BUFF / SUMMON 可为 0」
 class_name SkillData
 extends Resource
 
 ## 技能形态（决定 SkillController 的施放分派；2.5 碰撞与命中判定会替换几何部分）
+##
+## ⚠️ **顺序即 `config_loader._to_skill_type()` 的 index**（按 `TYPE_KEYS` 字符串查找），
+##    且 `SkillData.type` 只存在运行时内存、**不进存档** ⇒ 2026-09-28 按策划案
+##    重排（`SUMMON` 由 3 → 5）是安全的。**此后只能在尾部追加，不可再重排。**
 enum SkillType {
-	SINGLE = 0, ## 单体：朝向前方 range 内最近的 1 个目标
-	AOE = 1,    ## 范围：以玩家为中心 radius 内全部目标（AoE 设计基准 2.0 的主力）
-	DASH = 2,   ## 位移：沿朝向冲刺并击退撞到的目标
-	SUMMON = 3, ## 召唤：在玩家脚下生成友方召唤物（技能体系 §12；无直接伤害，故无几何字段要求）
+	SINGLE = 0,     ## 单体：朝向前方 range 内最近的 1 个目标
+	AOE = 1,        ## 范围：以玩家为中心 radius 内全部目标（AoE 设计基准 2.0 的主力）
+	DASH = 2,       ## 位移：沿朝向冲刺并击退撞到的目标
+	PROJECTILE = 3, ## 投射物：发射飞行弹道，命中结算（新增）
+	GROUND = 4,     ## 持续区域：地面生成区域实体，每 tick 结算（新增）
+	SUMMON = 5,     ## 召唤：在玩家脚下生成友方召唤物（技能体系 §12；无直接伤害）
+	BUFF = 6,       ## 增益：对自身施加增益 / 护盾（新增）
 }
 
 ## ⚠️ 顺序即 `config_loader._to_skill_type()` 的 index ⇒ **只能在尾部追加**，不可重排。
-const TYPE_NAMES: Array[String] = ["单体", "范围", "位移", "召唤"]
-const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "summon"]
+const TYPE_NAMES: Array[String] = ["单体", "范围", "位移", "投射物", "持续区域", "召唤", "增益"]
+const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "projectile", "ground", "summon", "buff"]
 
 ## 唯一标识（如 "cleave"）
 @export var id: String = ""
@@ -37,6 +49,9 @@ const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "summon"]
 @export var type: int = SkillType.SINGLE
 
 ## 伤害倍率（× 攻击力）。原始伤害 = 玩家攻击力 × multiplier（2.3 起走完整伤害管线）
+##
+## ⚠️ BUFF / SUMMON **合法为 0**（无直接伤害）。GROUND 的此字段是**每 tick 倍率**，
+##    总伤害 = `impact_multiplier + multiplier × (duration ÷ tick_interval)`。
 @export var multiplier: float = 1.0
 
 ## 伤害元素（GameConstants.ELEMENT_*，默认物理）。
@@ -65,6 +80,49 @@ const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "summon"]
 ## 技能说明（UI 技能栏 / 教程用）
 @export var description: String = ""
 
+# =============================================================================
+# 新增字段（第一步 B0 · 工单 1-D1）
+# =============================================================================
+
+## 持续时间（秒）。适用：GROUND（区域存活）/ BUFF（增益时长）/ SUMMON（召唤物存活）。
+@export var duration: float = 0.0
+
+## 结算间隔（秒）。适用：GROUND 每 tick 结算；AOE 的「滞留」分支复用。
+@export var tick_interval: float = 0.0
+
+## 落地一次性伤害倍率（× 攻击力）。仅 GROUND 使用（如陨石落点爆发），默认 0 = 无。
+@export var impact_multiplier: float = 0.0
+
+## 投射物飞行速度（px/s）。仅 PROJECTILE 使用。
+@export var projectile_speed: float = 0.0
+
+## 投射物数量（≥1）。仅 PROJECTILE 使用；>1 时按 `spread_deg` 扇形展开。
+@export var projectile_count: int = 0
+
+## 扇形张角（度）。仅 PROJECTILE 多发射击使用；0 = 全部重叠同向。
+@export var spread_deg: float = 0.0
+
+## 穿透数量。仅 PROJECTILE 使用：0 = 命中即消失，N = 可多命中 N 个额外目标。
+@export var pierce_count: int = 0
+
+## 连锁弹射目标数。PROJECTILE / SINGLE 使用；0 = 不连锁。
+@export var chain_count: int = 0
+
+## 召唤物 id（= `assets/pack/creatures/<id>/` 目录名）。仅 SUMMON 使用。
+## ⚠️ 与技能 `id` **不必相同**（如技能 `spirit_wolf` → 召唤物 `summon_spirit_wolf`）。
+@export var summon_id: String = ""
+
+## 增益 id（写入 `RunBuffSystem` 的 buffs 字典键）。仅 BUFF 使用。
+@export var buff_id: String = ""
+
+## 眩晕时长（秒）。命中时施加；0 = 不眩晕。
+@export var stun_duration: float = 0.0
+
+## 分支 A / B 的 id（技能等级达 5 时二选一；模板见 `data/skills/branches.json`）。
+## 空串 = 尚未选择（走模板默认值）。运行时由技能面板写入。
+@export var branch_a: String = ""
+@export var branch_b: String = ""
+
 
 # =============================================================================
 # 校验
@@ -79,16 +137,37 @@ func validate() -> Array[String]:
 		errors.append("技能 '%s' 缺少 display_name" % id)
 	if slot < 0 or slot > 3:
 		errors.append("技能 '%s' 的 slot 非法：%d（须 0–3，0 = 备选）" % [id, slot])
-	if type < 0 or type > SkillType.SUMMON:
+	if type < 0 or type > SkillType.BUFF:
 		errors.append("技能 '%s' 的 type 非法：%d" % [id, type])
-	if multiplier <= 0.0:
-		errors.append("技能 '%s' 的 multiplier 必须 > 0" % id)
+	# ⚠️ multiplier 校验收紧（原为「必须 > 0」）：BUFF / SUMMON 无直接伤害倍率，合法为 0。
+	if multiplier < 0.0:
+		errors.append("技能 '%s' 的 multiplier 不能为负：%s" % [id, multiplier])
+	elif is_zero_approx(multiplier) and not _type_allows_zero_multiplier():
+		errors.append("技能 '%s' 的 multiplier 必须 > 0（仅 BUFF / SUMMON 可为 0）" % id)
 	if not GameConstants.ELEMENTS.has(element):
 		errors.append("技能 '%s' 的 element 非法：%s（须 ∈ ELEMENTS）" % [id, element])
 	if cooldown < 0.0:
 		errors.append("技能 '%s' 的 cooldown 必须 >= 0" % id)
 	if mana_cost < 0.0:
 		errors.append("技能 '%s' 的 mana_cost 必须 >= 0" % id)
+	if duration < 0.0:
+		errors.append("技能 '%s' 的 duration 必须 >= 0" % id)
+	if tick_interval < 0.0:
+		errors.append("技能 '%s' 的 tick_interval 必须 >= 0" % id)
+	if impact_multiplier < 0.0:
+		errors.append("技能 '%s' 的 impact_multiplier 必须 >= 0" % id)
+	if projectile_speed < 0.0:
+		errors.append("技能 '%s' 的 projectile_speed 必须 >= 0" % id)
+	if projectile_count < 0:
+		errors.append("技能 '%s' 的 projectile_count 必须 >= 0" % id)
+	if spread_deg < 0.0:
+		errors.append("技能 '%s' 的 spread_deg 必须 >= 0" % id)
+	if pierce_count < 0:
+		errors.append("技能 '%s' 的 pierce_count 必须 >= 0" % id)
+	if chain_count < 0:
+		errors.append("技能 '%s' 的 chain_count 必须 >= 0" % id)
+	if stun_duration < 0.0:
+		errors.append("技能 '%s' 的 stun_duration 必须 >= 0" % id)
 	match type:
 		SkillType.SINGLE:
 			if range <= 0.0:
@@ -99,7 +178,59 @@ func validate() -> Array[String]:
 		SkillType.DASH:
 			if dash_distance <= 0.0:
 				errors.append("位移技能 '%s' 的 dash_distance 必须 > 0" % id)
+		SkillType.PROJECTILE:
+			if range <= 0.0:
+				errors.append("投射物技能 '%s' 的 range 必须 > 0" % id)
+			if projectile_speed <= 0.0:
+				errors.append("投射物技能 '%s' 的 projectile_speed 必须 > 0" % id)
+			if projectile_count < 1:
+				errors.append("投射物技能 '%s' 的 projectile_count 必须 >= 1" % id)
+			if projectile_count > 1 and spread_deg <= 0.0:
+				errors.append("投射物技能 '%s' 有 %d 发但 spread_deg 为 0（会全部重叠同向）"
+					% [id, projectile_count])
+		SkillType.GROUND:
+			if radius <= 0.0:
+				errors.append("持续区域技能 '%s' 的 radius 必须 > 0" % id)
+			if duration <= 0.0:
+				errors.append("持续区域技能 '%s' 的 duration 必须 > 0" % id)
+			if tick_interval <= 0.0:
+				errors.append("持续区域技能 '%s' 的 tick_interval 必须 > 0" % id)
 		SkillType.SUMMON:
-			# 召唤技能不产生直接命中几何（伤害/存活/比例由召唤物自身定义）⇒ 无额外要求。
-			pass
+			# 召唤技能不产生直接命中几何（伤害/存活/比例由召唤物自身定义）。
+			if summon_id.is_empty():
+				errors.append("召唤技能 '%s' 缺少 summon_id" % id)
+			if duration <= 0.0:
+				errors.append("召唤技能 '%s' 的 duration 必须 > 0" % id)
+		SkillType.BUFF:
+			if buff_id.is_empty():
+				errors.append("增益技能 '%s' 缺少 buff_id" % id)
+			if duration <= 0.0:
+				errors.append("增益技能 '%s' 的 duration 必须 > 0" % id)
 	return errors
+
+
+## 该形态是否允许 `multiplier == 0`（无直接伤害倍率）
+func _type_allows_zero_multiplier() -> bool:
+	return type == SkillType.BUFF or type == SkillType.SUMMON
+
+
+## 是否为「无直接伤害」的形态（BUFF / SUMMON）——供 UI 与统计判断
+func is_non_damaging() -> bool:
+	return type == SkillType.BUFF or type == SkillType.SUMMON
+
+
+## GROUND 的总伤害倍率（含全部 tick 与落地爆发）。非 GROUND 返回 `multiplier`。
+## 口径见 `01-技能体系.md` §5.1：`impact + multiplier × (duration ÷ tick_interval)`。
+func total_damage_multiplier() -> float:
+	if type != SkillType.GROUND or tick_interval <= 0.0:
+		return multiplier
+	return impact_multiplier + multiplier * (duration / tick_interval)
+
+
+## 单次施放的 DPS 系数（总伤害 ÷ 冷却；§5.1 的统一标尺）。
+## 非伤害形态（BUFF / SUMMON）返回 0。
+func dps_coefficient() -> float:
+	if is_non_damaging() or cooldown <= 0.0:
+		return 0.0
+	var shots := float(maxi(projectile_count, 1)) if type == SkillType.PROJECTILE else 1.0
+	return total_damage_multiplier() * shots / cooldown

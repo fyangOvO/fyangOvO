@@ -1358,6 +1358,15 @@ const STAT_THORNS: String = "thorns"                       ## 荆棘反伤
 const STAT_ARMOR_PENETRATION: String = "armor_penetration" ## 护甲穿透 %
 const STAT_ELEMENTAL_DAMAGE: String = "elemental_damage"   ## 元素伤害 %
 const STAT_SKILL_LEVEL: String = "skill_level"             ## 技能等级（固定值）
+
+## ── 技能等级（第一步 B0 · 机制 A）───────────────────────────────
+## 全局等级（非单技能），1–10。生效公式见 `01-技能体系.md` §2.1：
+##   `effective_multiplier = base_multiplier × (1 + 0.08 × (level - 1))`
+## 锚点：L1 = ×1.00 ｜ L4 = ×1.24 ｜ L7 = ×1.48 ｜ **L10 = ×1.72**
+## 唯一消费点：`SkillController._hit()`。**不影响**冷却 / 蓝耗 / 范围。
+const SKILL_LEVEL_BASE: int = 1                  ## 基准等级（未注入时回退到此值）
+const SKILL_LEVEL_MAX: int = 10                  ## 上限
+const SKILL_LEVEL_COEF_PER_LEVEL: float = 0.08   ## 每级系数增量
 const STAT_MAGIC_FIND: String = "magic_find"               ## 掉落幸运 %
 const STAT_XP_GAIN: String = "xp_gain"                     ## 经验获取 %
 const STAT_GOLD_GAIN: String = "gold_gain"                 ## 金币获取 %

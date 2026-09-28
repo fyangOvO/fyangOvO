@@ -1,0 +1,174 @@
+{
+ "_meta": {
+  "version": 1,
+  "purpose": "技能形态分支模板（第一步 · 技能体系）。按技能形态定义，7 套模板覆盖全部 36 技能。",
+  "unlock_skill_level": 5,
+  "reset_cost_gold": 0,
+  "reset_cost_note": "Q5 裁定（2026-09-24）：先免费以便测试。原值 500 已作废，待分支经济体系定型后再议。",
+  "rule": "每个技能在技能等级达到 5 时，从对应形态模板的 2 个分支中二选一；可在据点重置（当前免费）。"
+ },
+ "templates": [
+  {
+   "applies_to_type": "single",
+   "branches": [
+    {
+     "id": "single_focus",
+     "display_name": "专注",
+     "description": "倍率 +40%",
+     "modifiers": {
+      "multiplier_pct": 40.0
+     }
+    },
+    {
+     "id": "single_combo",
+     "display_name": "连击",
+     "description": "追加一段 60% 伤害",
+     "modifiers": {
+      "combo_hits": 2,
+      "combo_damage_pct": 60.0
+     }
+    }
+   ]
+  },
+  {
+   "applies_to_type": "aoe",
+   "branches": [
+    {
+     "id": "aoe_expand",
+     "display_name": "扩张",
+     "description": "半径 +40%",
+     "modifiers": {
+      "radius_pct": 40.0
+     }
+    },
+    {
+     "id": "aoe_linger",
+     "display_name": "滞留",
+     "description": "留下 3 秒持续区域（50% 伤害 / tick）",
+     "modifiers": {
+      "linger": {
+       "duration": 3.0,
+       "tick_interval": 0.5,
+       "damage_pct": 50.0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "applies_to_type": "dash",
+   "branches": [
+    {
+     "id": "dash_pierce",
+     "display_name": "贯穿",
+     "description": "冲刺距离 +50%，路径伤害 +30%",
+     "modifiers": {
+      "dash_distance_pct": 50.0,
+      "multiplier_pct": 30.0
+     }
+    },
+    {
+     "id": "dash_afterimage",
+     "display_name": "余像",
+     "description": "冲刺后留下 2 秒残影持续攻击",
+     "modifiers": {
+      "afterimage": {
+       "duration": 2.0,
+       "tick_interval": 0.5,
+       "damage_pct": 40.0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "applies_to_type": "projectile",
+   "branches": [
+    {
+     "id": "proj_sharp",
+     "display_name": "锐锋",
+     "description": "穿透 +2",
+     "modifiers": {
+      "pierce_count": 2
+     }
+    },
+    {
+     "id": "proj_scatter",
+     "display_name": "散射",
+     "description": "改为 3 枚扇形（每枚 70%）",
+     "modifiers": {
+      "projectile_count": 3,
+      "spread_deg": 24.0,
+      "multiplier_pct": -30.0
+     }
+    }
+   ]
+  },
+  {
+   "applies_to_type": "ground",
+   "branches": [
+    {
+     "id": "ground_deep",
+     "display_name": "深潭",
+     "description": "持续时间 +50%",
+     "modifiers": {
+      "duration_pct": 50.0
+     }
+    },
+    {
+     "id": "ground_pulse",
+     "display_name": "涌动",
+     "description": "每 1 秒脉冲一次额外伤害（80%）",
+     "modifiers": {
+      "pulse": {
+       "interval": 1.0,
+       "damage_pct": 80.0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "applies_to_type": "summon",
+   "branches": [
+    {
+     "id": "summon_legion",
+     "display_name": "军团",
+     "description": "召唤数 +1",
+     "modifiers": {
+      "summon_count": 2
+     }
+    },
+    {
+     "id": "summon_elite",
+     "display_name": "精锐",
+     "description": "召唤物伤害 +60%",
+     "modifiers": {
+      "summon_damage_pct": 60.0
+     }
+    }
+   ]
+  },
+  {
+   "applies_to_type": "buff",
+   "branches": [
+    {
+     "id": "buff_lasting",
+     "display_name": "持久",
+     "description": "持续时间 +50%",
+     "modifiers": {
+      "duration_pct": 50.0
+     }
+    },
+    {
+     "id": "buff_empower",
+     "display_name": "强化",
+     "description": "效果 +40%",
+     "modifiers": {
+      "buff_potency_pct": 40.0
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -37,6 +37,7 @@ const DIR_LEVELS: String = DATA_ROOT + "/levels"
 const DIR_LOOT_TABLES: String = DATA_ROOT + "/loot_tables"
 const DIR_SETS: String = DATA_ROOT + "/sets"
 const DIR_SKILLS: String = DATA_ROOT + "/skills"
+const DIR_RUNES: String = DATA_ROOT + "/runes"
 const DIR_CONSUMABLES: String = DATA_ROOT + "/consumables"
 const DIR_CLASSES: String = DATA_ROOT + "/classes"
 
@@ -61,6 +62,10 @@ var levels: Dictionary = {}              ## String → LevelData
 var loot_tables: Dictionary = {}         ## String → LootTable
 var sets: Dictionary = {}                ## String → SetData
 var skills: Dictionary = {}              ## String → SkillData
+var runes: Dictionary = {}               ## String → Dictionary（技能符文，第一步 B0 · 1-D3）
+var rune_meta: Dictionary = {}           ## 符文表 _meta（槽位数 / 解锁等级 / 互斥组）
+var branches: Dictionary = {}            ## String → Dictionary（分支模板，按形态键，1-D4）
+var branch_meta: Dictionary = {}         ## 分支表 _meta（解锁技能等级 / 重置费用）
 var classes: Dictionary = {}             ## String → Dictionary（职业模板，任务 7.1 角色选择）
 var consumables: Dictionary = {}       ## String → Dictionary（消耗品/药水，步骤 8A）
 
@@ -95,6 +100,10 @@ func load_all() -> void:
 	loot_tables.clear()
 	sets.clear()
 	skills.clear()
+	runes.clear()
+	rune_meta.clear()
+	branches.clear()
+	branch_meta.clear()
 	classes.clear()
 	consumables.clear()
 	load_errors.clear()
@@ -125,6 +134,8 @@ func load_all() -> void:
 	_load_loot_table_dir(DIR_LOOT_TABLES)
 	_load_set_dir(DIR_SETS)
 	_load_skill_dir(DIR_SKILLS)
+	_load_rune_dir(DIR_RUNES)
+	_load_branch_file(DIR_SKILLS)
 	_load_class_dir(DIR_CLASSES)
 	_load_consumable_dir(DIR_CONSUMABLES)
 
@@ -158,6 +169,8 @@ func get_entry_counts() -> Dictionary:
 		"loot_tables": loot_tables.size(),
 		"sets": sets.size(),
 		"skills": skills.size(),
+		"runes": runes.size(),
+		"branches": branches.size(),
 		"classes": classes.size(),
 		"consumables": consumables.size(),
 	}
@@ -467,8 +480,19 @@ func _load_set_dir(dir_path: String) -> void:
 			_validate(res, entry)
 
 
+## 技能表：`data/skills/*.json`
+##
+## ⚠️ 该目录下**不只**放技能表：`branches.json`（形态分支模板，1-D4）顶层是**对象**
+##    （`{_meta, templates}`）而非对象数组。`_scan_data_files` 按 `.json` 扩展名递归枚举
+##    ⇒ 若不过滤，`branches.json` 会被当成一条技能记录读入，产生
+##    「缺少 id，已跳过」+「SkillData.id 为空」+「缺少 display_name」三条噪音警告。
+const SKILL_DIR_SKIP_FILES: Array[String] = ["branches.json"]
+
+
 func _load_skill_dir(dir_path: String) -> void:
 	for entry in _scan_data_files(dir_path):
+		if SKILL_DIR_SKIP_FILES.has(entry.get_file()):
+			continue
 		for raw in _read_entries(entry):
 			var res := SkillData.new()
 			res.id = String(raw.get("id", ""))
@@ -485,8 +509,129 @@ func _load_skill_dir(dir_path: String) -> void:
 			res.dash_distance = float(raw.get("dash_distance", 96.0))
 			res.knockback = float(raw.get("knockback", 0.0))
 			res.description = String(raw.get("description", ""))
+			# 2026-09-28（第一步 B0 · 1-D1）：新形态字段
+			res.duration = float(raw.get("duration", 0.0))
+			res.tick_interval = float(raw.get("tick_interval", 0.0))
+			res.impact_multiplier = float(raw.get("impact_multiplier", 0.0))
+			res.projectile_speed = float(raw.get("projectile_speed", 0.0))
+			res.projectile_count = int(raw.get("projectile_count", 0))
+			res.spread_deg = float(raw.get("spread_deg", 0.0))
+			res.pierce_count = int(raw.get("pierce_count", 0))
+			res.chain_count = int(raw.get("chain_count", 0))
+			res.summon_id = String(raw.get("summon_id", ""))
+			res.buff_id = String(raw.get("buff_id", ""))
+			res.stun_duration = float(raw.get("stun_duration", 0.0))
+			res.branch_a = String(raw.get("branch_a", ""))
+			res.branch_b = String(raw.get("branch_b", ""))
 			_register(skills, res.id, res, entry)
 			_validate(res, entry)
+
+
+## 技能符文表：`data/runes/*.json`
+## （结构 `{"_meta": {slots, slot_unlock_skill_level, exclusive_groups, modifier_semantics},
+##           "runes": [{id, display_name, category, exclusive_group, allowed_types,
+##                      description, modifiers}]}`）。
+##
+## 符文是**图鉴式解锁**（非消耗品），可自由拆装；`modifiers` 原样存 Dictionary，
+## 由 `SkillController` 在施放前套用（B0 只做「加载 + 校验」，套用见 1-L2）。
+func _load_rune_dir(dir_path: String) -> void:
+	for entry in _scan_data_files(dir_path):
+		for raw in _read_entries(entry):
+			var meta: Variant = raw.get("_meta", null)
+			if meta is Dictionary and rune_meta.is_empty():
+				rune_meta = meta
+			var rune_array: Array = raw.get("runes", [])
+			if rune_array.is_empty():
+				load_errors.append("符文文件 '%s' 缺少 runes 数组" % entry)
+				continue
+			for rune_raw in rune_array:
+				if not rune_raw is Dictionary:
+					continue
+				var rune_id := String(rune_raw.get("id", ""))
+				if rune_id.is_empty():
+					load_errors.append("符文文件 '%s' 中存在缺少 id 的符文定义" % entry)
+					continue
+				if runes.has(rune_id):
+					load_errors.append("符文 ID 重复：'%s'" % rune_id)
+					continue
+				runes[rune_id] = {
+					"id": rune_id,
+					"display_name": String(rune_raw.get("display_name", rune_id)),
+					"category": String(rune_raw.get("category", "")),
+					"exclusive_group": String(rune_raw.get("exclusive_group", "")),
+					"allowed_types": _to_string_array(rune_raw.get("allowed_types", [])),
+					"description": String(rune_raw.get("description", "")),
+					"modifiers": rune_raw.get("modifiers", {}),
+				}
+
+
+## 技能分支模板：`data/skills/branches.json`
+## （结构 `{"_meta": {unlock_skill_level, reset_cost_gold}, "templates":
+##   [{applies_to_type, branches: [{id, display_name, description, modifiers}]}]}`）。
+##
+## 按**技能形态**定义：每个形态一套模板，各含 2 个分支（技能等级达 `unlock_skill_level` 二选一）。
+func _load_branch_file(dir_path: String) -> void:
+	for entry in _scan_data_files(dir_path):
+		if entry.get_file() != "branches.json":
+			continue
+		for raw in _read_entries(entry):
+			var meta: Variant = raw.get("_meta", null)
+			if meta is Dictionary:
+				branch_meta = meta
+			var templates: Array = raw.get("templates", [])
+			if templates.is_empty():
+				load_errors.append("分支文件 '%s' 缺少 templates 数组" % entry)
+				continue
+			for tpl_raw in templates:
+				if not tpl_raw is Dictionary:
+					continue
+				var type_key := String(tpl_raw.get("applies_to_type", "")).to_lower()
+				if type_key.is_empty():
+					load_errors.append("分支文件 '%s' 中存在缺少 applies_to_type 的模板" % entry)
+					continue
+				if not SkillData.TYPE_KEYS.has(type_key):
+					load_errors.append("分支模板 '%s' 的形态非法（须 ∈ SkillData.TYPE_KEYS）" % type_key)
+					continue
+				if branches.has(type_key):
+					load_errors.append("分支模板形态重复：'%s'" % type_key)
+					continue
+				var options: Array = []
+				for opt_raw in tpl_raw.get("branches", []):
+					if not opt_raw is Dictionary:
+						continue
+					options.append({
+						"id": String(opt_raw.get("id", "")),
+						"display_name": String(opt_raw.get("display_name", "")),
+						"description": String(opt_raw.get("description", "")),
+						"modifiers": opt_raw.get("modifiers", {}),
+					})
+				branches[type_key] = options
+
+
+## 按技能形态取分支模板（2 个分支的数组）；无模板返回空数组。
+func branch_options_for_type(type_key: String) -> Array:
+	return branches.get(type_key.to_lower(), [])
+
+
+## 按技能取分支模板（内部把 SkillType 枚举转成形态键）；无模板返回空数组。
+func branch_options_for_skill(skill_type: int) -> Array:
+	if skill_type < 0 or skill_type >= SkillData.TYPE_KEYS.size():
+		return []
+	return branch_options_for_type(SkillData.TYPE_KEYS[skill_type])
+
+
+## 该技能形态可用的符文 id 列表（按 `allowed_types` 过滤）。
+func runes_for_skill_type(skill_type: int) -> Array[String]:
+	var out: Array[String] = []
+	if skill_type < 0 or skill_type >= SkillData.TYPE_KEYS.size():
+		return out
+	var type_key := SkillData.TYPE_KEYS[skill_type]
+	for rune_id in runes:
+		var rune: Dictionary = runes[rune_id]
+		if (rune.get("allowed_types", []) as Array).has(type_key):
+			out.append(String(rune_id))
+	out.sort()
+	return out
 
 
 ## 跨表一致性校验（必须在全部表加载完成后执行）。
@@ -587,6 +732,51 @@ func _cross_validate() -> void:
 			if not monsters.has(monster_id):
 				load_errors.append("关卡 '%s' 的第 %d 条怪物条目引用了不存在的怪物 '%s'"
 					% [level.id, i, monster_id])
+
+	# 5) 符文 / 分支（第一步 B0 · 1-D3/D4/D6）
+	_validate_runes_and_branches()
+
+
+## 符文与分支的跨表校验：
+##   · 符文 `allowed_types` 必须 ∈ SkillData.TYPE_KEYS（写错形态 ⇒ 该符文永远灰显）
+##   · 符文 `exclusive_group` 必须 ∈ `_meta.exclusive_groups`
+##   · 每个技能形态都必须有分支模板（否则技能等级到 5 时无分支可选，静默失效）
+##   · 分支模板必须恰好 2 个选项、id 非空且全局唯一
+func _validate_runes_and_branches() -> void:
+	var allowed_groups: Array = rune_meta.get("exclusive_groups", [])
+	for rune_id in runes:
+		var rune: Dictionary = runes[rune_id]
+		var types: Array = rune.get("allowed_types", [])
+		if types.is_empty():
+			load_errors.append("符文 '%s' 的 allowed_types 为空（任何技能都无法装配）" % rune_id)
+		for type_key in types:
+			if not SkillData.TYPE_KEYS.has(String(type_key).to_lower()):
+				load_errors.append("符文 '%s' 的 allowed_types 含未知形态 '%s'" % [rune_id, type_key])
+		var group := String(rune.get("exclusive_group", ""))
+		if group.is_empty():
+			load_errors.append("符文 '%s' 缺少 exclusive_group" % rune_id)
+		elif not allowed_groups.is_empty() and not allowed_groups.has(group):
+			load_errors.append("符文 '%s' 的 exclusive_group '%s' 不在 _meta.exclusive_groups 中"
+				% [rune_id, group])
+
+	var seen_branch_ids: Dictionary = {}
+	for type_key in SkillData.TYPE_KEYS:
+		var options: Array = branches.get(type_key, [])
+		if options.is_empty():
+			load_errors.append("技能形态 '%s' 没有分支模板（技能等级到 %s 时无分支可选）"
+				% [type_key, str(branch_meta.get("unlock_skill_level", "?"))])
+			continue
+		if options.size() != 2:
+			load_errors.append("技能形态 '%s' 的分支模板应有 2 个选项，实际 %d 个"
+				% [type_key, options.size()])
+		for opt in options:
+			var bid := String(opt.get("id", ""))
+			if bid.is_empty():
+				load_errors.append("技能形态 '%s' 的分支缺少 id" % type_key)
+			elif seen_branch_ids.has(bid):
+				load_errors.append("分支 id 重复：'%s'" % bid)
+			else:
+				seen_branch_ids[bid] = true
 
 
 ## 传奇特效定义校验（任务 3.5）：GDD 范式 = 触发条件 + 效果 + 冷却/上限 三要素齐全。
@@ -1066,7 +1256,7 @@ func _to_monster_tier(value: Variant) -> int:
 
 func _to_skill_type(value: Variant) -> int:
 	if value is int or value is float:
-		return clampi(int(value), 0, SkillData.SkillType.SUMMON)
+		return clampi(int(value), 0, SkillData.SkillType.BUFF)
 	var idx := SkillData.TYPE_KEYS.find(String(value).to_lower())
 	if idx < 0:
 		load_errors.append("未知技能形态 '%s'，回退为 single" % str(value))

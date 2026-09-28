@@ -1,0 +1,479 @@
+{
+ "_meta": {
+  "version": 1,
+  "purpose": "技能符文池（第一步 · 技能体系）。符文为图鉴式解锁（非消耗品），可自由拆装。",
+  "slots": 3,
+  "slot_unlock_skill_level": [
+   3,
+   6,
+   9
+  ],
+  "exclusive_groups": [
+   "form",
+   "element",
+   "amp",
+   "util"
+  ],
+  "modifier_semantics": {
+   "字段覆盖": [
+    "type",
+    "element",
+    "pierce_count",
+    "projectile_count",
+    "chain_count",
+    "duration",
+    "tick_interval",
+    "projectile_speed"
+   ],
+   "乘算修饰（百分数）": [
+    "multiplier_pct",
+    "cooldown_pct",
+    "mana_cost_pct",
+    "radius_pct",
+    "range_pct"
+   ],
+   "乘算修饰口径（第二步 §7.4 统一，2026-09-24）": "所有 *_pct 均为【带符号增量】：正值 = 延长/增大，负值 = 缩短/减小。例：cooldown_pct: -20 表示冷却缩短 20%。与工程侧 cooldown_reduction / skill_cost_reduction 的换算：total_reduction = gear_reduction - rune_pct_sum。工程侧两个 *_reduction 键按百分数正向累加，硬顶 70%。",
+   "附加效果": [
+    "stun_chance",
+    "stun_duration",
+    "life_leech_pct",
+    "shield_pct_hp",
+    "mana_restore_pct",
+    "echo_count",
+    "echo_damage_pct",
+    "area_bonus_pct",
+    "on_hit_slow",
+    "on_hit_burn",
+    "on_hit_split",
+    "execute",
+    "opener",
+    "combo_hits",
+    "combo_damage_pct"
+   ]
+  }
+ },
+ "runes": [
+  {
+   "id": "rune_projectile",
+   "display_name": "弹道化",
+   "category": "form",
+   "exclusive_group": "form",
+   "allowed_types": [
+    "single"
+   ],
+   "description": "单体技能改为发射投射物",
+   "modifiers": {
+    "type": "projectile",
+    "projectile_speed": 420.0
+   }
+  },
+  {
+   "id": "rune_chain",
+   "display_name": "连锁",
+   "category": "form",
+   "exclusive_group": "form",
+   "allowed_types": [
+    "single",
+    "projectile"
+   ],
+   "description": "命中后弹射至 2 个额外目标（每次衰减 25%）",
+   "modifiers": {
+    "chain_count": 2,
+    "chain_decay_pct": 25.0
+   }
+  },
+  {
+   "id": "rune_split",
+   "display_name": "分裂",
+   "category": "form",
+   "exclusive_group": "form",
+   "allowed_types": [
+    "projectile"
+   ],
+   "description": "投射物命中后分裂为 3 枚（每枚 50% 伤害）",
+   "modifiers": {
+    "on_hit_split": {
+     "count": 3,
+     "damage_pct": 50.0
+    }
+   }
+  },
+  {
+   "id": "rune_pierce",
+   "display_name": "穿透",
+   "category": "form",
+   "exclusive_group": "form",
+   "allowed_types": [
+    "projectile"
+   ],
+   "description": "投射物穿透全部目标",
+   "modifiers": {
+    "pierce_count": 99
+   }
+  },
+  {
+   "id": "rune_ground",
+   "display_name": "地面化",
+   "category": "form",
+   "exclusive_group": "form",
+   "allowed_types": [
+    "aoe"
+   ],
+   "description": "范围技能改为留下持续伤害区域",
+   "modifiers": {
+    "type": "ground",
+    "duration": 3.0,
+    "tick_interval": 0.5
+   }
+  },
+  {
+   "id": "rune_echo",
+   "display_name": "回响",
+   "category": "form",
+   "exclusive_group": "form",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "施放两次（第二次 60% 伤害），冷却 ×1.4",
+   "modifiers": {
+    "echo_count": 2,
+    "echo_damage_pct": 60.0,
+    "cooldown_pct": 40.0
+   }
+  },
+  {
+   "id": "rune_fire",
+   "display_name": "炽焰",
+   "category": "element",
+   "exclusive_group": "element",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "技能元素改为火，+15% 火焰伤害",
+   "modifiers": {
+    "element": "fire",
+    "elemental_damage": 15.0
+   }
+  },
+  {
+   "id": "rune_cold",
+   "display_name": "霜寒",
+   "category": "element",
+   "exclusive_group": "element",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "技能元素改为冰，+15% 冰霜伤害，命中小幅减速",
+   "modifiers": {
+    "element": "cold",
+    "elemental_damage": 15.0,
+    "on_hit_slow": {
+     "pct": 20.0,
+     "duration": 1.5
+    }
+   }
+  },
+  {
+   "id": "rune_lightning",
+   "display_name": "雷电",
+   "category": "element",
+   "exclusive_group": "element",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "技能元素改为雷，+15% 闪电伤害",
+   "modifiers": {
+    "element": "lightning",
+    "elemental_damage": 15.0
+   }
+  },
+  {
+   "id": "rune_poison",
+   "display_name": "剧毒",
+   "category": "element",
+   "exclusive_group": "element",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "技能元素改为毒，+15% 毒素伤害，命中使目标中毒",
+   "modifiers": {
+    "element": "poison",
+    "elemental_damage": 15.0
+   }
+  },
+  {
+   "id": "rune_shadow",
+   "display_name": "幽影",
+   "category": "element",
+   "exclusive_group": "element",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "技能元素改为暗影，+15% 暗影伤害",
+   "modifiers": {
+    "element": "shadow",
+    "elemental_damage": 15.0
+   }
+  },
+  {
+   "id": "rune_wider",
+   "display_name": "扩幅",
+   "category": "amp",
+   "exclusive_group": "amp",
+   "allowed_types": [
+    "aoe",
+    "projectile",
+    "ground"
+   ],
+   "description": "半径 / 射程 +30%",
+   "modifiers": {
+    "radius_pct": 30.0,
+    "range_pct": 30.0
+   }
+  },
+  {
+   "id": "rune_swift",
+   "display_name": "迅捷",
+   "category": "amp",
+   "exclusive_group": "amp",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground",
+    "summon",
+    "buff"
+   ],
+   "description": "冷却 −25%",
+   "modifiers": {
+    "cooldown_pct": -25.0
+   }
+  },
+  {
+   "id": "rune_thrifty",
+   "display_name": "节流",
+   "category": "amp",
+   "exclusive_group": "amp",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground",
+    "summon",
+    "buff"
+   ],
+   "description": "蓝耗 −40%",
+   "modifiers": {
+    "mana_cost_pct": -40.0
+   }
+  },
+  {
+   "id": "rune_heavy",
+   "display_name": "重击",
+   "category": "amp",
+   "exclusive_group": "amp",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "倍率 +25%，冷却 +15%",
+   "modifiers": {
+    "multiplier_pct": 25.0,
+    "cooldown_pct": 15.0
+   }
+  },
+  {
+   "id": "rune_leech",
+   "display_name": "汲取",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "命中回复造成伤害 2% 的生命",
+   "modifiers": {
+    "life_leech_pct": 2.0
+   }
+  },
+  {
+   "id": "rune_stun",
+   "display_name": "震慑",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "projectile"
+   ],
+   "description": "命中 20% 概率眩晕 1 秒",
+   "modifiers": {
+    "stun_chance": 0.2,
+    "stun_duration": 1.0
+   }
+  },
+  {
+   "id": "rune_freeze",
+   "display_name": "冰封",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "命中减速 40%，持续 2 秒",
+   "modifiers": {
+    "on_hit_slow": {
+     "pct": 40.0,
+     "duration": 2.0
+    }
+   }
+  },
+  {
+   "id": "rune_burn",
+   "display_name": "灼烧",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "附加 3 秒燃烧（每秒 20% 攻击力）",
+   "modifiers": {
+    "on_hit_burn": {
+     "pct_per_sec": 20.0,
+     "duration": 3.0
+    }
+   }
+  },
+  {
+   "id": "rune_execute",
+   "display_name": "处决",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "对生命低于 30% 的目标伤害 +50%",
+   "modifiers": {
+    "execute": {
+     "threshold": 0.3,
+     "bonus_pct": 50.0
+    }
+   }
+  },
+  {
+   "id": "rune_opener",
+   "display_name": "破阵",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground"
+   ],
+   "description": "对满血目标伤害 +40%",
+   "modifiers": {
+    "opener": {
+     "bonus_pct": 40.0
+    }
+   }
+  },
+  {
+   "id": "rune_barrier",
+   "display_name": "壁障",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground",
+    "summon",
+    "buff"
+   ],
+   "description": "施放时获得 10% 最大生命护盾",
+   "modifiers": {
+    "shield_pct_hp": 10.0
+   }
+  },
+  {
+   "id": "rune_mana",
+   "display_name": "回响之泉",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "single",
+    "aoe",
+    "dash",
+    "projectile",
+    "ground",
+    "summon",
+    "buff"
+   ],
+   "description": "施放回复 15% 最大法力",
+   "modifiers": {
+    "mana_restore_pct": 15.0
+   }
+  },
+  {
+   "id": "rune_amplify",
+   "display_name": "增幅",
+   "category": "util",
+   "exclusive_group": "util",
+   "allowed_types": [
+    "aoe",
+    "ground"
+   ],
+   "description": "对范围内的目标额外 +20% 伤害",
+   "modifiers": {
+    "area_bonus_pct": 20.0
+   }
+  }
+ ]
+}

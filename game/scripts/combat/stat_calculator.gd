@@ -34,7 +34,7 @@ const FINAL_KEYS: Array[String] = [
 	"cold_resist", "poison_resist", "lightning_resist", "max_resource",
 	"resource_regen", "skill_cost_reduction", "cooldown_reduction",
 	"pickup_radius", "move_speed", "magic_find", "xp_gain", "gold_gain",
-	"thorns", "life_on_hit", "kill_heal",
+	"thorns", "life_on_hit", "kill_heal", "skill_level",
 	# 局内（阶段 4）：三选一 / 祭坛 / 连杀附加键
 	"armor_pierce", "life_steal", "damage_taken", "regen_pct_hp", "shield_pct_hp",
 ]
@@ -143,6 +143,9 @@ static func calculate(level: int, equipped: Array[EquipmentInstance], buffs: Dic
 		"thorns": pct.get("thorns", 0.0),
 		"life_on_hit": pct.get("life_on_hit", 0.0),
 		"kill_heal": flat.get("kill_heal", 0.0),
+		# 技能等级（第一步 B0）：**固定值累加**（非百分数）—— 词缀 add_skill_level
+		# 与底材 base_stats 的 skill_level 都走这里；漏掉这一行 ⇒ 词缀持有但玩家读不到（死钩子）
+		"skill_level": flat.get("skill_level", 0.0),
 		# 局内（阶段 4）：三选一 / 祭坛 / 连杀
 		"armor_pierce": pct.get("armor_pierce", 0.0),
 		"life_steal": pct.get("life_steal", 0.0),

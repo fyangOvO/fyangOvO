@@ -109,6 +109,12 @@ var _elite_total: int = 0
 var _progression: RunProgression = null
 var _buff_system := RunBuffSystem.new()
 
+
+## 局内增益系统（三选一 / 祭坛 / 连杀）的公开访问器。
+## 消费方：`SkillController._execute_buff()`（BUFF 形态技能写入增益，第一步 B0 · 1-L2）。
+func get_run_buff_system() -> RunBuffSystem:
+	return _buff_system
+
 ## 当前三选一面板（同一时刻最多一个，连续升级时替换而不是叠层）
 var _choice_panel: ChoicePanel = null
 

@@ -1,6 +1,6 @@
 ## 角色属性面板（任务 7.2 · class_name）
 ##
-## **键口径**：本面板**只认 `StatCalculator.FINAL_KEYS`（31 键）**，也就是
+## **键口径**：本面板**只认 `StatCalculator.FINAL_KEYS`（32 键）**，也就是
 ## `StatCalculator.calculate()` 的输出字典。渲染顺序直接跟随 `FINAL_KEYS`，
 ## 所以结算侧新增/改名键时面板会自动跟上 —— 不会再出现「面板读 flat_hp、
 ## 结算吐 max_hp，结果整页显示 0」这类静默漂移（集成层阶段 2 修的就是这个）。
@@ -38,6 +38,7 @@ const LABELS: Dictionary = {
 	"thorns": "荆棘反伤",
 	"life_on_hit": "生命偷取",
 	"kill_heal": "击杀回复",
+	"skill_level": "技能等级",
 	"armor_pierce": "护甲穿透",
 	"life_steal": "生命吸血",
 	"damage_taken": "受伤加成",
@@ -108,8 +109,8 @@ func _build_ui() -> void:
 
 
 ## 渲染属性总表。`stats` 必须是 `StatCalculator.calculate()` 的输出。
-## 布局（步骤 5 修视口裁切）：31 键 × 2 列 ≈ 31 行，高度超 640×360 视口会被切掉
-## 顶部几行（实测裁到「暴击率」）→ 改为每行 3 项（HBox），11 行 × ~17px 全屏可见。
+## 布局（步骤 5 修视口裁切）：32 键 × **每行 3 项** = 11 行，640×360 视口全屏可见。
+## （原始 2 列布局会到 31 行，高度超视口、顶部几行被裁掉（实测裁到「暴击率」）⇒ 已改 3 列。）
 ## `class_display`（2026-09-22）：职业显示名，非空时标题变为「职业 · 角色属性」。
 ## `class_id`（步骤 5）：标题配色跟随职业色。
 func show_stats(stats: Dictionary, class_display: String = "", class_id: String = "") -> void:

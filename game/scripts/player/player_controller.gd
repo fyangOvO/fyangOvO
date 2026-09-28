@@ -463,6 +463,28 @@ func get_crit_damage() -> float:
 	return GameConstants.CRIT_DAMAGE_BASE + float(_combat_stats.get("crit_damage", 0.0))
 
 
+## 技能等级（全局，1–10）。**注入优先 / 回退 1**。
+##
+## 来源 = `StatCalculator` 的 `skill_level` 键（装备词缀 `add_skill_level` 1–2、
+## 底材 `jewelry.json` 的 `skill_level` 2.0、天赋「技之极意」+1、局内三选一「技之领悟」+1）。
+## 该键是**加值**（固定值累加），故等级 = 基准 1 + 加值，并夹到 `[1, SKILL_LEVEL_MAX]`。
+##
+## ⚠️ 这条链路此前是**死钩子**（第一步 §1 缺口①）：词缀产出了 `skill_level`，
+## 但 `StatCalculator.calculate()` 的输出里没有这个键 ⇒ 玩家穿上「+2 技能等级」什么都不会发生。
+## 现已修：`stat_calculator.gd` 的 `FINAL_KEYS` + `direct` 都补了 `skill_level`。
+##
+## 唯一消费点：`SkillController._hit()`（按 `1 + 0.08×(L-1)` 放大技能倍率）。
+func get_skill_level() -> int:
+	var bonus := int(round(_combat_stats.get(GameConstants.STAT_SKILL_LEVEL, 0.0)))
+	return clampi(GameConstants.SKILL_LEVEL_BASE + bonus,
+		GameConstants.SKILL_LEVEL_BASE, GameConstants.SKILL_LEVEL_MAX)
+
+
+## 技能等级系数（`1 + 0.08 × (level - 1)`）：L1 = 1.00 / L4 = 1.24 / L7 = 1.48 / L10 = 1.72。
+func get_skill_level_multiplier() -> float:
+	return 1.0 + GameConstants.SKILL_LEVEL_COEF_PER_LEVEL * float(get_skill_level() - 1)
+
+
 ## 攻速乘区。注入时 = 1 + attack_speed%/100（`apply_combat_stats` 里算好）；未注入 = 1.0。
 func get_attack_speed_multiplier() -> float:
 	return _attack_speed_multiplier
