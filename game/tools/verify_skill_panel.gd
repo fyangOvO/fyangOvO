@@ -13,6 +13,7 @@
 extends Node2D
 
 const CLASS_IDS: Array[String] = ["warrior", "archer", "mage"]
+const CLASS_SKILL_COUNT := 12
 
 var _fail: int = 0
 var _hub: Node = null
@@ -63,20 +64,20 @@ func _test_class_data() -> void:
 			ok_defaults = false
 			_info("%s 默认栏 = %s（期望 %s）" % [cid, str(bar), str(expect[cid])])
 		var pool := ConfigLoader.class_skill_ids(cid)
-		if pool.size() < 3 or pool.size() > 6:
+		if pool.size() != CLASS_SKILL_COUNT:
 			ok_pools = false
-			_info("%s 池数异常：%d" % [cid, pool.size()])
+			_info("%s 池数异常：%d（期望 %d）" % [cid, pool.size(), CLASS_SKILL_COUNT])
 		for sid in bar:
 			if not pool.has(sid):
 				ok_pools = false
 				_info("%s 默认栏技能 %s 不在池" % [cid, sid])
 	_ok("三职业默认出战栏 = 战(裂斩/旋刃/突进) 弓(穿透箭/箭雨/淬毒箭) 法(火球/冰环/雷链)",
 		ok_defaults)
-	_ok("技能池：战士 5 / 弓箭手 5 / 法师 6（专属 + §12 召唤技，默认栏均在池内）",
+	_ok("技能池：三职业各 12（专属 + §12 召唤技，默认栏均在池内）",
 		ok_pools
-		and ConfigLoader.class_skill_ids("warrior").size() == 5
-		and ConfigLoader.class_skill_ids("archer").size() == 5
-		and ConfigLoader.class_skill_ids("mage").size() == 6)
+		and ConfigLoader.class_skill_ids("warrior").size() == CLASS_SKILL_COUNT
+		and ConfigLoader.class_skill_ids("archer").size() == CLASS_SKILL_COUNT
+		and ConfigLoader.class_skill_ids("mage").size() == CLASS_SKILL_COUNT)
 
 
 # =============================================================================
@@ -154,7 +155,8 @@ func _test_hub_panel() -> void:
 		and sp._title != null and sp._title.text.contains("战士"))
 	if sp == null:
 		return
-	_ok("战士池卡 5 张（GridContainer 子节点）", sp._pool_grid.get_child_count() == 5)
+	_ok("战士池卡 12 张（GridContainer 子节点）",
+		sp._pool_grid.get_child_count() == CLASS_SKILL_COUNT)
 	var slot_names := _bar_slot_names(sp)
 	_ok("出战槽 3 个 = 裂斩 / 旋刃 / 突进（默认栏）",
 		slot_names.size() == 3 and slot_names == ["裂斩", "旋刃", "突进"])

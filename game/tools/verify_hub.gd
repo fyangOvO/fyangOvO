@@ -7,7 +7,7 @@
 ## 覆盖（对应 team-lead 的完成标准 #2）：
 ##   A. hub.tscn 可加载：根 = Node2D + hub.gd，且有名为 UI 的 CanvasLayer
 ##   B. 5 个面板全部挂上（InventoryPanel / StatPanel / EquipPanel / TalentPanel / ForgePanel）
-##   C. `StatCalculator.calculate()` 真的被调用：输出 31 键（= FINAL_KEYS），且非全 0
+##   C. `StatCalculator.calculate()` 真的被调用：输出 32 键（= FINAL_KEYS），且非全 0
 ##   D. StatPanel 收到真实结算结果（不是 _ready 里的空渲染）
 ##   E. 选关真的发出 `EventBus.request_start_level`（带正确 level_id / tier）
 ##   F. `request_panel_toggle` 有处理方：开/关生效 + `panel_visibility_changed` 有广播 + 互斥
@@ -117,9 +117,11 @@ func _run() -> void:
 	print("--- C/D. StatCalculator.calculate() 真实调用 ---")
 	var stats: Dictionary = hub.last_stats
 	_ok("hub.last_stats 非空", not stats.is_empty())
-	_ok("输出 31 键 = FINAL_KEYS",
+	# 32 键（2026-09-28 第一步 B0：新增 skill_level）。这是**变更检测**而非自洽断言：
+	# 数字写死是为了让「FINAL_KEYS 被无意改动」在回归里暴露，故改 FINAL_KEYS 必须同步改这里。
+	_ok("输出 32 键 = FINAL_KEYS",
 		stats.size() == StatCalculator.FINAL_KEYS.size()
-		and StatCalculator.FINAL_KEYS.size() == 31)
+		and StatCalculator.FINAL_KEYS.size() == 32)
 	var missing := 0
 	for k in StatCalculator.FINAL_KEYS:
 		if not stats.has(k):
@@ -130,7 +132,7 @@ func _run() -> void:
 
 	var sp := hub.get_panel("character") as StatPanel
 	_ok("StatPanel 收到结算结果", sp != null and not sp.last_stats.is_empty())
-	_ok("StatPanel 渲染 31 行", sp != null and sp.row_count() == 31)
+	_ok("StatPanel 渲染 32 行", sp != null and sp.row_count() == 32)
 	_ok("StatPanel 渲染值非 0", sp != null
 		and String(sp.rendered_values.get("max_hp", "0")) != "0")
 	_ok("LABELS 覆盖 FINAL_KEYS 全部键",

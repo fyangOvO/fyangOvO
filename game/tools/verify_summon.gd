@@ -272,43 +272,47 @@ func _test_cast_dispatch() -> void:
 	await _wait_frames(2)
 
 	# 資料層：JSON 的字符串 type "summon" 解析為 SkillType.SUMMON；圖標鍵齊全
-	var sd := ConfigLoader.get_skill("summon_spirit_wolf")
+	# ⚠️ 1-D1 起「技能 id」與「召喚物 id」**解耦**（見 01-技能体系.md §12.4）：
+	#    技能 id = `spirit_wolf`（玩家看到的名字）｜召喚物 id = `summon_id` = `summon_spirit_wolf`
+	var skill_id := "spirit_wolf"
+	var summon_id := "summon_spirit_wolf"
+	var sd := ConfigLoader.get_skill(skill_id)
 	_ok("skills.json：靈狼 type 解析為 summon（SkillType.SUMMON）",
-		sd != null and sd.type == SkillData.SkillType.SUMMON)
-	_ok("SKILL_ICON 有 summon_spirit_wolf 映射且貼圖可載（無缺圖）",
-		str(GameConstants.SKILL_ICON.get("summon_spirit_wolf", "")) == "skill_icon_spirit_wolf"
+		sd != null and sd.type == SkillData.SkillType.SUMMON and sd.summon_id == summon_id)
+	_ok("SKILL_ICON 有 spirit_wolf 映射且貼圖可載（無缺圖）",
+		str(GameConstants.SKILL_ICON.get(skill_id, "")) == "skill_icon_spirit_wolf"
 		and UISkin.texture("skill_icon_spirit_wolf") != null
 		and UISkin.texture("skill_icon_summon_elemental") != null)
 
 	# 白盒：把召喚技能塞進玩家的技能控制器（繞過存檔欄），以測 SUMMON 分派路徑
 	var sc := _player.get_skill_controller()
-	sc._skills["summon_spirit_wolf"] = sd
-	sc._cooldowns["summon_spirit_wolf"] = 0.0
+	sc._skills[skill_id] = sd
+	sc._cooldowns[skill_id] = 0.0
 	_player.get_mana_pool().set_current(100.0)
 
-	var cast_ok := sc.try_cast("summon_spirit_wolf")
+	var cast_ok := sc.try_cast(skill_id)
 	# ⚠️ 冷卻 / 法力必須在 `try_cast` 後**同步**讀取：`_process` 每幀 tick 冷卻、
 	#    法力池每幀自然回復 ⇒ await 之後再讀會漂移，斷言變 flaky。
-	var cd_after := sc.get_cooldown_remaining("summon_spirit_wolf")
+	var cd_after := sc.get_cooldown_remaining(skill_id)
 	var mana_after := _player.get_mana_pool().current
 	await _wait_frames(2)
-	var wolves := _summons_of_id("summon_spirit_wolf")
+	var wolves := _summons_of_id(summon_id)
 	_ok("施放成功", cast_ok)
-	_ok("扣藍 30（100 → 70）", is_equal_approx(mana_after, 70.0))
+	_ok("扣藍 35（100 → 65）", is_equal_approx(mana_after, 65.0))
 	_ok("進入冷卻 12s", is_equal_approx(cd_after, 12.0))
 	_ok("場上出現 1 隻召喚物", wolves.size() == 1)
 	_ok("召喚物屬 summons 組、不屬 enemies 組",
 		wolves.size() == 1 and wolves[0].is_in_group(&"summons")
 		and not wolves[0].is_in_group(&"enemies"))
 	_ok("召喚物 id = summon_spirit_wolf",
-		wolves.size() == 1 and str(wolves[0].call("get_summon_id")) == "summon_spirit_wolf")
+		wolves.size() == 1 and str(wolves[0].call("get_summon_id")) == summon_id)
 
 	# 同一 id 上限 1 隻：清冷卻再放 → 仍只有 1 隻（取代，非疊加）
 	var first: Node = wolves[0] if wolves.size() == 1 else null
-	sc._cooldowns["summon_spirit_wolf"] = 0.0
-	sc.try_cast("summon_spirit_wolf")
+	sc._cooldowns[skill_id] = 0.0
+	sc.try_cast(skill_id)
 	await _wait_frames(2)
-	var wolves2 := _summons_of_id("summon_spirit_wolf")
+	var wolves2 := _summons_of_id(summon_id)
 	_ok("重複召喚：同一 id 仍只有 1 隻（上限 1）", wolves2.size() == 1)
 	_ok("重複召喚：舊個體已解召（取代）", first == null or not is_instance_valid(first))
 
@@ -316,7 +320,7 @@ func _test_cast_dispatch() -> void:
 	if wolves2.size() == 1:
 		wolves2[0].set("_life_timer", 0.02)
 		await _wait_frames(4)
-		_ok("到期後召喚物消失（15s）", _summons_of_id("summon_spirit_wolf").is_empty())
+		_ok("到期後召喚物消失（15s）", _summons_of_id(summon_id).is_empty())
 	else:
 		_ok("到期後召喚物消失（15s）", false)
 	_clear_summons()

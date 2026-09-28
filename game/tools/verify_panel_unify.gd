@@ -1,6 +1,6 @@
 ## 工具：verify_panel_unify.gd（步骤 5 · 据点半透明面板统一视觉）
 ##
-## A. StatPanel：标题含职业名+角色属性、标题职业色、提示行、31 行属性
+## A. StatPanel：标题含职业名+角色属性、标题职业色、提示行、32 行属性
 ## B. TalentPanel：标题含职业名+天赋树、标题职业色、提示行、3 分支卡、点数
 ## C. ForgePanel：标题含职业名+锻造台、标题职业色、提示行、魔石数、行按钮皮肤
 ## D. 三个面板统一规范：最小宽 400 / 边距 14 / 标题 16px
@@ -41,7 +41,7 @@ func _test_stat() -> void:
 	_ok("标题 = 战士 · 角色属性", sp._title.text == "战士 · 角色属性")
 	_ok("标题职业色", sp._title.get_theme_color("font_color") == expect_color)
 	_ok("提示行存在", _count_text(sp, "基础属性") >= 1)
-	_ok("31 行属性", sp.row_count() == 31)
+	_ok("32 行属性", sp.row_count() == 32)
 	sp.queue_free()
 	await get_tree().process_frame
 

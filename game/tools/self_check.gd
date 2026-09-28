@@ -285,13 +285,14 @@ func _run_self_check() -> void:
 
 	# 任务 8.5：Bug 修复与回归红线（历史修复点不回退）
 	# 数据表锚点：拆成 5 条独立断言以便精準定位是哪個錨點被破壞。
-	# 怪物表隨版本迭代可能擴容（已 16→24），故採下限；其他表屬穩態，採恆等。
+	# 怪物表 / 技能表隨版本迭代可能擴容（怪物 16→24；技能 14→36），故採下限；
+	# 其他表屬穩態，採恆等。
 	_add_check("回归红线：怪物 ≥ 16 条（当前 %d）" % ConfigLoader.monsters.size(),
 		ConfigLoader.monsters.size() >= 16)
 	_add_check("回归红线：BOSS == 2 个（当前 %d）" % ConfigLoader.bosses.size(),
 		ConfigLoader.bosses.size() == 2)
-	_add_check("回归红线：技能 == 14 条（当前 %d）" % ConfigLoader.skills.size(),
-		ConfigLoader.skills.size() == 14)
+	_add_check("回归红线：技能 ≥ 36 条（当前 %d）" % ConfigLoader.skills.size(),
+		ConfigLoader.skills.size() >= 36)
 	_add_check("回归红线：装备 == 62 件（当前 %d）" % ConfigLoader.equipment_templates.size(),
 		ConfigLoader.equipment_templates.size() == 62)
 	_add_check("回归红线：关卡 == 20 关（当前 %d）" % ConfigLoader.levels.size(),
@@ -643,7 +644,7 @@ func _run_self_check() -> void:
 		boss_table != null and is_equal_approx(boss_table.drop_chance, 1.0)
 		and boss_table.drop_count_range == Vector2i(2, 4))
 
-	# 任务 6.4 + 步骤 3 + §12：技能库（3 → 14：职业专属池，覆盖四形态 + 多元素 + 召唤）
+	# 任务 6.4 + 步骤 3 + §12 + 第一步 B0（1-D2）：技能库 3 → 14 → 36（三职业各 12）
 	var skill_total := ConfigLoader.get_all_skill_ids().size()
 	var slot_ids: Array[String] = []
 	for sid in ConfigLoader.get_all_skill_ids():
@@ -655,8 +656,9 @@ func _run_self_check() -> void:
 	var class_bar_ok := ConfigLoader.class_default_skill_bar("warrior").size() == 3 \
 		and ConfigLoader.class_default_skill_bar("archer").size() == 3 \
 		and ConfigLoader.class_default_skill_bar("mage").size() == 3
-	_add_check("技能库 14 个（3 老出战 + 11 备选池；三职业默认栏各 3 不变）",
-		skill_total == 14 and slot_ids.size() == 3 and has_frost and class_bar_ok)
+	_add_check("技能库 ≥ 36 个（当前 %d；三职业各 12，出战栏共 9 格，默认栏各 3 不变）"
+			% skill_total,
+		skill_total >= 36 and slot_ids.size() == 9 and has_frost and class_bar_ok)
 	_add_check("备选技能覆盖三形态 + 暗影元素入元素表",
 		has_shadow
 		and ConfigLoader.get_skill("lightning_chain") != null
@@ -685,7 +687,12 @@ func _run_self_check() -> void:
 				continue
 			type_mask |= 1 << sd.type
 		_add_check("技能表可解析：%d 条，全部数据合法" % skill_ids.size(), skill_valid)
-		_add_check("技能形态覆盖单/范围/位移/召唤四类", type_mask == 0b1111)
+		# 每种形态都必须有实现载体（B0 起 7 类；枚举扩容后此断言自动要求新形态也有技能）
+		var expect_mask := 0
+		for t in range(SkillData.SkillType.SINGLE, SkillData.SkillType.BUFF + 1):
+			expect_mask |= 1 << t
+		_add_check("技能形态覆盖七类（单体/范围/位移/投射物/持续区域/召唤/增益）",
+			type_mask == expect_mask)
 
 	# 任务 2.3：伤害计算管线锚点（暴击 / 元素 / 减伤，用户拍板口径）
 	var crit_ok := (

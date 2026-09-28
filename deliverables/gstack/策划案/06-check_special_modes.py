@@ -69,11 +69,15 @@ TICKET_KEYS = ["ticket_normal", "key_advanced"]
 # S12 新增两档的键
 NEW_RARITY_KEYS = ["special_abyss", "special_tower"]
 
-# 工程侧「硬编码 8」的三处（必须改成 10）
+# 工程侧「硬编码 8」的三处（必须改成 10）。
+# ⚠️ 用**内容模式**定位，不用行号：行号会随文件上方任何编辑漂移
+#    （2026-09-28 第一步 B0 给 self_check.gd 加了 7 行 ⇒ 原 [785,786,787] 指向了
+#     别的代码，E4 一度误报「已修复」。行号定位在这里是结构性的假阴性源。）
+# 每项 = (相对路径, 需命中的正则, 说明)
 HARDCODED_8_SITES = [
-    ("game/tools/self_check.gd", [785, 786, 787]),
-    ("game/tools/verify_loot_tables.gd", [85]),
-    ("game/tools/verify_ui_assets.gd", [139]),
+    ("game/tools/self_check.gd", r"稀有度权重 8 档", "掉落表断言的「8 档」字面量"),
+    ("game/tools/verify_loot_tables.gd", r"rarity_weights\.size\(\)\s*!=\s*8", "权重数组长度硬编码 8"),
+    ("game/tools/verify_ui_assets.gd", r"for r in range\(8\)", "稀有度循环上界硬编码 8"),
 ]
 
 
@@ -726,18 +730,13 @@ def group_e(data, ck, repo):
             ck.ok(False, "E3 %s 未在 game_constants.gd 找到" % cname)
 
     # E4: 三处硬编码 8 当前确实存在（确认工单必要）
-    for rel, lines in HARDCODED_8_SITES:
+    for rel, pattern, desc in HARDCODED_8_SITES:
         txt = read_text(p(rel))
         if txt is None:
             ck.ok(False, "E4 无法读取 %s" % rel)
             continue
-        src_lines = txt.splitlines()
-        found = False
-        for ln in lines:
-            if 0 < ln <= len(src_lines) and "8" in src_lines[ln - 1]:
-                found = True
-                break
-        ck.ok(found, "E4 %s:%s 仍含硬编码 8（工单必要）" % (rel, lines))
+        hits = [i + 1 for i, ln in enumerate(txt.splitlines()) if re.search(pattern, ln)]
+        ck.ok(bool(hits), "E4 %s 仍含硬编码 8（%s；命中行 %s）" % (rel, desc, hits))
 
     # E5: boss_phase_controller 现为 4 阶段
     bpc = read_text(p("game/scripts/enemies/boss_phase_controller.gd"))
