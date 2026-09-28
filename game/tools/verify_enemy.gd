@@ -14,6 +14,8 @@
 ##   E. 攻击：ATTACK 状态按 attack_interval 输出 damage_taken 事件（带元素），
 ##      玩家 2.6 前无生命组件不崩
 ##   F. 回归：玩家移动 / 技能不受敌人存在影响
+##   G. AI 分派（W5-1）：6 种 ai_id 行为互不相同（含 ranged_kiter / lobber 的
+##      「太近则后退」分支可达性守卫）+ 9 个新字段对 16 只老怪缺省透明
 extends Node
 
 const ENEMY_SCENE := preload("res://scenes/enemies/enemy_base.tscn")
@@ -353,6 +355,19 @@ func _test_ai_dispatch() -> void:
 	_ok("ranged_kiter：太远则进（|v| = move_speed）",
 		v_kite["v"].y > 0.0
 		and absf(v_kite["v"].length() - v_kite["move_speed"]) <= v_kite["move_speed"] * 0.15)
+
+	# ranged_kiter / lobber：**太近则后退**（策劃 ai_behavior_contract 明写）。
+	# ⚠️ 这两条是「分支可达性」守卫 —— 若 `_wants_back_off` 未生效，`_tick_chase`
+	#    会在 dist <= attack_range 时直接转 ATTACK 并 return（velocity = 0），
+	#    y 既不 >0 也不 <0，断言即失败。这正是 2026-09-28 修掉的那个死分支。
+	var v_kite_near := await _probe_chase("storm_wisp", 100.0)
+	_info("ranged_kiter 过近（100 < preferred 130）速度 = (%.1f, %.1f）"
+		% [v_kite_near["v"].x, v_kite_near["v"].y])
+	_ok("ranged_kiter：太近则后退（朝远离玩家 -y 移动）", v_kite_near["v"].y < 0.0)
+	var v_lob_near := await _probe_chase("frost_lobber", 80.0)
+	_info("lobber 过近（80 < preferred 115）速度 = (%.1f, %.1f）"
+		% [v_lob_near["v"].x, v_lob_near["v"].y])
+	_ok("lobber：太近则后退（朝远离玩家 -y 移动）", v_lob_near["v"].y < 0.0)
 
 	# melee_charger：进入 charge_range 先蓄力（停下），蓄力结束高速冲刺
 	var v_chg_windup := await _probe_chase("plague_bearer", 100.0, 2)

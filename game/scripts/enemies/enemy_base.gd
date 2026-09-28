@@ -870,6 +870,23 @@ func _lose_range() -> float:
 	return GameConstants.ENEMY_LOSE_RANGE
 
 
+## W5-1 · ranged_kiter / lobber 的「過近區」判定：目標比 `preferred_range` 更近。
+##   過近 ⇒ 不進入 ATTACK（也不留在 ATTACK），改由 CHASE 的 `_chase_kite` /
+##   `_chase_lobber` 執行**後退** —— 這是策劃 `ai_behavior_contract` 明寫的
+##   「太近则后退」的落點。
+##
+##   ⚠️ 為什麼需要它（2026-09-28 B2 實測）：
+##     `_tick_chase` 原本只在 `dist > attack_range` 時被呼叫，而全部帶
+##     `preferred_range` 的怪都是 `attack_range > preferred_range`
+##     ⇒ `dist > attack_range > pref + TOL` ⇒ 「後退 / 橫移」兩支**永不執行**，
+##     只剩「前進」。此判定把 ATTACK 的進入條件收緊，讓過近時能落回 CHASE。
+##   ⚠️ 必須**同時**出現在 `_tick_chase`（阻止進入）與 `_tick_attack`（主動退出），
+##     否則會退化成「ATTACK ⇄ CHASE 每幀抖動」。
+##   `preferred_range <= 0`（16 隻老怪的缺省）⇒ 恆 false ⇒ 行為與改動前逐位一致。
+func _wants_back_off(dist: float) -> bool:
+	return data.preferred_range > 0.0 and dist < data.preferred_range - _KITE_RANGE_TOL
+
+
 ## 状态分派
 func _tick_state(delta: float) -> void:
 	# 6.2 词缀：闪现（每 6 秒瞬移到玩家附近）
@@ -920,7 +937,9 @@ func _tick_chase(delta: float, dist: float) -> void:
 		velocity = Vector2.ZERO
 		_set_state(AIState.PATROL)
 		return
-	if dist <= data.attack_range:
+	# 進入 ATTACK 需同時滿足：進入攻擊距離 **且** 沒有「過近後撤」訴求。
+	# 後者是 ranged_kiter / lobber 的「太近則後退」（見 `_wants_back_off`）。
+	if dist <= data.attack_range and not _wants_back_off(dist):
 		velocity = Vector2.ZERO
 		# 面向玩家（攻击判定扇区中轴）
 		facing = global_position.direction_to(_player.global_position).normalized()
@@ -958,7 +977,9 @@ func _tick_attack(delta: float, dist: float) -> void:
 	if _player == null or dist > _lose_range():
 		_set_state(AIState.PATROL)
 		return
-	if dist > data.attack_range:
+	# 退出 ATTACK 的兩種情形：目標出了攻擊距離，**或** 已進入「過近後撤」區
+	# （後者讓 ranged_kiter / lobber 真的會後退，而非貼臉站樁射擊）。
+	if dist > data.attack_range or _wants_back_off(dist):
 		_set_state(AIState.CHASE)
 		return
 	_attack_timer -= delta
