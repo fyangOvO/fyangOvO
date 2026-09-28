@@ -9,7 +9,7 @@
 		"objective_value": 0,
 		"monster_entries": [
 			{ "monster_id": "skeleton_warrior", "count_min": 85, "count_max": 125, "weight": 100.0, "spawn_group": "ambient" },
-			{ "monster_id": "wraith_frost", "count_min": 23, "count_max": 41, "weight": 50.0, "spawn_group": "ambient" },
+			{ "monster_id": "brute_butcher", "count_min": 23, "count_max": 41, "weight": 50.0, "spawn_group": "ambient" },
 			{ "monster_id": "slime_acid", "count_min": 42, "count_max": 64, "weight": 40.0, "spawn_group": "pack" }
 		],
 		"total_monster_budget": 230,
@@ -108,7 +108,7 @@
 		"objective_type": "clear_all",
 		"objective_value": 0,
 		"monster_entries": [
-			{ "monster_id": "slime_acid", "count_min": 73, "count_max": 109, "weight": 70.0, "spawn_group": "ambient" },
+			{ "monster_id": "plague_bearer", "count_min": 73, "count_max": 109, "weight": 70.0, "spawn_group": "ambient" },
 			{ "monster_id": "wraith_frost", "count_min": 38, "count_max": 59, "weight": 60.0, "spawn_group": "ambient" },
 			{ "monster_id": "skeleton_warrior", "count_min": 81, "count_max": 127, "weight": 90.0, "spawn_group": "ambient" }
 		],
@@ -158,7 +158,7 @@
 		"objective_type": "kill_boss",
 		"objective_value": 1,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 131, "count_max": 196, "weight": 80.0, "spawn_group": "ambient" },
+			{ "monster_id": "storm_wisp", "count_min": 131, "count_max": 196, "weight": 80.0, "spawn_group": "ambient" },
 			{ "monster_id": "wraith_frost", "count_min": 60, "count_max": 88, "weight": 60.0, "spawn_group": "ambient" },
 			{ "monster_id": "brute_butcher", "count_min": 20, "count_max": 41, "weight": 12.0, "spawn_group": "guard" }
 		],

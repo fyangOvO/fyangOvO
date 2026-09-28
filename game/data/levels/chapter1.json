@@ -125,7 +125,7 @@
 		"monster_entries": [
 			{ "monster_id": "spider_cave", "count_min": 75, "count_max": 105, "weight": 120.0, "spawn_group": "ambient" },
 			{ "monster_id": "slime_acid", "count_min": 22, "count_max": 44, "weight": 50.0, "spawn_group": "ambient" },
-			{ "monster_id": "brute_butcher", "count_min": 7, "count_max": 11, "weight": 1.0, "spawn_group": "guard" }
+			{ "monster_id": "rat_swarm", "count_min": 7, "count_max": 11, "weight": 1.0, "spawn_group": "guard" }
 		],
 		"total_monster_budget": 160,
 		"elite_spawn_enabled": true,
@@ -244,7 +244,7 @@
 		"objective_value": 0,
 		"monster_entries": [
 			{ "monster_id": "skeleton_warrior", "count_min": 80, "count_max": 180, "weight": 120.0, "spawn_group": "guard" },
-			{ "monster_id": "wraith_frost", "count_min": 12, "count_max": 29, "weight": 4.0, "spawn_group": "guard" },
+			{ "monster_id": "brute_butcher", "count_min": 12, "count_max": 29, "weight": 4.0, "spawn_group": "guard" },
 			{ "monster_id": "boss_bone_tyrant", "count_min": 1, "count_max": 1, "weight": 1.0, "spawn_group": "guard", "is_boss": true }
 		],
 		"total_monster_budget": 210,
