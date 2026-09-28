@@ -157,7 +157,8 @@
   },
   "affix_pool_ids": [
    "weapon_offense",
-   "weapon_generic"
+   "weapon_generic",
+   "legendary_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -216,7 +217,7 @@
   "weapon_archetype": "hammer",
   "base_stats": {
    "flat_attack": 26.0,
-   "armor_penetration": 5.0
+   "armor_pierce": 5.0
   },
   "affix_pool_ids": [
    "weapon_offense",

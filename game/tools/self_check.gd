@@ -400,7 +400,9 @@ func _run_self_check() -> void:
 
 	# 任务 3.7：装备对比（stat_key 汇总 + 特殊键隔离）
 	var cmp_ok := true
-	if ConfigLoader.affixes.size() != 33:
+	# 词缀数由数据决定（第二步落地后 33 → 48），**不写死快照**：
+	# 此处只断言「词缀表已加载且覆盖基准规模」（GDD 词缀池基准 ≥ 30）。
+	if ConfigLoader.affixes.size() < 30:
 		cmp_ok = false
 	var probe := EquipmentInstance.new()
 	probe.instance_id = "cmp_probe"

@@ -8,7 +8,10 @@
 		"equipment_share": 0.55,
 		"gold_weight": 30.0,
 		"material_weight": 12.0,
+		"material_sub_weights": { "forge_stone": 70.0, "enchant_scroll": 20.0, "reroll_crystal": 10.0 },
 		"consumable_weight": 3.0,
+		"rune_drop_chance": 0.02,
+		"item_level_spread": { "min_mod": -3, "max_mod": 3, "mode_mod": 0, "bonus_chance": 0.0, "bonus_mod": 0 },
 		"pity_enabled": true
 	},
 	{
@@ -20,7 +23,10 @@
 		"equipment_share": 0.80,
 		"gold_weight": 25.0,
 		"material_weight": 40.0,
+		"material_sub_weights": { "forge_stone": 60.0, "enchant_scroll": 25.0, "reroll_crystal": 15.0 },
 		"consumable_weight": 5.0,
+		"rune_drop_chance": 0.08,
+		"item_level_spread": { "min_mod": -2, "max_mod": 2, "mode_mod": 0, "bonus_chance": 0.10, "bonus_mod": 5 },
 		"pity_enabled": true,
 		"pity_bonus_per_stack": 0.20,
 		"pity_max_stacks": 3
@@ -34,7 +40,10 @@
 		"equipment_share": 0.90,
 		"gold_weight": 20.0,
 		"material_weight": 60.0,
+		"material_sub_weights": { "forge_stone": 40.0, "enchant_scroll": 25.0, "reroll_crystal": 35.0 },
 		"consumable_weight": 8.0,
+		"rune_drop_chance": 0.25,
+		"item_level_spread": { "min_mod": 3, "max_mod": 8, "mode_mod": 5, "bonus_chance": 0.0, "bonus_mod": 0 },
 		"pity_enabled": false
 	}
 ]

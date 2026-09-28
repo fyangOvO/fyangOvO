@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B2 內容底座 完成**（3 工單）⇒ 下一步 **B3 死鉤子接線（58 工單 · 最大批）** |
+| **工程落地** | 🟡 **B3-1 數據底座 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-2 元素與抗性管線（9 工單）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -28,9 +28,16 @@
 ⚠️ **重大發現**：`5-W5-2`（9 字段）/ `5-W5-3` 前半（8 隻新怪）**已在 `d27c31e`（素材線）落地**，非 B2 所加
 ⚠️ **8 隻新怪的 `sprite_path` 指向不存在的 png** ⇒ `use_placeholder_art` 兜底不崩，**屬 B7 素材替換**
 
-**⇒ 驗收：工程回歸 67 腳本零新增失敗（殘餘與 B1 基線逐條一致）；`05 --repo` 82/4（C5 已修）；`06/07 --repo` 202/0 · 212/0**
+**⇒ B2 驗收**：工程回歸 67 腳本零新增失敗（殘餘與 B1 基線逐條一致）；`05 --repo` 82/4（C5 已修）；`06/07 --repo` 202/0 · 212/0
 
-（明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八）
+⇒ **B3-1 數據底座 已落地**（6 工單）：詞綴 **33→48** ｜ 池 **10→14**（epic_empower/legendary_pool/set_pool/hidden_pool）
+｜ `add_armor_penetration.stat_key` → **`armor_pierce`**（修死鉤子 C2）｜ 4 條權重 ｜ 18 件套裝散件 +`set_pool`
+｜ 掉落表 3 檔 +`rune_drop_chance`/`material_sub_weights`/`item_level_spread` ｜ `02-check` **11/4 → 14/0**（A4 依 §1.5 裁定改 `[WARN]`）
+⚠️ **B3 口徑**：官方 members 58 條，**實際 `batch==B3` 為 54 條**（7 條歸 B6/B7/B4）
+⚠️ **已落地 5 條不必重做**：`2-L2`/`2-L4`/`2-V9`/`3-X2`/`3-X6`（B0 已做）；`2-L1`/`2-V8` 係數在 `PlayerController`（裁定保持現狀）
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 元素抗性 → B3-3 傷害資源 → **B3-4 特効總線（核心）** → B3-5 形態 → B3-6 徽記 → B3-7 校驗
+
+（明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九）
 
 ⚠️ **留給各自批次的預存回歸紅**（用戶已裁定本輪不動）：4 條**無工單**（`verify_choice_panel` 裸 Color
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`

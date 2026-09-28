@@ -35,7 +35,7 @@
     "value_min": 6.0,
     "value_max": 10.0,
     "decimal_places": 1,
-    "weight": 80.0,
+    "weight": 95.0,
     "stat_key": "elemental_damage"
   },
   {
@@ -87,8 +87,8 @@
     "value_min": 5.0,
     "value_max": 9.0,
     "decimal_places": 1,
-    "weight": 60.0,
-    "stat_key": "armor_penetration"
+    "weight": 65.0,
+    "stat_key": "armor_pierce"
   },
   {
     "id": "add_skill_level",
@@ -109,5 +109,61 @@
     "min_rarity": 3,
     "weight": 12.0,
     "stat_key": "skill_level"
+  },
+  {
+    "id": "add_elemental_penetration",
+    "display_name": "元素穿透",
+    "description_template": "+{value}% 元素穿透",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 4.0,
+    "value_max": 8.0,
+    "decimal_places": 1,
+    "min_rarity": 2,
+    "weight": 55.0,
+    "stat_key": "elemental_penetration"
+  },
+  {
+    "id": "add_resist_penetration",
+    "display_name": "抗性穿透",
+    "description_template": "+{value}% 抗性穿透",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 3.0,
+    "value_max": 6.0,
+    "decimal_places": 1,
+    "min_rarity": 3,
+    "weight": 35.0,
+    "stat_key": "resist_penetration"
+  },
+  {
+    "id": "add_all_element_damage",
+    "display_name": "全元素伤害",
+    "description_template": "+{value}% 全元素伤害",
+    "category": "attack",
+    "position": "prefix",
+    "is_percentage": true,
+    "value_min": 6.0,
+    "value_max": 11.0,
+    "decimal_places": 1,
+    "min_rarity": 2,
+    "weight": 55.0,
+    "stat_key": "all_element_damage"
+  },
+  {
+    "id": "add_damage_vs_ailment",
+    "display_name": "对异常目标增伤",
+    "description_template": "+{value}% 对异常目标伤害",
+    "category": "attack",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 10.0,
+    "value_max": 18.0,
+    "decimal_places": 1,
+    "min_rarity": 3,
+    "weight": 35.0,
+    "stat_key": "damage_vs_ailment"
   }
 ]

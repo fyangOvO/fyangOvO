@@ -29,7 +29,8 @@
   },
   "affix_pool_ids": [
    "armor_generic",
-   "armor_defense"
+   "armor_defense",
+   "legendary_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -69,7 +70,8 @@
   },
   "affix_pool_ids": [
    "armor_generic",
-   "armor_defense"
+   "armor_defense",
+   "legendary_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -147,7 +149,8 @@
   },
   "affix_pool_ids": [
    "armor_generic",
-   "armor_utility"
+   "armor_utility",
+   "legendary_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -263,7 +266,8 @@
   },
   "affix_pool_ids": [
    "armor_generic",
-   "armor_defense"
+   "armor_defense",
+   "epic_empower"
   ],
   "item_level_min": 12,
   "item_level_max": 20,

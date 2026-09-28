@@ -110,6 +110,17 @@ def check(cond: bool, msg: str) -> None:
     (ok if cond else fail)(msg)
 
 
+def warn(msg: str, details: list[str] | None = None) -> None:
+    """警告级断言：输出 [WARN] 但不计入失败。
+
+    依据 `02-装备属性.md` §1.5 裁定 / §4.4 C3 降级说明 / §8.3 V4：
+    约束 C3（min_rarity>=3 的词缀不得进通用池）已由**硬约束降为软建议**。
+    """
+    print(f"  [WARN] {msg}")
+    for d in (details or []):
+        print(f"          提示: {d}")
+
+
 def load(path: Path):
     with path.open(encoding="utf-8") as fh:
         return json.load(fh)
@@ -165,16 +176,19 @@ def section_a(affixes: dict, pools: dict, equip_slots: dict) -> None:
     for m in missing:
         print(f"          缺失: {m}")
 
-    # A4 通用池不得含 min_rarity >= 3（约束 C3）
+    # A4 通用池不得含 min_rarity >= 3（约束 C3 —— 🟡 软建议，警告级）
+    #
+    # 依据 `02-装备属性.md` §1.5 裁定 / §4.4 C3 降级说明 / §8.3 V4：
+    #   `add_skill_level`（min_rarity=3）出现在 2 个通用池属【裁定保留】——
+    #   其权重仅 12（全表最低），实际出现概率已极低，且「任何部位都可能出技能等级」
+    #   是明确的设计意图。故 C3 由硬约束降为软建议，本项输出 WARN 且不计入失败。
     violations = []
     for pid in GENERIC_POOLS & set(pools):
         for aid in pools[pid]:
             info = affixes.get(aid)
             if info and info.get("min_rarity", -1) >= 3:
                 violations.append(f"{pid} -> {aid} (min_rarity={info['min_rarity']})")
-    check(not violations, f"A4 通用池无 min_rarity>=3 词缀（违规 {len(violations)} 条）")
-    for v in violations:
-        print(f"          违规: {v}")
+    warn(f"A4 通用池无 min_rarity>=3 词缀（C3 软建议，违规 {len(violations)} 条）", violations)
 
     # A5 底材 base_stats 的键必须合法（附錄 B.8 发现①：hammer_glacier 用了 legacy 键）
     bad_base = []

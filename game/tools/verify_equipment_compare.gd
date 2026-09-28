@@ -5,7 +5,7 @@
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
 ## 覆盖范围（7 个测试段）：
-##   A. stat_key：33 词缀全部映射非空（AffixData.validate 已兜底，此处抽查）
+##   A. stat_key：全部词缀映射非空（AffixData.validate 已兜底，此处抽查）
 ##   B. 汇总：get_total_stats = 底材基础 + 词缀归并（同键求和 / 百分比词缀并入自身键）
 ##   C. 对比：升 / 降 / 平 三态与 diff 值
 ##   D. 穿戴新件（old = null）：全为升
@@ -72,7 +72,10 @@ func _test_stat_key() -> void:
 	for id in ConfigLoader.affixes:
 		if (ConfigLoader.affixes[id] as AffixData).stat_key.is_empty():
 			empty += 1
-	_ok("33 词缀 stat_key 全部非空", ConfigLoader.affixes.size() == 33 and empty == 0)
+	# 词缀总数由数据决定（第二步落地后 33 → 48），**不写死快照**——
+	# 此处断言的是「所有词缀的 stat_key 均非空」这一设计意图。
+	_ok("%d 词缀 stat_key 全部非空" % ConfigLoader.affixes.size(),
+		ConfigLoader.affixes.size() > 0 and empty == 0)
 	_ok("flat_attack 映射正确", (ConfigLoader.affixes["add_flat_attack"] as AffixData).stat_key == "flat_attack")
 	_ok("crit_chance 映射正确", (ConfigLoader.affixes["add_crit_chance"] as AffixData).stat_key == "crit_chance")
 

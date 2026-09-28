@@ -45,7 +45,8 @@
    "move_speed": 10.0
   },
   "affix_pool_ids": [
-   "jewelry_generic"
+   "jewelry_generic",
+   "legendary_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -65,7 +66,8 @@
    "move_speed": 10.0
   },
   "affix_pool_ids": [
-   "jewelry_generic"
+   "jewelry_generic",
+   "legendary_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -130,7 +132,8 @@
    "magic_find": 15.0
   },
   "affix_pool_ids": [
-   "jewelry_generic"
+   "jewelry_generic",
+   "hidden_pool"
   ],
   "item_level_min": 10,
   "item_level_max": 20,
@@ -154,7 +157,8 @@
   },
   "affix_pool_ids": [
    "armor_generic",
-   "armor_utility"
+   "armor_utility",
+   "hidden_pool"
   ],
   "item_level_min": 10,
   "item_level_max": 20,
@@ -230,7 +234,8 @@
    "crit_chance": 6.0
   },
   "affix_pool_ids": [
-   "jewelry_generic"
+   "jewelry_generic",
+   "epic_empower"
   ],
   "item_level_min": 9,
   "item_level_max": 20,
@@ -266,7 +271,8 @@
    "crit_damage": 10.0
   },
   "affix_pool_ids": [
-   "jewelry_generic"
+   "jewelry_generic",
+   "epic_empower"
   ],
   "item_level_min": 12,
   "item_level_max": 20,

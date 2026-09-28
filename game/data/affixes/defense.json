@@ -22,7 +22,7 @@
     "value_min": 4.0,
     "value_max": 6.0,
     "decimal_places": 1,
-    "weight": 70.0,
+    "weight": 85.0,
     "stat_key": "pct_hp"
   },
   {
@@ -147,5 +147,46 @@
     "decimal_places": 1,
     "weight": 70.0,
     "stat_key": "lightning_resist"
+  },
+  {
+    "id": "add_shadow_resist",
+    "display_name": "暗影抗性",
+    "description_template": "+{value}% 暗影抗性",
+    "category": "defense",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 8.0,
+    "value_max": 14.0,
+    "decimal_places": 1,
+    "weight": 60.0,
+    "stat_key": "shadow_resist"
+  },
+  {
+    "id": "add_physical_resist",
+    "display_name": "物理抗性",
+    "description_template": "+{value}% 物理抗性",
+    "category": "defense",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 5.0,
+    "value_max": 9.0,
+    "decimal_places": 1,
+    "min_rarity": 2,
+    "weight": 40.0,
+    "stat_key": "physical_resist"
+  },
+  {
+    "id": "add_all_resist",
+    "display_name": "全元素抗性",
+    "description_template": "+{value}% 全元素抗性",
+    "category": "defense",
+    "position": "suffix",
+    "is_percentage": true,
+    "value_min": 6.0,
+    "value_max": 12.0,
+    "decimal_places": 1,
+    "min_rarity": 2,
+    "weight": 50.0,
+    "stat_key": "all_resist"
   }
 ]
