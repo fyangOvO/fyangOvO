@@ -1,0 +1,521 @@
+{
+  "version": "0.1",
+  "_meta": {
+    "step": 6,
+    "topic": "特殊档稀有度（深渊装 + 塔装）",
+    "status": "已拍板（S12 · 2026-09-24）",
+    "decided_by": "用户裁定：「S12 特殊装备是否新增第 特殊档 稀有度 —— 深淵裝和塔裝」",
+    "impact_level": "🔴 最高（牵动 15 个常量数组 + 3 张掉落表 + 621 件底材筛选 + 4 处硬编码断言）",
+    "reversible": false,
+    "_reversible_note": "⚠️ 不可逆：EquipmentInstance.to_dict() 存 rarity 为 int，若将来 RARITY_COUNT 回退到 8，旧档中的 8/9 会被 clampi 压成 7（隐藏装）⇒ 装备语义静默改变。"
+  },
+
+  "current_state_8": {
+    "_note": "现有 8 档，第五步及以前全部设计的基础。S12 后扩为 10 档。",
+    "RARITY_COUNT": 8,
+    "rows": [
+      { "idx": 0, "key": "common",    "cn": "普通", "beam_h": 0,  "affix": [0, 0], "prefix": 0, "suffix": 0, "category": "linear" },
+      { "idx": 1, "key": "magic",     "cn": "魔法", "beam_h": 8,  "affix": [1, 2], "prefix": 1, "suffix": 1, "category": "linear" },
+      { "idx": 2, "key": "rare",      "cn": "稀有", "beam_h": 16, "affix": [3, 4], "prefix": 2, "suffix": 2, "category": "linear" },
+      { "idx": 3, "key": "epic",      "cn": "史诗", "beam_h": 24, "affix": [4, 5], "prefix": 3, "suffix": 2, "category": "linear" },
+      { "idx": 4, "key": "legendary", "cn": "传说", "beam_h": 40, "affix": [5, 6], "prefix": 3, "suffix": 3, "category": "linear" },
+      { "idx": 5, "key": "mythic",    "cn": "神话", "beam_h": 56, "affix": [6, 7], "prefix": 4, "suffix": 3, "category": "linear" },
+      { "idx": 6, "key": "set",       "cn": "套装", "beam_h": 32, "affix": [3, 5], "prefix": 2, "suffix": 3, "category": "orthogonal" },
+      { "idx": 7, "key": "hidden",    "cn": "隐藏", "beam_h": 64, "affix": [5, 6], "prefix": 3, "suffix": 3, "category": "easter_egg" }
+    ]
+  },
+
+  "target_state_10": {
+    "_note": "S12 拍板后的目标状态。新增 idx 8 / 9 两档。",
+    "RARITY_COUNT": 10,
+    "rows": [
+      { "idx": 0, "key": "common",        "cn": "普通", "beam_h": 0,  "affix": [0, 0], "prefix": 0, "suffix": 0, "category": "linear",     "source": "全渠道" },
+      { "idx": 1, "key": "magic",         "cn": "魔法", "beam_h": 8,  "affix": [1, 2], "prefix": 1, "suffix": 1, "category": "linear",     "source": "全渠道" },
+      { "idx": 2, "key": "rare",          "cn": "稀有", "beam_h": 16, "affix": [3, 4], "prefix": 2, "suffix": 2, "category": "linear",     "source": "全渠道" },
+      { "idx": 3, "key": "epic",          "cn": "史诗", "beam_h": 24, "affix": [4, 5], "prefix": 3, "suffix": 2, "category": "linear",     "source": "全渠道" },
+      { "idx": 4, "key": "legendary",     "cn": "传说", "beam_h": 40, "affix": [5, 6], "prefix": 3, "suffix": 3, "category": "linear",     "source": "全渠道" },
+      { "idx": 5, "key": "mythic",        "cn": "神话", "beam_h": 56, "affix": [6, 7], "prefix": 4, "suffix": 3, "category": "linear",     "source": "全渠道（NM2+）" },
+      { "idx": 6, "key": "set",           "cn": "套装", "beam_h": 32, "affix": [3, 5], "prefix": 2, "suffix": 3, "category": "orthogonal", "source": "章节关卡" },
+      { "idx": 7, "key": "hidden",        "cn": "隐藏", "beam_h": 64, "affix": [5, 6], "prefix": 3, "suffix": 3, "category": "easter_egg", "source": "全渠道极低概率" },
+      { "idx": 8, "key": "special_abyss", "cn": "深渊", "beam_h": 48, "affix": [5, 7], "prefix": 4, "suffix": 3, "category": "special",    "source": "深渊副本专属" },
+      { "idx": 9, "key": "special_tower", "cn": "塔",   "beam_h": 48, "affix": [5, 7], "prefix": 4, "suffix": 3, "category": "special",    "source": "爬塔专属" }
+    ],
+    "_new_rows_rationale": [
+      "beam_h 48：介于传说 40 与神话 56 之间，与既有的套装 32 / 隐藏 64 一同构成不冲突的高度序列。",
+      "affix [5,7]：略高于传说 [5,6]，与神话 [6,7] 相当但不含神话独立槽 ⇒ 定位「来源特殊，强度≈橙红之间」。",
+      "两档数值完全相同：深渊装与塔装是**平级替代关系**（不同来源、同强度），不是强弱阶梯。",
+      "category 新增 special：让玩家先分「特殊来源」再分档，维持「先分类再看档」的认知结构（原 8 档为 3 类，现 4 类）。"
+    ]
+  },
+
+  "constants_patch": {
+    "_note": "game_constants.gd 需同步扩容的 15 个常量，逐位给出目标值。⚠️ 行号为 2026-09-24 实测值，改前需重新确认。",
+    "_file": "game/scripts/core/game_constants.gd",
+    "items": [
+      {
+        "const": "enum Rarity",
+        "line": "30-39",
+        "action": "append_2",
+        "values": ["SPECIAL_ABYSS = 8", "SPECIAL_TOWER = 9"],
+        "_warn": "枚举序号即索引，【禁止调整既有顺序】。只在末尾追加。"
+      },
+      {
+        "const": "RARITY_COUNT",
+        "line": "42",
+        "action": "replace",
+        "from": 8,
+        "to": 10
+      },
+      {
+        "const": "RARITY_NAMES",
+        "line": "45-47",
+        "action": "append_2",
+        "values": ["深渊", "塔"]
+      },
+      {
+        "const": "RARITY_KEYS",
+        "line": "50-52",
+        "action": "append_2",
+        "values": ["special_abyss", "special_tower"],
+        "_warn": "存档 / 数据文件键名，【禁止本地化】，必须与 EquipmentInstance.rarity 的 int 索引严格对应。"
+      },
+      {
+        "const": "RARITY_COLORS",
+        "line": "66-75",
+        "action": "append_2",
+        "values": ["待定（建议深紫青 #7B5CE0）", "待定（建议塔金 #C9A227）"],
+        "_warn": "⚠️ 必须落在 PALETTE_ALL（铁律一）。game_constants.gd:711 有逐色入板自检，不入板自检直接红 —— 这是好的守卫，不要绕过。"
+      },
+      {
+        "const": "RARITY_FRAME_COLORS",
+        "line": "78-87",
+        "action": "append_2",
+        "values": ["同 RARITY_COLORS[8]", "同 RARITY_COLORS[9]"]
+      },
+      {
+        "const": "RARITY_FRAME_WIDTHS",
+        "line": "117",
+        "action": "append_2",
+        "values": [3, 3],
+        "_note": "与神话 3px 同级（特殊档是「来源特殊性」而非「更高强度」，不需超过神话）。"
+      },
+      {
+        "const": "RARITY_BEAM_HEIGHTS",
+        "line": "121",
+        "action": "append_2",
+        "values": [48, 48]
+      },
+      {
+        "const": "RARITY_BEAM_SHAPES",
+        "line": "135-138",
+        "action": "append_2",
+        "values": ["BeamShape.SPECIAL_PRISM", "BeamShape.SPECIAL_SPIRE"],
+        "_warn": "同时需在 enum BeamShape（:124-133）追加 SPECIAL_PRISM = 8 / SPECIAL_SPIRE = 9。"
+      },
+      {
+        "const": "RARITY_FRAME_STYLES",
+        "line": "150-154",
+        "action": "append_2",
+        "values": ["待定（建议新样式，如双层棱镜框）", "待定"],
+        "_warn": "⚠️ 必须在静态帧就能区分（本项目【禁止运行时旋转】，铁律一）⇒ 差异只能来自形状/颜色/分段节奏。"
+      },
+      {
+        "const": "RARITY_CATEGORIES",
+        "line": "164-168",
+        "action": "append_2",
+        "values": ["RarityCategory.SPECIAL", "RarityCategory.SPECIAL"],
+        "_warn": "同时需在 enum RarityCategory（:158-162）追加 SPECIAL = 3。"
+      },
+      {
+        "const": "RARITY_DROP_BASE_PERCENT",
+        "line": "176-185",
+        "action": "append_2_and_adjust",
+        "new_values": [77.90, 17.50, 3.50, 0.45, 0.05, 0.02, 0.40, 0.01, 0.14, 0.03],
+        "_hard_constraint": "橙装 0.05% 保持不变（game_constants.gd:170-184 注释的硬约束）；新增权重全部从白/蓝挤出。",
+        "_sum_check": 100.0
+      },
+      {
+        "const": "RARITY_AFFIX_RANGE",
+        "line": "188-197",
+        "action": "append_2",
+        "values": ["Vector2i(5, 7)", "Vector2i(5, 7)"]
+      },
+      {
+        "const": "RARITY_PREFIX_LIMIT",
+        "line": "210",
+        "action": "append_2",
+        "values": [4, 4]
+      },
+      {
+        "const": "RARITY_SUFFIX_LIMIT",
+        "line": "211",
+        "action": "append_2",
+        "values": [3, 3],
+        "_invariant": "前缀上限 + 后缀上限 = 词缀条数上限 ⇒ 4+3=7 ✅ 与 RARITY_AFFIX_RANGE 的 (5,7) 上限一致。由 verify_equipment.gd:160-175 断言。"
+      }
+    ]
+  },
+
+  "drop_weight_squeeze": {
+    "_note": "3 张掉落表的 rarity_weights 从 8 位扩到 10 位，各自和必须 = 100。⚠️ 下表为【普通怪口径】的基线挤出，精英/BOSS 表需各自重算。",
+    "_file": "game/data/loot_tables/monster_loot_tables.json",
+    "_constraint": "self_check.gd:338 断言 table.rarity_weights.size() == RARITY_COUNT；:349 断言权重和 = 100。",
+    "tables": [
+      {
+        "id": "monster_normal",
+        "now": [78.02, 17.55, 3.50, 0.45, 0.05, 0.02, 0.40, 0.01],
+        "target": [77.90, 17.50, 3.50, 0.45, 0.05, 0.02, 0.40, 0.01, 0.14, 0.03],
+        "delta": { "common": -0.12, "magic": -0.05, "special_abyss": "+0.14", "special_tower": "+0.03" },
+        "sum": 100.0
+      },
+      {
+        "id": "monster_elite",
+        "now": [40.30, 34.00, 16.00, 5.00, 1.00, 0.60, 3.00, 0.10],
+        "target": null,
+        "_todo": "⏳ 需重算：从 common 40.30 / magic 34.00 挤出。建议 special_abyss 0.60 / special_tower 0.20（精英是常规刷取主力，特殊档应略高于普通怪）。",
+        "_target_sum": 100.0
+      },
+      {
+        "id": "monster_boss",
+        "now": [6.00, 30.00, 35.00, 15.00, 5.00, 1.80, 7.00, 0.20],
+        "target": null,
+        "_todo": "⏳ 需重算：从 common 6.00 / magic 30.00 挤出。建议 special_abyss 1.50 / special_tower 0.50。",
+        "_target_sum": 100.0
+      }
+    ]
+  },
+
+  "template_gap": {
+    "_note": "🔴 S12 最隐蔽的坑：现有 62 件底材中【没有任何一件】的 rarity_max 覆盖 8/9。",
+    "_evidence": {
+      "scan": "data/equipment/*.json 全量扫描 rarity_min/rarity_max 分布",
+      "distribution": {
+        "('common','legendary')": 19,
+        "('legendary','legendary')": 6,
+        "('magic','legendary')": 5,
+        "('rare','legendary')": 3,
+        "('common','magic')": 1,
+        "('mythic','mythic')": 2,
+        "('common','rare')": 6,
+        "('set','set')": 18,
+        "('hidden','hidden')": 2
+      },
+      "max_rarity_max_found": 7
+    },
+    "_failure_chain": [
+      "1. LootRoller._roll_rarity() 正常 roll 出 8 或 9",
+      "2. LootRoller._pick_template(rarity, level) 遍历 equipment_templates",
+      "3. loot_roller.gd:164  if rarity < template.rarity_min or rarity > template.rarity_max: continue",
+      "4. 全部 62 件底材都被 continue 掉 ⇒ pool.is_empty()",
+      "5. loot_roller.gd:171-172  if pool.is_empty(): return null",
+      "6. ⚠️ 返回 null，【不抛错、不打印、不掉落任何东西】 ⇒ 复现「静默失败」第 ②/⑤ 类"
+    ],
+    "_required_fix": "必须新增专属底材文件，其 rarity_min = rarity_max = 8（深渊）或 9（塔），并使 drop_weight 生效。",
+    "planned_files": ["data/equipment/special_abyss.json", "data/equipment/special_tower.json"]
+  },
+
+  "gating_audit": {
+    "_note": "稀有度门控逻辑逐处审计（S12 落地前必读）。",
+    "rows": [
+      {
+        "site": "loot_table.gd:95-111",
+        "logic": "match i: 逐档给难度乘数",
+        "impact": "新档落入 _: 分支 ⇒ 权重不随难度变化",
+        "action": "✅ 可接受（特殊档来源固定，不应随 NM 难度变化）。建议显式加 case 说明，不要依赖 fallthrough。"
+      },
+      {
+        "site": "loot_table.gd:112",
+        "logic": "if apply_overlevel_penalty and i >= EPIC and i <= MYTHIC",
+          "impact": "⚠️ 8/9 不在 [3,5] 区间 ⇒ 越级惩罚【天然不命中】",
+          "action": "✅ **Q-a 已拍板：不吃**。保持不吃，但必须补**显式守卫**（不应寄生于区间上下界）——见 `three_details_qa_qb_qc.qa_overlevel_penalty.patch`。"
+      },
+      {
+        "site": "game_constants.gd:1127",
+        "logic": "if out.size() != RARITY_KEYS.size(): return out",
+        "impact": "自动适配 ✅",
+        "action": "无需改"
+      },
+      {
+        "site": "game_constants.gd:1130-1144",
+        "logic": "adjust_rarity_weights_by_difficulty 逐档修正",
+        "impact": "新档无修正分支",
+        "action": "与 loot_table.gd:95-111 保持一致即可"
+      },
+      {
+        "site": "game_constants.gd:711",
+        "logic": "for i in RARITY_COLORS.size(): check(\"RARITY_COLORS[%d]\", ...)",
+        "impact": "✅ 自动覆盖新增 2 色 ⇒ 新色若不在 PALETTE_ALL 则自检直接红",
+        "action": "✅ 无需改（这是好的守卫，保留）"
+      },
+      {
+        "site": "self_check.gd:62-77",
+        "logic": "多个 .size() == RARITY_COUNT",
+        "impact": "✅ 自动适配（用常量而非硬编码 8）",
+        "action": "无需改"
+      },
+      {
+        "site": "self_check.gd:785-787",
+        "logic": "RARITY_KEYS.size() == 8 and RARITY_BEAM_HEIGHTS.size() == 8 and RARITY_BEAM_SHAPES.size() == 8",
+        "impact": "🔴 硬编码 8 ⇒ 必红",
+        "action": "必须改 10（三处）"
+      },
+      {
+        "site": "verify_loot_tables.gd:85",
+        "logic": "if table.rarity_weights.size() != 8:",
+        "impact": "🔴 硬编码 8 ⇒ 必红",
+        "action": "必须改 10"
+      },
+      {
+        "site": "verify_ui_assets.gd:139",
+        "logic": "slot_ok == 8（slot_stylebox_rarity(0..7)）",
+        "impact": "🔴 硬编码 8 ⇒ 必红；且需确认 slot_stylebox 是否为 10 档各建一个",
+        "action": "必须改 10，并确认 UI 侧样式工厂覆盖 0..9"
+      },
+      {
+        "site": "verify_affix_roller.gd:72",
+        "logic": "EMPOWER_CHANCE_BY_RARITY.size() == RARITY_COUNT",
+        "impact": "🔴 EMPOWER_CHANCE_BY_RARITY 现为 8 项（白0/蓝0/黄0/紫15/橙20/红25/绿10/彩20）⇒ 断言必红",
+        "action": "必须为 8/9 档补强化概率（建议均 25%）"
+      },
+      {
+        "site": "equip_panel.gd:198/202、inventory_panel.gd:184/229/233/291、equip_compare_popup.gd:86/93",
+        "logic": "clampi(rarity, 0, RARITY_COUNT - 1) 索引",
+        "impact": "✅ 自动适配",
+        "action": "无需改"
+      },
+      {
+        "site": "dismantle_controller.gd:17-31",
+        "logic": "match item.rarity: 逐档返回材料",
+        "impact": "⚠️ 新档落入 _: ⇒ 返回 {} ⇒ 当前表现为「不可分解」",
+        "action": "✅ **Q-b 已拍板：可以分解**（⚠️ **推翻原建议**）。必须加显式 case 返回 `abyss_shard`(8) / `tower_sigil`(9)，并放行 `can_dismantle()`——见 `three_details_qa_qb_qc.qb_dismantle`。"
+      },
+      {
+        "site": "run_shop.gd:11-14",
+        "logic": "RARITY_PRICE 字典；_rarity_key() 遍历该字典的 key 反查 rarity",
+        "impact": "⚠️ 新档取不到 key ⇒ 落入 RARITY_PRICE.get(..., 10.0) 默认 10 金 ⇒ 特殊装会被贱卖",
+        "action": "必须补 2 条价格（建议 special_abyss 1600 / special_tower 1500）"
+      },
+      {
+        "site": "loot_drop.gd:151-157",
+        "logic": "GameConstants.rarity_color(rarity) + RARITY_BEAM_HEIGHTS[rarity]",
+        "impact": "✅ 自动适配（数组扩容后即可）",
+        "action": "无需改，但需补 RARITY_BEAM_SHAPES 的 2 种新形状绘制分支（当前 _draw_beam 未按 shape 分支）"
+      }
+    ]
+  },
+
+  "reversibility": {
+    "is_reversible": false,
+    "_why": "EquipmentInstance.to_dict() 把 rarity 存为 int 落盘；EquipmentInstance.from_dict():229 用 clampi(..., 0, RARITY_COUNT-1) 读回。",
+    "_risk": "若将来把 RARITY_COUNT 改回 8，旧档中 rarity=8/9 的装备会被静默压成 7（隐藏装）⇒ 玩家装备语义静默改变，且【不会有任何报错】。",
+    "_mitigation": "S12 一旦落地即锁定，不再回退。若必须回退，需写显式迁移：把 8/9 映射到指定档位并记录。"
+  },
+
+  "three_details_qa_qb_qc": {
+    "_meta": {
+      "status": "✅ 已拍板（2026-09-24 下午）",
+      "decided_by": "用户裁定：Q-a 不吃 / Q-b 可以 / Q-c 需要",
+      "_note": "⚠️ 本轮裁定**推翻了两条骨架建议**：Q-a 与建议一致（保持不吃）；Q-b 与建议相反（原建议不可分解 ⇒ 改为**可分解**）；Q-c 采纳建议并深化为实现级 spec。"
+    },
+
+    "qa_overlevel_penalty": {
+      "decision": "✅ 不吃越级惩罚",
+      "agrees_with_skeleton": true,
+      "current_behavior": "loot_table.gd:112  if apply_overlevel_penalty and i >= EPIC and i <= MYTHIC",
+      "why_naturally_excluded": "区间 [EPIC(3), MYTHIC(5)] 不含 8/9 ⇒ 特殊档【天然不吃】，无需改代码",
+      "_warn": "⚠️ 这是**依赖既有区间判断**的隐式行为，不是显式声明。若将来有人把区间改成 `i >= EPIC`（去上限）或改成别的门控方式，特殊档会**静默开始吃惩罚**。",
+      "_required": "必须补一条显式守卫 + 注释，把「特殊档不吃」从隐式变成显式（见 patch）。",
+      "patch": {
+        "_file": "game/resources/loot_table.gd",
+        "_line": "112",
+        "_before": "if apply_overlevel_penalty and i >= EPIC and i <= MYTHIC:",
+        "_after": "if apply_overlevel_penalty and i >= EPIC and i <= MYTHIC and i < SPECIAL_ABYSS:",
+        "_comment_suggestion": "# 显式排除特殊档（S12 · Q-a 裁定：特殊档不吃越级惩罚，来源固定与等级无关）",
+        "_why_add_redundant_condition": "让「特殊档不吃惩罚」这条设计规则**写在代码里**，而不是寄生于区间上下界。任何后续改动区间的人都会看到这个条件。"
+      },
+      "regression_to_add": "断言：在 NM5 难度 + 高越级惩罚档位下，传入 rarity=8 的 obj_level 修正后，最终稀有度权重与 rarity=7 时【完全相同】（即越级惩罚对特殊档零影响）。"
+    },
+
+    "qb_dismantle": {
+      "decision": "✅ 可以分解",
+      "agrees_with_skeleton": false,
+      "_overturns": "⚠️ **推翻 v0.1 骨架建议**（原建议「不可分解，与唯一性呼应，避免套利」）",
+      "user_rationale_inferred": "用户选择「可以」⇒ 优先考虑【不浪费】而非【防套利】。特殊装允许分解后可回收材料，降低「刷到重复特殊装」的挫败感。",
+      "current_behavior": "dismantle_controller.gd:17-31  match item.rarity: 逐档返回材料；新档落入 _: ⇒ 返回 {} ⇒ 表现为「不可分解」",
+      "target_behavior": "为 idx 8/9 显式加 case，返回专属材料（**不是** 通用材料）",
+      "material_design": {
+        "_principle": "特殊档分解产物必须是**专属材料**，不能直接兑成既有的 5 键材料（gold/stones/dust/essence/crystal）。否则特殊装 → 通用材料 → 强化任意装备，形成套利链。",
+        "table": [
+          {
+            "rarity": 8,
+            "rarity_key": "special_abyss",
+            "output_key": "abyss_shard",
+            "cn": "深渊碎片",
+            "amount": [2, 4],
+            "amount_note": "随机 2–4 个",
+            "usable_for": "深渊装强化 / 深渊装重铸（见 Q-c）",
+            "_cannot": "不可兑换成 gold / magic_stone / mithril_dust / legend_essence / crystal"
+          },
+          {
+            "rarity": 9,
+            "rarity_key": "special_tower",
+            "output_key": "tower_sigil",
+            "cn": "塔之徽记",
+            "amount": [2, 4],
+            "amount_note": "随机 2–4 个",
+            "usable_for": "塔装强化 / 塔装重铸（见 Q-c）",
+            "_cannot": "不可兑换成 gold / magic_stone / mithril_dust / legend_essence / crystal"
+          }
+        ],
+        "_material_bag_impact": "⚠️ 两个新键需进 `MaterialBag` 的键集合。现已 5 键（gold/stones/dust/essence/crystal），扩为 7 键。⇒ 连带：`hub.gd:53-58 MATERIAL_KEY_MAP`（现 4 键）与 `_refresh_status():181-191` 显示条需同步（否则新材料**持有但界面不显示** ⇒ 「静默失败」第 ② 类）。"
+      },
+      "patch": {
+        "_file": "game/scripts/forge/dismantle_controller.gd",
+        "_anchor": "get_dismantle_result():14-31 的 match",
+        "_add_cases": [
+          "Rarity.SPECIAL_ABYSS:  return { \"abyss_shard\": randi_range(2, 4) }",
+          "Rarity.SPECIAL_TOWER:  return { \"tower_sigil\": randi_range(2, 4) }"
+        ],
+        "_warn": "⚠️ 不得依赖 `_:` 兜底。当前 `_:` 返回 {} 的语义是「不可分解」，若将来有人把兜底改成「按档位递推」，特殊档会静默变成可分解且产出错误材料。**显式 case 是唯一安全做法。**"
+      },
+      "can_dismantle_exclusion_check": {
+        "_site": "dismantle_controller.gd:35-36",
+        "_current": "can_dismantle() 排除 HIDDEN(7)",
+        "_target": "保持排除 HIDDEN(7)；**不排除** 8/9（本次裁定为可分解）",
+        "_warn": "⚠️ `can_dismantle()` 与 `get_dismantle_result()` 必须**同时**支持 8/9。只改其中一个 ⇒ 表现为「按钮亮着但点了没反应」或「能点但产出空」，均为静默失败。"
+      },
+      "uniqueness_interaction": {
+        "_critical": true,
+        "rule": "唯一性装备（`unique_group` 已获得）分解后，**唯一性标记不释放**（仍记为已获得）",
+        "_why": "若分解即释放，玩家可通过「获得 → 分解 → 再刷」无限重复获得同一件 ⇒ 唯一性形同虚设，且与 §3.5.2「拆解后不能再掉 = 不能」的裁定自相矛盾。",
+        "_required": "`save_data` 的已获唯一列表只增不减（append-only）。"
+      },
+      "economy_warning": {
+        "_risk_level": "🟠 中",
+        "_text": "可分解 + 特殊装来源固定（塔/深渊可重复刷）⇒ 存在「刷特殊装 → 分解 → 攒专属材料」的稳定材料农场。",
+        "_mitigation": "① 分解产出 2–4 个（非固定大额）；② 专属材料**只能用于特殊装自身**强化（不可跨档使用）⇒ 农场收益只服务于特殊装循环，不污染主线经济。"
+      }
+    },
+
+    "qc_forge_reroll": {
+      "decision": "✅ 需要（特殊档参与强化 / 重铸）",
+      "agrees_with_skeleton": "部分（骨架建议「只做固定 +N，不做红装级重铸」⇒ 本裁定采纳强化，并把重铸也明确为「需要」）",
+      "current_mechanisms": [
+        { "name": "强化", "file": "forge_max_level_for(rarity)", "current": "按 rarity 分支给最大强化等级" },
+        { "name": "重铸", "file": "mythic_reroll_controller", "current": "只对 MYTHIC(5) 开放" }
+      ],
+      "spec": {
+        "enhance": {
+          "enabled": true,
+          "max_level": 10,
+          "level_note": "与传说(4)/神话(5) 同级（10 级），**高于**套装(6)=8 / 隐藏(7)=8",
+          "_rationale": "特殊装定位「来源特殊，强度≈橙红之间」⇒ 强化上限应对齐橙红，而不是对齐套装。",
+          "cost_per_level": [
+            { "range": "+1..+3", "abyss_shard": 1, "tower_sigil": 1, "gold": 300 },
+            { "range": "+4..+6", "abyss_shard": 2, "tower_sigil": 2, "gold": 700 },
+            { "range": "+7..+10", "abyss_shard": 3, "tower_sigil": 3, "gold": 1500 }
+          ],
+          "_cost_note": "**只吃对应来源的专属材料**（深渊装吃 `abyss_shard`，塔装吃 `tower_sigil`），不消耗 stones/dust/essence/crystal。",
+          "success_rate": "沿用既有强化成功率表，**不下调**（特殊装强化应和橙装一样可靠，不该再叠一层随机挫败）"
+        },
+        "reroll": {
+          "enabled": true,
+          "scope": "⚙️ **半重铸**（不是神话的整件重铸）",
+          "_definition": {
+            "mythic_reroll": "整件重铸：所有词缀全部重抽（神话(5) 现有行为）",
+            "special_reroll": "半重铸：**锁定 N 条词缀，只重抽剩余**（N 由档位与锁定成本决定）",
+            "_why_half": "特殊装的价值核心是「专属词缀」（用户已拍板「专属词缀 + 唯一性」）。整件重铸会把好不容易抽到的专属词缀洗掉 ⇒ 玩家不敢重铸 ⇒ 系统无人使用（「生成但没人消费」陷阱）。半重铸正好保护专属词缀。"
+          },
+          "lock_rules": [
+            { "rarity": 8, "rarity_key": "special_abyss", "max_locked": 4, "max_rerolled": 3, "affix_total": 7 },
+            { "rarity": 9, "rarity_key": "special_tower", "max_locked": 4, "max_rerolled": 3, "affix_total": 7 }
+          ],
+          "_lock_note": "词缀总数 7（`RARITY_AFFIX_RANGE` = [5,7]，前缀上限 4 + 后缀上限 3）。最多锁 4 条（含专属词缀），剩余最多 3 条可重抽。",
+          "cost_per_reroll": { "abyss_shard": 5, "tower_sigil": 5, "gold": 2000 },
+          "_cost_note": "重铸远比强化贵 ⇒ 强化是常规提升路径，重铸是「后期精修」，避免重铸被当作刷词缀的廉价手段。",
+          "locked_affix_bonus": {
+            "_note": "⚠️ 可选设计（需用户再确认，默认**不做**）",
+            "text": "锁定越多条，重抽成本越高（每锁 1 条 ×1.5）",
+            "_if_skipped": "保持恒定成本，实现更简单。建议先不做，观察玩家行为后再定。"
+          },
+          "special_affix_protection": {
+            "_critical": true,
+            "rule": "**专属词缀（`affix.source == \"tower\" / \"abyss\"`）默认处于「锁定」状态**，不可被重抽",
+            "_why": "专属词缀是特殊装的唯一身份。若重铸能洗掉专属词缀，特殊装会退化成「高数值普通装」，S12 的整套设计意图落空。",
+            "_implementation_hint": "`_pick_weighted` 阶段的 `position` 过滤之外，需再加一层 `source` 过滤：重抽时只从**非专属**候选池取。"
+          }
+        },
+        "mythic_reroll_exclusion": {
+          "_critical": true,
+          "rule": "特殊档**不进入** `mythic_reroll_controller`（它是整件重铸，语义冲突）",
+          "patch": "`mythic_reroll_controller` 的 rarity 判定需**显式排除** 8/9，走独立的 `special_reroll_controller`。",
+          "_warn": "⚠️ 若只加 8/9 到 mythic 的允许列表，会得到「整件重铸把专属词缀一起洗掉」的**反向结果** —— 这是最危险的实现路径。"
+        }
+      },
+      "forge_ui_impact": {
+        "_panels": ["forge_panel", "mythic_reroll 相关面板"],
+        "required": [
+          "锻造台需能识别特殊档并提供「强化」入口（复用现有按钮，只放行 rarity 8/9）",
+          "新增「半重铸」入口：需显示 7 个词缀槽 + 每槽一个锁定开关 + 锁定数上限 4 的实时校验",
+          "专属词缀槽显示为「不可锁定/已锁定」（视觉上区别于普通词缀槽，建议在图标角标加来源标记）",
+          "材料栏需显示 `abyss_shard` / `tower_sigil` 数量（依赖 Q-b 的 MaterialBag 扩容）"
+        ],
+        "_warn": "🔴 「锁定开关 UI」是本步最大的 UI 新增项。若只做数据不做 UI，玩家无法使用半重铸 ⇒ 典型「生成但没人消费」陷阱。"
+      }
+    },
+
+    "cross_effects_summary": {
+      "_note": "Q-a / Q-b / Q-c 三项的连带效应（写工单时必须一起看）",
+      "rows": [
+        { "from": "Q-b", "to": "Q-c", "effect": "分解产出（abyss_shard/tower_sigil）正好是强化的输入 ⇒ 形成「刷特殊装 → 分解得专属材料 → 强化特殊装」的自洽闭环。**这是 Q-b「可以」与 Q-c「需要」的组合收益。**" },
+        { "from": "Q-b", "to": "MaterialBag / hub", "effect": "材料键 5 → 7，需同步 MaterialBag + hub.MATERIAL_KEY_MAP + _refresh_status 三处" },
+        { "from": "Q-c", "to": "UI", "effect": "锻造台需新增半重铸面板（词缀锁定开关）" },
+        { "from": "Q-a", "to": "loot_table", "effect": "仅需加显式守卫，无新增逻辑" },
+        { "from": "Q-b", "to": "唯一性存档", "effect": "已获唯一列表必须 append-only（分解不释放）" }
+      ]
+    },
+
+    "works_orders_preview": [
+      { "id": "W6-Q1", "task": "登录阶段 `loot_table.gd:112` 加显式特殊档守卫 + 注释", "file": "game/resources/loot_table.gd", "risk": "🟢 低" },
+      { "id": "W6-Q2", "task": "`dismantle_controller` 加 8/9 显式 case + `can_dismantle` 放行", "file": "game/scripts/forge/dismantle_controller.gd", "risk": "🟡 中" },
+      { "id": "W6-Q3", "task": "MaterialBag 扩容 5→7 键 + hub 三处同步", "file": "material_bag.gd / hub.gd", "risk": "🟠 中高（漏一处 ⇒ 材料持有但不显示）" },
+      { "id": "W6-Q4", "task": "特殊档强化表（10 级 / 三段成本 / 只吃专属材料）", "file": "forge 相关", "risk": "🟡 中" },
+      { "id": "W6-Q5", "task": "🔴 新增 `special_reroll_controller`（半重铸 + 锁定上限 4 + 专属词缀保护）", "file": "新增", "risk": "🔴 高" },
+      { "id": "W6-Q6", "task": "🔴 锻造台半重铸 UI（7 槽 + 锁定开关 + 上限校验）", "file": "forge_panel 相关", "risk": "🔴 高（最易漏做 ⇒ 数据有了 UI 没有）" },
+      { "id": "W6-Q7", "task": "`mythic_reroll_controller` 显式排除 8/9", "file": "mythic_reroll_controller", "risk": "🔴 高（漏做 ⇒ 整件重铸洗掉专属词缀）" },
+      { "id": "W6-Q8", "task": "唯一性已获列表改为 append-only（分解不释放）", "file": "save_data.gd / 唯一性模块", "risk": "🟠 中高" }
+    ],
+
+    "assertions_for_checker": [
+      { "id": "QA1", "desc": "`loot_table.gd:112` 附近存在显式的特殊档排除条件（含 `SPECIAL_ABYSS` 字面量或注释声明）" },
+      { "id": "QA2", "desc": "特殊档在 NM1–NM5 五档难度下权重不随难度变化（越级惩罚零影响）" },
+      { "id": "QB1", "desc": "`dismantle_controller.get_dismantle_result()` 对 rarity 8/9 **有显式 case**（不依赖 `_:` 兜底）" },
+      { "id": "QB2", "desc": "rarity 8 产出键是 `abyss_shard`，rarity 9 产出键是 `tower_sigil`，两者**不相等**且**不属于**既有 5 键" },
+      { "id": "QB3", "desc": "`can_dismantle()` 对 8/9 返回 true，对 7（HIDDEN）仍返回 false" },
+      { "id": "QB4", "desc": "MaterialBag 键数 == 7，且 `hub.MATERIAL_KEY_MAP` 覆盖全部 7 键" },
+      { "id": "QB5", "desc": "分解唯一装备后，已获唯一列表长度**不变**（append-only）" },
+      { "id": "QC1", "desc": "特殊档强化上限 == 10，且成本表只引用 `abyss_shard`/`tower_sigil`（不出现 stones/dust/essence/crystal）" },
+      { "id": "QC2", "desc": "半重铸锁定上限 == 4，可重抽数 == 7 - 锁定数（≤3）" },
+      { "id": "QC3", "desc": "重抽候选池**不含**专属词缀（`source == tower/abyss` 的条目被排除）" },
+      { "id": "QC4", "desc": "`mythic_reroll_controller` 的允许档位**不含** 8/9（显式排除）" },
+      { "id": "QC5", "desc": "锻造台存在「半重铸」入口，且词缀锁定开关数量 == 7" }
+    ]
+  },
+
+  "assertions_for_checker": [
+    { "id": "SR1", "desc": "10 档状态下 15 个常量数组长度全部 == RARITY_COUNT(10)" },
+    { "id": "SR2", "desc": "RARITY_DROP_BASE_PERCENT 和 == 100.0（±0.001）" },
+    { "id": "SR3", "desc": "橙装（legendary）权重 == 0.05（硬约束不变）" },
+    { "id": "SR4", "desc": "新增 2 档权重全部来自 common/magic 的减少量（挤出守恒）" },
+    { "id": "SR5", "desc": "RARITY_KEYS 无重复且与 RARITY_NAMES 一一对应" },
+    { "id": "SR6", "desc": "前缀上限 + 后缀上限 == 词缀条数上限（8/9 档：4+3=7 ✅）" },
+    { "id": "SR7", "desc": "RARITY_BEAM_HEIGHTS 新增值 48 不与既有值冲突" },
+    { "id": "SR8", "desc": "RarityCategory 新增 SPECIAL 且索引 8/9 均映射到它" },
+    { "id": "SR9", "desc": "3 张掉落表 rarity_weights 长度均为 10 且各自和 == 100" },
+    { "id": "SR10", "desc": "存在 rarity_min > 7 的底材（否则 _pick_template 空池静默返回 null）" },
+    { "id": "SR11", "desc": "run_shop.RARITY_PRICE 覆盖 10 档全部 key" },
+    { "id": "SR12", "desc": "3 处硬编码 8 已改为 10（self_check:785-787 / verify_loot_tables:85 / verify_ui_assets:139）" },
+    { "id": "SR13", "desc": "EMPOWER_CHANCE_BY_RARITY 长度 == 10" },
+    { "id": "SR14", "desc": "reversible == false 已在文档中标注为不可逆决策" }
+  ]
+}

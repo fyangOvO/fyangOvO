@@ -1,0 +1,338 @@
+{
+  "_meta": {
+    "version": 1,
+    "purpose": "第二步「装备属性体系」——新增 15 条词缀（3 系抗性/穿透 + 7 条异常 + 5 条穿透/全抗）草案。落地后与现有 33 条合并为 48 条。",
+    "source": "deliverables/gstack/策划案/02-装备属性.md §3",
+    "conventions": {
+      "position": "0 = PREFIX 前缀, 1 = SUFFIX 后缀",
+      "value_min_max": "iLvl=1 时区间；实际 = Base × (1 + 0.085 × (iLvl-1)) × 品质系数 × (1.5 若强化)",
+      "scales_with_item_level": "默认 true；仅固定值词缀设 false",
+      "min_rarity": "-1 = 无限制；对应 GameConstants.Rarity",
+      "weight": "池内相对权重，越大越常见"
+    },
+    "weight_tiers": {
+      "常见": [100, 135],
+      "少见": [55, 95],
+      "稀有": [20, 50]
+    },
+    "diff_from_step1": [
+      "新增 15 条（本文件全部内容）",
+      "add_armor_penetration.stat_key 由 armor_penetration 改为 armor_pierce（键名统一，见 §7.2）",
+      "权重调整 4 条：add_elemental_damage 80→95，add_pct_hp 70→85，add_armor_penetration 60→65，add_thorns 35→30"
+    ]
+  },
+  "affixes": [
+    {
+      "id": "add_shadow_resist",
+      "display_name": "暗影抗性",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 14.0,
+      "stat_key": "shadow_resist",
+      "weight": 60.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": -1,
+      "file": "defense.json",
+      "note": "补齐 6 系元素抗性的第 5 系；权重低于 4 系原有 70，因暗影为高难流派专属"
+    },
+    {
+      "id": "add_physical_resist",
+      "display_name": "物理抗性",
+      "position": 1,
+      "value_min": 5.0,
+      "value_max": 9.0,
+      "stat_key": "physical_resist",
+      "weight": 40.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 2,
+      "file": "defense.json",
+      "note": "权重最低（40）——物理减伤主力是护甲，抗性是补充。min_rarity=2 防早期堆叠无敌"
+    },
+    {
+      "id": "add_all_resist",
+      "display_name": "全元素抗性",
+      "position": 1,
+      "value_min": 6.0,
+      "value_max": 12.0,
+      "stat_key": "all_resist",
+      "weight": 50.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 2,
+      "file": "defense.json",
+      "note": "对 fire/cold/lightning/poison/shadow 5 系同时加成，不含 physical"
+    },
+    {
+      "id": "add_elemental_penetration",
+      "display_name": "元素穿透",
+      "position": 1,
+      "value_min": 4.0,
+      "value_max": 8.0,
+      "stat_key": "elemental_penetration",
+      "weight": 55.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 2,
+      "file": "attack.json",
+      "note": "对 5 系元素抗性同效削抗；与 armor_pierce（削护甲）并列为两大穿透维度"
+    },
+    {
+      "id": "add_resist_penetration",
+      "display_name": "抗性穿透",
+      "position": 1,
+      "value_min": 3.0,
+      "value_max": 6.0,
+      "stat_key": "resist_penetration",
+      "weight": 35.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 3,
+      "file": "attack.json",
+      "note": "泛用抗性穿透（含 physical/shadow）；min_rarity=EPIC 因强度高"
+    },
+    {
+      "id": "add_burn_damage",
+      "display_name": "灼烧伤害",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 15.0,
+      "stat_key": "burn_damage",
+      "weight": 50.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem 实装后接线；与第一步 rune_burn 对接"
+    },
+    {
+      "id": "add_chill_damage",
+      "display_name": "冰缓伤害",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 15.0,
+      "stat_key": "chill_damage",
+      "weight": 50.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；与 rune_freeze 对接"
+    },
+    {
+      "id": "add_poison_damage",
+      "display_name": "中毒伤害",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 15.0,
+      "stat_key": "poison_damage",
+      "weight": 50.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；与 rune_poison 对接"
+    },
+    {
+      "id": "add_shock_damage",
+      "display_name": "感电伤害",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 15.0,
+      "stat_key": "shock_damage",
+      "weight": 50.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；与 rune_lightning 对接"
+    },
+    {
+      "id": "add_curse_damage",
+      "display_name": "诅咒伤害",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 15.0,
+      "stat_key": "curse_damage",
+      "weight": 45.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；与 rune_shadow 对接"
+    },
+    {
+      "id": "add_ailment_duration",
+      "display_name": "异常持续",
+      "position": 1,
+      "value_min": 8.0,
+      "value_max": 16.0,
+      "stat_key": "ailment_duration",
+      "weight": 40.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；5 系异常通用延长"
+    },
+    {
+      "id": "add_ailment_chance",
+      "display_name": "异常概率",
+      "position": 1,
+      "value_min": 5.0,
+      "value_max": 10.0,
+      "stat_key": "ailment_chance",
+      "weight": 45.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 1,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；5 系异常通用触发率"
+    },
+    {
+      "id": "add_ailment_effect",
+      "display_name": "异常强化",
+      "position": 0,
+      "value_min": 6.0,
+      "value_max": 12.0,
+      "stat_key": "ailment_effect",
+      "weight": 40.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 2,
+      "file": "special.json",
+      "note": "⚠️ 待 AilmentSystem；前缀位，5 系异常强度统一加成"
+    },
+    {
+      "id": "add_all_element_damage",
+      "display_name": "全元素伤害",
+      "position": 0,
+      "value_min": 6.0,
+      "value_max": 11.0,
+      "stat_key": "all_element_damage",
+      "weight": 55.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 2,
+      "file": "attack.json",
+      "note": "对 fire/cold/lightning/poison/shadow 5 系同时加成（不含 physical）；与 elemental_damage 互斥组独立"
+    },
+    {
+      "id": "add_damage_vs_ailment",
+      "display_name": "对异常目标增伤",
+      "position": 1,
+      "value_min": 10.0,
+      "value_max": 18.0,
+      "stat_key": "damage_vs_ailment",
+      "weight": 35.0,
+      "decimals": 1,
+      "scales_with_item_level": true,
+      "min_rarity": 3,
+      "file": "attack.json",
+      "note": "⚠️ 待 AilmentSystem；Build 目标词缀——需先上状态再打伤害"
+    }
+  ],
+  "_pools_new": {
+    "_meta": {
+      "purpose": "第二步新增 4 个档位专属池（补齐 EPIC/LEGENDARY/SET/HIDDEN 四档）",
+      "conventions": "池不需要 slot/rarity 字段——部位过滤由 AffixData.allowed_slots + fits_slot() 承担；池不区分前后缀——_pick_weighted 按 affix.position 过滤"
+    },
+    "pools": [
+      {
+        "id": "epic_empower",
+        "display_name": "史诗·强化池",
+        "affix_ids": [
+          "add_flat_attack", "add_pct_attack", "add_crit_chance",
+          "add_crit_damage", "add_attack_speed", "add_armor_penetration",
+          "add_elemental_damage", "add_flat_hp", "add_pct_hp",
+          "add_pct_armor", "add_elemental_penetration", "add_all_element_damage"
+        ],
+        "note": "12 条精选，权重 ×1.2（在 epic 档提高强化词缀触发强度）"
+      },
+      {
+        "id": "legendary_pool",
+        "display_name": "传说·强度池",
+        "affix_ids": [
+          "add_flat_attack", "add_pct_attack", "add_crit_chance",
+          "add_crit_damage", "add_attack_speed", "add_elemental_damage",
+          "add_elemental_penetration", "add_resist_penetration",
+          "add_flat_hp", "add_pct_hp", "add_pct_armor", "add_all_resist",
+          "add_max_resource", "add_cooldown_reduction", "add_skill_cost_reduction"
+        ],
+        "note": "15 条均衡，作为橙装传奇特效的载体池"
+      },
+      {
+        "id": "set_pool",
+        "display_name": "套装·主题池",
+        "affix_ids": [
+          "add_elemental_damage", "add_burn_damage", "add_pct_attack",
+          "add_chill_damage", "add_crit_chance",
+          "add_pct_armor", "add_block_chance", "add_physical_resist"
+        ],
+        "note": "8 条；emberpath(火)/frostbite(冰)/oathkeeper(坦克) 三主题对齐"
+      },
+      {
+        "id": "hidden_pool",
+        "display_name": "彩蛋·专属池",
+        "affix_ids": [
+          "hidden_echo_strike", "add_skill_level", "add_all_resist",
+          "add_resist_penetration", "add_ailment_chance"
+        ],
+        "note": "5 条；含唯一 min_rarity=7 的 hidden_echo_strike"
+      }
+    ]
+  },
+  "_loot_tables_new": {
+    "_meta": {
+      "purpose": "第二步掉落表细化：新增符文桶 + 材料桶细分 + iLvl 三角分布",
+      "compatibility": "material_weight 字段保留（不破坏 verify_loot_tables.gd 18 条断言），新增字段并存"
+    },
+    "patches": [
+      {
+        "id": "monster_normal",
+        "rune_drop_chance": 0.02,
+        "material_sub_weights": { "forge_stone": 70.0, "enchant_scroll": 20.0, "reroll_crystal": 10.0 },
+        "item_level_spread": { "min_mod": -3, "max_mod": 3, "mode_mod": 0, "bonus_chance": 0.0, "bonus_mod": 0 }
+      },
+      {
+        "id": "monster_elite",
+        "rune_drop_chance": 0.08,
+        "material_sub_weights": { "forge_stone": 60.0, "enchant_scroll": 25.0, "reroll_crystal": 15.0 },
+        "item_level_spread": { "min_mod": -2, "max_mod": 2, "mode_mod": 0, "bonus_chance": 0.10, "bonus_mod": 5 }
+      },
+      {
+        "id": "monster_boss",
+        "rune_drop_chance": 0.25,
+        "material_sub_weights": { "forge_stone": 40.0, "enchant_scroll": 25.0, "reroll_crystal": 35.0 },
+        "item_level_spread": { "min_mod": 3, "max_mod": 8, "mode_mod": 5, "bonus_chance": 0.0, "bonus_mod": 0 }
+      }
+    ],
+    "magic_find_scope": {
+      "affects": ["稀有度权重（非 COMMON × (1+pct)）"],
+      "does_not_affect": ["产出总量", "iLvl 分布", "符文掉率"],
+      "rationale": "符文是进度门槛，不可被幸运稀释"
+    }
+  },
+  "_weight_patches": {
+    "_meta": { "purpose": "第二步权重调整（仅 4 条，避免大范围改数）" },
+    "patches": [
+      { "id": "add_elemental_damage", "old": 80.0, "new": 95.0, "reason": "5 系元素 Build 全部依赖，提为少见上沿" },
+      { "id": "add_pct_hp", "old": 70.0, "new": 85.0, "reason": "与 pct_attack(100) 拉开但不至于过弱" },
+      { "id": "add_armor_penetration", "old": 60.0, "new": 65.0, "reason": "修死钩子后其价值上升" },
+      { "id": "add_thorns", "old": 35.0, "new": 30.0, "reason": "反伤流强度偏高" }
+    ]
+  },
+  "_key_patches": {
+    "_meta": { "purpose": "键名统一与口径修正" },
+    "patches": [
+      {
+        "id": "add_armor_penetration",
+        "field": "stat_key",
+        "old": "armor_penetration",
+        "new": "armor_pierce",
+        "reason": "管线 / 局内词缀 / stat_calculator 三处均消费 armor_pierce；装备存档存 affix_id+value 不存 stat_key ⇒ 向后兼容"
+      }
+    ]
+  }
+}

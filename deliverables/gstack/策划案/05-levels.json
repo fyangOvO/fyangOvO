@@ -1,0 +1,236 @@
+{
+  "_meta": {
+    "step": 5,
+    "name": "怪物 · 关卡 · BOSS 扩充",
+    "artifact": "05-levels.json",
+    "doc": "05-怪物关卡BOSS.md",
+    "date": "2026-09-24",
+    "status": "已拍板（D2 路線① / D5 兩種都補，2026-09-24 裁定）",
+    "read_only": true,
+    "baseline_source": "game/data/levels/chapter1.json / chapter2.json / chapter3.json（2026-09-24 实测回读）"
+  },
+
+  "goal": {
+    "one_line": "让 20 关的『实际刷怪数』与『预算』对齐，并让目标类型与地图形态都真的多样化。",
+    "targets": {
+      "budget_equals_sigma_count_max": "20/20 关",
+      "actual_kill_range": "3,682 – 5,660（均值 ≈ 4,671）",
+      "objective_types_used": 6,
+      "layout_patterns": 4,
+      "empty_layout_levels": 0
+    }
+  },
+
+  "decisions_2026_09_24": {
+    "_note": "用戶於 2026-09-24 拍板 D1–D5，本文件受 D2 / D5 直接影響。",
+    "D2": {
+      "decision": "route1",
+      "label": "路線①：改 20 關 count_min/count_max（不動代碼）",
+      "impact": "levels_target.rows 的 sigma_count_max/sigma_count_min 即為落地值；W5-4 執行；W5-12（讓 budget 驅動）降為 P3 可選、本步不執行。"
+    },
+    "D5": {
+      "decision": "both",
+      "label": "survive / reach_exit 兩種都補",
+      "impact": "objective_rules.new_specs 的兩條全部執行；levels_target.rows 的 objective_target 序列（6 種全用）即為落地值；W5-7 執行。"
+    }
+  },
+
+  "diagnosis": {
+    "budget_total_now": 1199,
+    "sigma_count_min_total_now": 694,
+    "sigma_count_max_total_now": 1111,
+    "authored_m_total_now": 144,
+    "budget_ne_sigma_count_max_levels": 17,
+    "budget_eq_sigma_count_max_levels": ["ch1_l01", "ch1_l05", "ch1_l06"],
+    "max_positive_gap": { "level": "ch3_l15", "budget": 60, "sigma_max": 41, "gap": 19 },
+    "only_negative_gap": { "level": "ch3_l20", "budget": 70, "sigma_max": 79, "gap": -9 },
+    "objective_dist_now": { "clear_all": 9, "kill_elite": 7, "kill_boss": 3, "collect": 1, "survive": 0, "reach_exit": 0 },
+    "objective_concentration": "clear_all + kill_elite = 16/20 = 80% ⇒ 目标层面几乎无变化",
+    "layout_params_scale": { "width": "44 → 58", "height": "32 → 42", "room_count": "10 → 17", "obstacle_density": "0.05 → 0.09" },
+    "layout_params_note": "16 关程序化参数是线性放大，形态仍是『撒房间 + 连走廊』，玩家感知不到差异。",
+    "empty_layout_levels": ["ch1_l03", "ch1_l04"],
+    "root_cause": [
+      "刷怪数只看 monster_entries[].count_min/count_max（level_generator.gd:478-485），不看 total_monster_budget",
+      "手绘关刷怪数 = 'm' 标记数，且必须 ≤ Σcount_max（level_generator.gd:388-390）",
+      "total_monster_budget 的唯一消费点是埋点（level_scene.gd:411）"
+    ]
+  },
+
+  "levels_now": [
+    { "id": "ch1_l01", "level": 1, "chapter": 1, "form": "authored", "size": "40x30", "objective_type": "clear_all",    "objective_value": 0, "budget": 40, "sigma_count_min": 26, "sigma_count_max": 40, "authored_m": 23, "elite_count": 2, "recommended_player_level": 1,  "reward_xp": 2500.0,  "reward_gold": [80, 140],  "guaranteed_equipment_drops": 1, "elite_ratio": 0.03, "boss_id": null },
+    { "id": "ch1_l02", "level": 2, "chapter": 1, "form": "authored", "size": "40x30", "objective_type": "clear_all",    "objective_value": 0, "budget": 50, "sigma_count_min": 32, "sigma_count_max": 51, "authored_m": 48, "elite_count": 2, "recommended_player_level": 2,  "reward_xp": 2800.0,  "reward_gold": [90, 160],  "guaranteed_equipment_drops": 1, "elite_ratio": 0.04, "boss_id": null },
+    { "id": "ch1_l03", "level": 3, "chapter": 1, "form": "procedural","size": "default","objective_type": "kill_elite", "objective_value": 2, "budget": 55, "sigma_count_min": 28, "sigma_count_max": 44, "authored_m": 0,  "elite_count": 2, "recommended_player_level": 4,  "reward_xp": 3100.0,  "reward_gold": [110, 190], "guaranteed_equipment_drops": 1, "elite_ratio": 0.05, "boss_id": null, "layout_params": {}, "flag": "layout 为空字典" },
+    { "id": "ch1_l04", "level": 4, "chapter": 1, "form": "procedural","size": "default","objective_type": "collect",    "objective_value": 3, "budget": 58, "sigma_count_min": 28, "sigma_count_max": 43, "authored_m": 0,  "elite_count": 3, "recommended_player_level": 5,  "reward_xp": 3400.0,  "reward_gold": [130, 220], "guaranteed_equipment_drops": 1, "elite_ratio": 0.05, "boss_id": null, "layout_params": {}, "flag": "layout 为空字典" },
+    { "id": "ch1_l05", "level": 5, "chapter": 1, "form": "authored", "size": "26x44", "objective_type": "clear_all",    "objective_value": 0, "budget": 62, "sigma_count_min": 22, "sigma_count_max": 62, "authored_m": 41, "elite_count": 3, "recommended_player_level": 7,  "reward_xp": 3700.0,  "reward_gold": [150, 260], "guaranteed_equipment_drops": 1, "elite_ratio": 0.06, "boss_id": null },
+    { "id": "ch1_l06", "level": 6, "chapter": 1, "form": "authored", "size": "48x36", "objective_type": "kill_boss",    "objective_value": 0, "budget": 66, "sigma_count_min": 16, "sigma_count_max": 66, "authored_m": 32, "elite_count": 4, "recommended_player_level": 8,  "reward_xp": 4000.0,  "reward_gold": [250, 420], "guaranteed_equipment_drops": 2, "elite_ratio": 0.07, "boss_id": "boss_bone_tyrant" },
+    { "id": "ch2_l07", "level": 7, "chapter": 2, "form": "procedural","size": "44x32","objective_type": "clear_all",    "objective_value": 0, "budget": 54, "sigma_count_min": 32, "sigma_count_max": 50, "authored_m": 0,  "elite_count": 2, "recommended_player_level": 10, "reward_xp": 4500.0,  "reward_gold": [160, 260], "guaranteed_equipment_drops": 2, "elite_ratio": 0.05, "boss_id": null, "layout_params": { "width": 44, "height": 32, "room_count": 10, "obstacle_density": 0.06, "seed": 7 } },
+    { "id": "ch2_l08", "level": 8, "chapter": 2, "form": "procedural","size": "44x32","objective_type": "kill_elite", "objective_value": 3, "budget": 56, "sigma_count_min": 33, "sigma_count_max": 50, "authored_m": 0,  "elite_count": 3, "recommended_player_level": 12, "reward_xp": 5000.0,  "reward_gold": [190, 300], "guaranteed_equipment_drops": 2, "elite_ratio": 0.06, "boss_id": null, "layout_params": { "width": 44, "height": 32, "room_count": 10, "obstacle_density": 0.06, "seed": 8 } },
+    { "id": "ch2_l09", "level": 9, "chapter": 2, "form": "procedural","size": "46x34","objective_type": "clear_all",    "objective_value": 0, "budget": 58, "sigma_count_min": 34, "sigma_count_max": 50, "authored_m": 0,  "elite_count": 3, "recommended_player_level": 14, "reward_xp": 5600.0,  "reward_gold": [220, 340], "guaranteed_equipment_drops": 2, "elite_ratio": 0.06, "boss_id": null, "layout_params": { "width": 46, "height": 34, "room_count": 11, "obstacle_density": 0.07, "seed": 9 } },
+    { "id": "ch2_l10", "level": 10, "chapter": 2, "form": "procedural","size": "48x34","objective_type": "kill_elite", "objective_value": 4, "budget": 60, "sigma_count_min": 34, "sigma_count_max": 52, "authored_m": 0,  "elite_count": 4, "recommended_player_level": 16, "reward_xp": 6300.0,  "reward_gold": [250, 380], "guaranteed_equipment_drops": 2, "elite_ratio": 0.07, "boss_id": null, "layout_params": { "width": 48, "height": 34, "room_count": 12, "obstacle_density": 0.07, "seed": 10 } },
+    { "id": "ch2_l11", "level": 11, "chapter": 2, "form": "procedural","size": "48x36","objective_type": "clear_all",    "objective_value": 0, "budget": 62, "sigma_count_min": 45, "sigma_count_max": 65, "authored_m": 0,  "elite_count": 4, "recommended_player_level": 18, "reward_xp": 7000.0,  "reward_gold": [280, 420], "guaranteed_equipment_drops": 3, "elite_ratio": 0.07, "boss_id": null, "layout_params": { "width": 48, "height": 36, "room_count": 12, "obstacle_density": 0.08, "seed": 11 } },
+    { "id": "ch2_l12", "level": 12, "chapter": 2, "form": "procedural","size": "50x36","objective_type": "kill_elite", "objective_value": 5, "budget": 64, "sigma_count_min": 37, "sigma_count_max": 55, "authored_m": 0,  "elite_count": 5, "recommended_player_level": 20, "reward_xp": 7800.0,  "reward_gold": [310, 470], "guaranteed_equipment_drops": 3, "elite_ratio": 0.08, "boss_id": null, "layout_params": { "width": 50, "height": 36, "room_count": 13, "obstacle_density": 0.08, "seed": 12 } },
+    { "id": "ch2_l13", "level": 13, "chapter": 2, "form": "procedural","size": "52x38","objective_type": "kill_boss",    "objective_value": 1, "budget": 66, "sigma_count_min": 42, "sigma_count_max": 63, "authored_m": 0,  "elite_count": 3, "recommended_player_level": 22, "reward_xp": 9500.0,  "reward_gold": [400, 600], "guaranteed_equipment_drops": 3, "elite_ratio": 0.05, "boss_id": "boss_ember_lord", "flag": "BOSS 等级带 19–20 却放在 L13" },
+    { "id": "ch3_l14", "level": 14, "chapter": 3, "form": "procedural","size": "50x36","objective_type": "clear_all",    "objective_value": 0, "budget": 58, "sigma_count_min": 33, "sigma_count_max": 49, "authored_m": 0,  "elite_count": 4, "recommended_player_level": 24, "reward_xp": 8500.0,  "reward_gold": [340, 520], "guaranteed_equipment_drops": 3, "elite_ratio": 0.07, "boss_id": null, "layout_params": { "width": 50, "height": 36, "room_count": 13, "obstacle_density": 0.07, "seed": 14 }, "flag": "budget 五步内最低（58<66），与 ch3 递增趋势倒挂" },
+    { "id": "ch3_l15", "level": 15, "chapter": 3, "form": "procedural","size": "52x38","objective_type": "kill_elite", "objective_value": 5, "budget": 60, "sigma_count_min": 27, "sigma_count_max": 41, "authored_m": 0,  "elite_count": 5, "recommended_player_level": 26, "reward_xp": 9500.0,  "reward_gold": [380, 580], "guaranteed_equipment_drops": 3, "elite_ratio": 0.08, "boss_id": null, "layout_params": { "width": 52, "height": 38, "room_count": 14, "obstacle_density": 0.08, "seed": 15 }, "flag": "budget-Σmax 偏差最大（+19）" },
+    { "id": "ch3_l16", "level": 16, "chapter": 3, "form": "procedural","size": "52x38","objective_type": "clear_all",    "objective_value": 0, "budget": 62, "sigma_count_min": 33, "sigma_count_max": 48, "authored_m": 0,  "elite_count": 4, "recommended_player_level": 28, "reward_xp": 10600.0, "reward_gold": [420, 640], "guaranteed_equipment_drops": 3, "elite_ratio": 0.07, "boss_id": null, "layout_params": { "width": 52, "height": 38, "room_count": 15, "obstacle_density": 0.09, "seed": 16 } },
+    { "id": "ch3_l17", "level": 17, "chapter": 3, "form": "procedural","size": "54x40","objective_type": "kill_elite", "objective_value": 6, "budget": 64, "sigma_count_min": 43, "sigma_count_max": 65, "authored_m": 0,  "elite_count": 6, "recommended_player_level": 30, "reward_xp": 11800.0, "reward_gold": [470, 710], "guaranteed_equipment_drops": 3, "elite_ratio": 0.09, "boss_id": null, "layout_params": { "width": 54, "height": 40, "room_count": 15, "obstacle_density": 0.09, "seed": 17 } },
+    { "id": "ch3_l18", "level": 18, "chapter": 3, "form": "procedural","size": "54x40","objective_type": "clear_all",    "objective_value": 0, "budget": 66, "sigma_count_min": 40, "sigma_count_max": 61, "authored_m": 0,  "elite_count": 5, "recommended_player_level": 32, "reward_xp": 13000.0, "reward_gold": [520, 780], "guaranteed_equipment_drops": 4, "elite_ratio": 0.08, "boss_id": null, "layout_params": { "width": 54, "height": 40, "room_count": 16, "obstacle_density": 0.08, "seed": 18 } },
+    { "id": "ch3_l19", "level": 19, "chapter": 3, "form": "procedural","size": "56x42","objective_type": "kill_elite", "objective_value": 7, "budget": 68, "sigma_count_min": 55, "sigma_count_max": 77, "authored_m": 0,  "elite_count": 7, "recommended_player_level": 35, "reward_xp": 14200.0, "reward_gold": [570, 860], "guaranteed_equipment_drops": 4, "elite_ratio": 0.09, "boss_id": null, "layout_params": { "width": 56, "height": 42, "room_count": 16, "obstacle_density": 0.09, "seed": 19 } },
+    { "id": "ch3_l20", "level": 20, "chapter": 3, "form": "procedural","size": "58x42","objective_type": "kill_boss",    "objective_value": 1, "budget": 70, "sigma_count_min": 54, "sigma_count_max": 79, "authored_m": 0,  "elite_count": 4, "recommended_player_level": 38, "reward_xp": 15800.0, "reward_gold": [640, 960], "guaranteed_equipment_drops": 4, "elite_ratio": 0.06, "boss_id": "boss_bone_tyrant", "layout_params": { "width": 58, "height": 42, "room_count": 17, "obstacle_density": 0.05, "seed": 20 }, "flag": "终局 BOSS 用的 boss_bone_tyrant 其 level_max=7；且推荐等级 38 已超第四步路线 A 的账号上限 20" }
+  ],
+
+  "levels_target": {
+    "_note": "路线 A 目标（对应文档 §3.3②）。budget 取自第四步的 120→440 序列；count_* 目标使 Σcount_max == budget。",
+    "rule": {
+      "budget": "= 第四步目标序列（120,140,160,175,190,210,230,250,265,280,295,310,325,340,355,370,385,400,420,440）",
+      "sigma_count_max": "== budget（逐关相等）",
+      "sigma_count_min": "= round(budget × 0.65)，保持现有区间跨度手感",
+      "authored_m": "手绘关的 'm' 标记数必须 ≤ Σcount_max 且留 ≥20% 余量"
+    },
+    "rows": [
+      { "id": "ch1_l01", "level": 1,  "form": "authored",   "budget": 120, "sigma_count_max": 120, "sigma_count_min": 78,  "authored_m": 60, "objective_target": "clear_all",  "pattern": "rooms" },
+      { "id": "ch1_l02", "level": 2,  "form": "authored",   "budget": 140, "sigma_count_max": 140, "sigma_count_min": 91,  "authored_m": 72, "objective_target": "collect",    "pattern": "rooms", "objective_old": "clear_all" },
+      { "id": "ch1_l03", "level": 3,  "form": "procedural", "budget": 160, "sigma_count_max": 160, "sigma_count_min": 104, "objective_target": "kill_elite", "pattern": "rooms", "fix": "补显式 layout 参数" },
+      { "id": "ch1_l04", "level": 4,  "form": "procedural", "budget": 175, "sigma_count_max": 175, "sigma_count_min": 114, "objective_target": "reach_exit", "pattern": "corridor", "objective_old": "collect", "need": "W5-7 补 reach_exit", "fix": "补显式 layout 参数" },
+      { "id": "ch1_l05", "level": 5,  "form": "authored",   "budget": 190, "sigma_count_max": 190, "sigma_count_min": 124, "authored_m": 86, "objective_target": "clear_all",  "pattern": "rooms" },
+      { "id": "ch1_l06", "level": 6,  "form": "authored",   "budget": 210, "sigma_count_max": 210, "sigma_count_min": 137, "authored_m": 92, "objective_target": "kill_boss",  "pattern": "arena" },
+      { "id": "ch2_l07", "level": 7,  "form": "procedural", "budget": 230, "sigma_count_max": 230, "sigma_count_min": 150, "objective_target": "clear_all",  "pattern": "rooms" },
+      { "id": "ch2_l08", "level": 8,  "form": "procedural", "budget": 250, "sigma_count_max": 250, "sigma_count_min": 163, "objective_target": "survive",    "pattern": "arena", "objective_old": "kill_elite", "need": "W5-7 补 survive" },
+      { "id": "ch2_l09", "level": 9,  "form": "procedural", "budget": 265, "sigma_count_max": 265, "sigma_count_min": 172, "objective_target": "kill_elite", "pattern": "ring", "objective_old": "clear_all" },
+      { "id": "ch2_l10", "level": 10, "form": "procedural", "budget": 280, "sigma_count_max": 280, "sigma_count_min": 182, "objective_target": "collect",    "pattern": "rooms", "objective_old": "kill_elite" },
+      { "id": "ch2_l11", "level": 11, "form": "procedural", "budget": 295, "sigma_count_max": 295, "sigma_count_min": 192, "objective_target": "survive",    "pattern": "arena", "objective_old": "clear_all", "need": "W5-7 补 survive" },
+      { "id": "ch2_l12", "level": 12, "form": "procedural", "budget": 310, "sigma_count_max": 310, "sigma_count_min": 202, "objective_target": "kill_elite", "pattern": "ring" },
+      { "id": "ch2_l13", "level": 13, "form": "procedural", "budget": 325, "sigma_count_max": 325, "sigma_count_min": 211, "objective_target": "kill_boss",  "pattern": "arena" },
+      { "id": "ch3_l14", "level": 14, "form": "procedural", "budget": 340, "sigma_count_max": 340, "sigma_count_min": 221, "objective_target": "clear_all",  "pattern": "rooms" },
+      { "id": "ch3_l15", "level": 15, "form": "procedural", "budget": 355, "sigma_count_max": 355, "sigma_count_min": 231, "objective_target": "reach_exit", "pattern": "corridor", "objective_old": "kill_elite", "need": "W5-7 补 reach_exit" },
+      { "id": "ch3_l16", "level": 16, "form": "procedural", "budget": 370, "sigma_count_max": 370, "sigma_count_min": 241, "objective_target": "collect",    "pattern": "rooms", "objective_old": "clear_all" },
+      { "id": "ch3_l17", "level": 17, "form": "procedural", "budget": 385, "sigma_count_max": 385, "sigma_count_min": 250, "objective_target": "survive",    "pattern": "arena", "objective_old": "kill_elite", "need": "W5-7 补 survive" },
+      { "id": "ch3_l18", "level": 18, "form": "procedural", "budget": 400, "sigma_count_max": 400, "sigma_count_min": 260, "objective_target": "clear_all",  "pattern": "rooms" },
+      { "id": "ch3_l19", "level": 19, "form": "procedural", "budget": 420, "sigma_count_max": 420, "sigma_count_min": 273, "objective_target": "kill_elite", "pattern": "ring" },
+      { "id": "ch3_l20", "level": 20, "form": "procedural", "budget": 440, "sigma_count_max": 440, "sigma_count_min": 286, "objective_target": "kill_boss",  "pattern": "arena" }
+    ],
+    "totals": {
+      "budget_total": 5660,
+      "sigma_count_max_total": 5660,
+      "sigma_count_min_total": 3682,
+      "authored_m_total": 310,
+      "actual_kill_range": [3682, 5660],
+      "actual_kill_mean": 4671
+    },
+    "self_consistency": {
+      "budget_eq_sigma_count_max_levels": "20/20 ✅",
+      "authored_m_leq_sigma_count_max": "4/4 ✅（余量均 ≥50%）",
+      "objective_types": { "clear_all": 5, "kill_elite": 4, "kill_boss": 3, "survive": 3, "collect": 3, "reach_exit": 2 },
+      "objective_concentration": "clear_all + kill_elite = 9/20 = 45%（现状 80%）",
+      "patterns": { "rooms": 9, "arena": 6, "ring": 3, "corridor": 2 }
+    }
+  },
+
+  "authored_m_detail": {
+    "_note": "对应文档 §3.3③。硬约束：m ≤ Σcount_max，否则整关校验失败、_generate_authored 整体放弃 ⇒ 出生点 (-1,-1)、无怪、整关不可玩。",
+    "rows": [
+      { "id": "ch1_l01", "m_now": 23, "sigma_max_now": 40,  "m_target": 60, "sigma_max_target": 120, "headroom": "100%" },
+      { "id": "ch1_l02", "m_now": 48, "sigma_max_now": 51,  "m_target": 72, "sigma_max_target": 140, "headroom": "94%", "flag": "现状 m=48 与 Σmax=51 余量仅 6%，极窄" },
+      { "id": "ch1_l05", "m_now": 41, "sigma_max_now": 62,  "m_target": 86, "sigma_max_target": 190, "headroom": "121%" },
+      { "id": "ch1_l06", "m_now": 32, "sigma_max_now": 66,  "m_target": 92, "sigma_max_target": 210, "headroom": "128%" }
+    ],
+    "warning": "⚠️ 改 m 与改 Σcount_max 必须同批；且 m 是『实际刷怪数』而 Σcount_max 只是上限 ⇒ 手绘关是唯一『所见即所得』的形态。",
+    "elite_marker_note": "手绘关的 'e' 标记数需与 elite_count 一致；'B' 标记与 boss_id 配套。"
+  },
+
+  "objective_rules": {
+    "_note": "对应文档 §3.5①。survive / reach_exit 当前未实现（level_scene.gd:755-761 明确降级为 clear_all 并 push_warning）。",
+    "implemented": ["clear_all", "kill_elite", "kill_boss", "collect"],
+    "not_implemented": ["survive", "reach_exit"],
+    "degrade_behaviour_is_good": "当前降级是『明确退化 + push_warning』，不假装完成 —— 属正例，不要改动这段。",
+    "new_specs": [
+      {
+        "type": "survive",
+        "semantics": "存活 N 秒",
+        "objective_value": "秒数，建议 90–150",
+        "impl_cost": "极低（只需计时器 + 到点结算）",
+        "risk": "需处理『不杀怪也能过』的问题 ⇒ 建议期间持续刷怪（刷新逻辑不变，只改胜负判定）",
+        "suggested_values": [
+          { "level": "ch2_l08", "seconds": 90 },
+          { "level": "ch2_l11", "seconds": 105 },
+          { "level": "ch3_l17", "seconds": 120 }
+        ]
+      },
+      {
+        "type": "reach_exit",
+        "semantics": "抵达出口",
+        "objective_value": "0（固定 1 个出口）",
+        "impl_cost": "极低（需生成一个出口格 + 触碰判定）",
+        "asset": "tile_exit_portal.png（32x32, 4 帧）",
+        "suggested_levels": ["ch1_l04", "ch3_l15"]
+      }
+    ]
+  },
+
+  "layout_patterns": {
+    "_note": "对应文档 §3.5②。需 level_generator.gd 新增 layout.pattern 字段。",
+    "patterns": [
+      { "key": "rooms",    "desc": "撒房间 + 连走廊（现状）", "fit_objectives": ["clear_all", "collect"], "used_by": 9 },
+      { "key": "corridor", "desc": "长走廊 + 分支小间",       "fit_objectives": ["reach_exit"],            "used_by": 2 },
+      { "key": "arena",    "desc": "单一大厅 + 少量柱子",     "fit_objectives": ["kill_boss", "survive"],  "used_by": 6 },
+      { "key": "ring",     "desc": "环形通路 + 中央岛",       "fit_objectives": ["kill_elite"],            "used_by": 3 }
+    ],
+    "default": "rooms（不写 pattern 时保持现状 ⇒ 向下兼容）"
+  },
+
+  "conflicts_found": [
+    {
+      "id": "level_rec_exceeds_cap",
+      "severity": "P1",
+      "detail": "20 关的 recommended_player_level 现为 1,2,4,5,7,8,10,12,14,16,18,20,22,24,26,28,30,32,35,38，末段（L13–L20）推荐 22–38，已远超第四步路线 A 的新账号上限 20。",
+      "action": "第四步工单 W11 已覆盖（推荐等级重标为 5…20）；本文件 levels_target 沿用『不覆盖 rec』，交由 W11 处理。"
+    },
+    {
+      "id": "boss_level_mismatch",
+      "severity": "P1",
+      "detail": "ch2_l13（关卡 L13）使用 boss_ember_lord，其 level_min/max = 19/20；ch3_l20（关卡 L20）使用 boss_bone_tyrant，其 level_min/max = 6/7。两个 BOSS 与所在关卡等级都不匹配。",
+      "action": "需工程侧确认 BOSS 等级取值口径（按关卡等级 or 按 boss.level_max）；W5-6 建议把 boss_bone_tyrant 的 level_max 放开到 20。"
+    },
+    {
+      "id": "budget_trend_inversion",
+      "severity": "P2",
+      "detail": "ch3_l14 的 budget=58，低于 ch2_l13 的 66，也低于同章 l15 的 60 ⇒ 第 14 关出现预算倒挂。",
+      "action": "levels_target 的 120→440 单调序列已消除该倒挂。"
+    }
+  ],
+
+  "work_orders": [
+    { "id": "W5-4", "priority": "P0", "file": "data/levels/chapter*.json", "change": "count_min/count_max 按 levels_target 替换；手绘关 m 按 authored_m_detail 重画（⚠️ 必须与第四步 W2 的 total_monster_budget 同批）" },
+    { "id": "W5-7", "priority": "P1", "file": "level_scene.gd + level_data.gd", "change": "补 survive（计时器）/ reach_exit（出口格 + 触碰）" },
+    { "id": "W5-8", "priority": "P2", "file": "level_generator.gd", "change": "新增 layout.pattern（rooms/corridor/arena/ring）" },
+    { "id": "W5-9", "priority": "P2", "file": "data/levels/chapter*.json", "change": "ch1_l03 / ch1_l04 补显式 layout 参数" },
+    { "id": "W5-10","priority": "P2", "file": "tools/verify_polish9x.gd:78-92", "change": "预算曲线断言按新序列更新（涨幅 ≤12 → ≤25 或改比例判定）" }
+  ],
+
+  "batch_rule": {
+    "must_batch": ["W5-4", "第四步 W2", "W5-10"],
+    "reason": "W5-4 改 count_* 与 m ⇒ 实际刷怪数变化；W2 改 budget ⇒ 报表变化；两者不同批会得到『报表好看、实际没变』的假修复。W5-10 是断言，必须同批否则回归红。",
+    "verification": "改完后需实测单局时长，目标 14–24 分钟。若 >25 分钟，优先降 count_min（保 count_max 不变）。"
+  },
+
+  "downstream_check": {
+    "to_verify_after_change": [
+      "20 关 budget == Σcount_max（0 不一致）",
+      "手绘关 m ≤ Σcount_max 且余量 ≥20%",
+      "verify_polish9x 预算曲线上限/涨幅断言已同步",
+      "verify_metrics 的 snap['monster_budget'] == lv.total_monster_budget 仍成立",
+      "实测单关时长落在 14–24 分钟"
+    ]
+  },
+
+  "assertions_for_checker": [
+    { "id": "L1", "check": "20 关 budget == Σcount_max", "now": "3/20", "target": "20/20" },
+    { "id": "L2", "check": "手绘关 m ≤ Σcount_max（余量 ≥20%）", "now": "4/4 但 l02 余量仅 6%", "target": "4/4 且余量 ≥20%" },
+    { "id": "L3", "check": "实际刷怪区间 ∈ [3682, 5660]", "now": "[694, 1111]", "target": true },
+    { "id": "L4", "check": "目标类型使用 6 种", "now": 4, "target": 6 },
+    { "id": "L5", "check": "clear_all + kill_elite 占比 ≤ 60%", "now": "80%", "target": "60%" },
+    { "id": "L6", "check": "layout 为空字典的关 == 0", "now": 2, "target": 0 },
+    { "id": "L7", "check": "layout.pattern 使用 4 种", "now": 1, "target": 4 },
+    { "id": "L8", "check": "budget 单调不减（关等级序）", "now": false, "target": true }
+  ]
+}

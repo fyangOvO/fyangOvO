@@ -1,0 +1,177 @@
+{
+  "version": "1.0",
+  "_meta": {
+    "step": 6,
+    "topic": "爬塔（Tower）—— 30 层层进 + 6 个二阶段 BOSS 点",
+    "status": "已拍板（S1–S5 / S8 · 2026-09-24）",
+    "impact_level": "🟠 中高",
+    "_note": "本文件是可工程侧直接消费的塔层数据规格；不含任何工程代码。"
+  },
+
+  "decisions": {
+    "S1": { "decision": "塔 1 座 + 深渊 3 个", "tower_count": 1 },
+    "S2": { "decision": "30 层", "layers": 30, "normal_ticket_range": [1, 15], "advanced_key_range": [16, 30] },
+    "S3": { "decision": "每 5 层台阶，第 5 层为二阶段 BOSS", "step": 5, "boss_points": 6 },
+    "S4": { "decision": "死亡保留 / 逐层可选带出 / 自选已解锁层" },
+    "S5": { "decision": "固定 layout.seed", "seed_mode": "fixed" }
+  },
+
+  "identity": {
+    "id": "tower_eternal",
+    "display_name": "永恒之塔",
+    "cn_short": "塔",
+    "_name_rationale": "「永恒」呼应层进无尽感 + 与「深渊」形成语义对仗（塔向上、渊向下）。",
+    "entry_panel": "tower",
+    "hub_panel_const": "PANEL_TOWER",
+    "theme_art": "复用三章美术色的纵向渐变 —— 塔不是新章节，而是既有章节元素的重新编排",
+    "ambient_color_by_step": [
+      { "steps": "1–20 层", "color": "#2A3A2E", "source": "第一章幽林" },
+      { "steps": "21–40 层", "color": "#3A2418", "source": "第二章熔岩" },
+      { "steps": "41–60 层", "color": "#2A2436", "source": "第三章王庭" }
+    ],
+    "_ambient_note": "⚠️ 上表按「层号 ×2」口径给出（30 层实际只用到前三段的低半部）。工程侧若想简化，可只保留第一章色。"
+  },
+
+  "layer_table": {
+    "_note": "30 层的完整规格。`monster_level` 与 `difficulty_tier` 是核心两列，其余为派生。",
+    "_formulas": {
+      "monster_level": "clampi(ceil(N / 30 * 20), 1, 20)",
+      "step_index": "floor((N - 1) / 5) + 1",
+      "difficulty_tier": "clampi(step_index - 1, 0, DIFFICULTY_TIER_COUNT - 1)"
+    },
+    "rows": [
+      { "layer": 1,  "step": 1, "monster_level": 1,  "difficulty_tier": 0, "is_boss": false, "objective": "clear_all",  "budget": 40, "reward_xp": 2500,  "reward_gold": [80, 140],   "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 2,  "step": 1, "monster_level": 2,  "difficulty_tier": 0, "is_boss": false, "objective": "kill_elite", "budget": 50, "reward_xp": 2800,  "reward_gold": [90, 160],   "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 3,  "step": 1, "monster_level": 2,  "difficulty_tier": 0, "is_boss": false, "objective": "collect",    "budget": 55, "reward_xp": 3100,  "reward_gold": [110, 190],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 4,  "step": 1, "monster_level": 3,  "difficulty_tier": 0, "is_boss": false, "objective": "survive",    "budget": 58, "reward_xp": 3400,  "reward_gold": [130, 220],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 5,  "step": 1, "monster_level": 4,  "difficulty_tier": 0, "is_boss": true,  "objective": "kill_boss",  "budget": 66, "reward_xp": 4000,  "reward_gold": [250, 420],  "reward_equipment": 2, "normal_ticket": 1, "advanced_key": 1, "boss_id": "boss_bone_tyrant", "boss_variant": "summon" },
+
+      { "layer": 6,  "step": 2, "monster_level": 4,  "difficulty_tier": 1, "is_boss": false, "objective": "clear_all",  "budget": 54, "reward_xp": 4500,  "reward_gold": [160, 260],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 7,  "step": 2, "monster_level": 5,  "difficulty_tier": 1, "is_boss": false, "objective": "kill_elite", "budget": 56, "reward_xp": 5000,  "reward_gold": [190, 300],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 8,  "step": 2, "monster_level": 6,  "difficulty_tier": 1, "is_boss": false, "objective": "clear_all",  "budget": 58, "reward_xp": 5600,  "reward_gold": [220, 340],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 9,  "step": 2, "monster_level": 6,  "difficulty_tier": 1, "is_boss": false, "objective": "reach_exit", "budget": 60, "reward_xp": 6300,  "reward_gold": [250, 380],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 10, "step": 2, "monster_level": 7,  "difficulty_tier": 1, "is_boss": true,  "objective": "kill_boss",  "budget": 66, "reward_xp": 7800,  "reward_gold": [400, 600],  "reward_equipment": 2, "normal_ticket": 1, "advanced_key": 1, "boss_id": "boss_ember_lord", "boss_variant": "spell" },
+
+      { "layer": 11, "step": 3, "monster_level": 8,  "difficulty_tier": 2, "is_boss": false, "objective": "kill_elite", "budget": 58, "reward_xp": 8500,  "reward_gold": [340, 520],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 12, "step": 3, "monster_level": 8,  "difficulty_tier": 2, "is_boss": false, "objective": "clear_all",  "budget": 60, "reward_xp": 9500,  "reward_gold": [380, 580],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 13, "step": 3, "monster_level": 9,  "difficulty_tier": 2, "is_boss": false, "objective": "collect",    "budget": 62, "reward_xp": 10600, "reward_gold": [420, 640],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 14, "step": 3, "monster_level": 10, "difficulty_tier": 2, "is_boss": false, "objective": "survive",    "budget": 64, "reward_xp": 11800, "reward_gold": [470, 710],  "reward_equipment": 1, "normal_ticket": 1, "advanced_key": 0 },
+      { "layer": 15, "step": 3, "monster_level": 10, "difficulty_tier": 2, "is_boss": true,  "objective": "kill_boss",  "budget": 70, "reward_xp": 15800, "reward_gold": [640, 960],  "reward_equipment": 2, "normal_ticket": 1, "advanced_key": 1, "boss_id": "boss_bone_tyrant", "boss_variant": "summon" },
+
+      { "layer": 16, "step": 4, "monster_level": 11, "difficulty_tier": 2, "is_boss": false, "objective": "clear_all",  "budget": 60, "reward_xp": 9500,  "reward_gold": [400, 620],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 17, "step": 4, "monster_level": 12, "difficulty_tier": 3, "is_boss": false, "objective": "kill_elite", "budget": 62, "reward_xp": 10600, "reward_gold": [440, 660],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 18, "step": 4, "monster_level": 12, "difficulty_tier": 3, "is_boss": false, "objective": "clear_all",  "budget": 64, "reward_xp": 11800, "reward_gold": [480, 720],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 19, "step": 4, "monster_level": 13, "difficulty_tier": 3, "is_boss": false, "objective": "reach_exit", "budget": 66, "reward_xp": 13000, "reward_gold": [520, 780],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 20, "step": 4, "monster_level": 14, "difficulty_tier": 3, "is_boss": true,  "objective": "kill_boss",  "budget": 72, "reward_xp": 17500, "reward_gold": [720, 1080], "reward_equipment": 2, "normal_ticket": 0, "advanced_key": 1, "boss_id": "boss_ember_lord", "boss_variant": "spell" },
+
+      { "layer": 21, "step": 5, "monster_level": 14, "difficulty_tier": 3, "is_boss": false, "objective": "survive",    "budget": 62, "reward_xp": 12000, "reward_gold": [540, 800],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 22, "step": 5, "monster_level": 15, "difficulty_tier": 3, "is_boss": false, "objective": "clear_all",  "budget": 64, "reward_xp": 13200, "reward_gold": [580, 860],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 23, "step": 5, "monster_level": 16, "difficulty_tier": 3, "is_boss": false, "objective": "kill_elite", "budget": 66, "reward_xp": 14400, "reward_gold": [620, 920],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 24, "step": 5, "monster_level": 16, "difficulty_tier": 3, "is_boss": false, "objective": "collect",    "budget": 68, "reward_xp": 15600, "reward_gold": [660, 980],  "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 25, "step": 5, "monster_level": 17, "difficulty_tier": 4, "is_boss": true,  "objective": "kill_boss",  "budget": 76, "reward_xp": 21000, "reward_gold": [900, 1350], "reward_equipment": 3, "normal_ticket": 0, "advanced_key": 1, "boss_id": "boss_bone_tyrant", "boss_variant": "summon" },
+
+      { "layer": 26, "step": 6, "monster_level": 18, "difficulty_tier": 4, "is_boss": false, "objective": "clear_all",  "budget": 66, "reward_xp": 16000, "reward_gold": [700, 1050], "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 27, "step": 6, "monster_level": 18, "difficulty_tier": 4, "is_boss": false, "objective": "kill_elite", "budget": 68, "reward_xp": 17200, "reward_gold": [760, 1140], "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 28, "step": 6, "monster_level": 19, "difficulty_tier": 4, "is_boss": false, "objective": "clear_all",  "budget": 70, "reward_xp": 18400, "reward_gold": [820, 1230], "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 29, "step": 6, "monster_level": 20, "difficulty_tier": 4, "is_boss": false, "objective": "survive",    "budget": 72, "reward_xp": 19600, "reward_gold": [880, 1320], "reward_equipment": 1, "normal_ticket": 0, "advanced_key": 1 },
+      { "layer": 30, "step": 6, "monster_level": 20, "difficulty_tier": 4, "is_boss": true,  "objective": "kill_boss",  "budget": 84, "reward_xp": 28000, "reward_gold": [1200, 1800], "reward_equipment": 4, "normal_ticket": 0, "advanced_key": 2, "boss_id": "boss_ember_lord", "boss_variant": "spell", "_final_note": "第 30 层为终局层，双钥匙 + 4 件装备产出。" }
+    ],
+    "_warn": [
+      "⚠️ 层 1–30 的 budget 是从 `05-levels.json` 的既有曲线取「相邻值复用」，不是新造曲线（避免与前五步定标冲突）。",
+      "⚠️ 第 16 层 `difficulty_tier` 仍为 2（与第 11–15 层同），但 `advanced_key` 区间从第 16 层开始 —— 门票分级与难度分档**不是同一条边界**，这是刻意的（避免同时跨两档导致断层）。"
+    ]
+  },
+
+  "step_summary": {
+    "_note": "6 个台阶的汇总（工程侧可先只做这一层，再展开 30 行）。",
+    "rows": [
+      { "step": 1, "layers": "1–5",   "monster_level": "1–4",   "difficulty_tier": 0, "boss": "boss_bone_tyrant", "boss_variant": "summon", "arena_change": ["fire_ring"], "unlock_affix": "tower_affix_01" },
+      { "step": 2, "layers": "6–10",  "monster_level": "4–7",   "difficulty_tier": 1, "boss": "boss_ember_lord",  "boss_variant": "spell",  "arena_change": ["shrink_arena"], "unlock_affix": "tower_affix_02" },
+      { "step": 3, "layers": "11–15", "monster_level": "8–10",  "difficulty_tier": 2, "boss": "boss_bone_tyrant", "boss_variant": "summon", "arena_change": ["fire_ring", "shrink_arena"], "unlock_affix": "tower_affix_03" },
+      { "step": 4, "layers": "16–20", "monster_level": "11–14", "difficulty_tier": 2, "boss": "boss_ember_lord",  "boss_variant": "spell",  "arena_change": ["fire_ring"], "unlock_affix": "tower_affix_04" },
+      { "step": 5, "layers": "21–25", "monster_level": "14–17", "difficulty_tier": 3, "boss": "boss_bone_tyrant", "boss_variant": "summon", "arena_change": ["shrink_arena"], "unlock_affix": "tower_affix_05" },
+      { "step": 6, "layers": "26–30", "monster_level": "18–20", "difficulty_tier": 4, "boss": "boss_ember_lord",  "boss_variant": "spell",  "arena_change": ["fire_ring", "shrink_arena"], "unlock_affix": "tower_affix_06" }
+    ],
+    "_boss_rotation_note": "6 个 BOSS 点 = 2 个 BOSS × 3 次。**同一步阶内不重复**，且相邻台阶**必换 BOSS**（避免连续两次面对同一 BOSS）。",
+    "_affix_unlock_note": "S7 拍板 18 条专属词缀中塔占 6 条 ⇒ **每个台阶解锁 1 条**（见 06-special-loot.json）。"
+  },
+
+  "layout": {
+    "seed_mode": "fixed",
+    "_seed_formula": "seed = 6000 + layer（6001–6030）",
+    "_why_fixed": "塔是可重复刷的结构；固定布局才能形成路径记忆 ⇒ 「刷新更好成绩」的动机成立。",
+    "_warn": "⚠️ 写 seed 后仍走**程序化分支**（非手绘）。若同时提供 `layout.cells`，`_generate_authored()` 会接管 ⇒ 与「固定 seed」的意图冲突，**不要两者都写**。",
+    "_size_constraint": "⚠️ 视口 640×360 + 整数缩放 ⇒ 可见 20 列 × 11.25 行 tile（32px）。塔层的 `layout.cells` 若手绘，宽高须与此量级匹配，否则塔层会「一屏装不下一个房间」。"
+  },
+
+  "lifecycle": {
+    "S4_rules": {
+      "death": {
+        "decision": "已获特殊装备保留",
+        "detail": "死亡时塔内进度重置到该次进入的起点层，但**已拾取的物品全部保留**（无掉落丢失）。",
+        "_alt_rejected": "Roguelike 硬核全丢 —— 与「纯单机自玩、无赛季、无外部动机」冲突。"
+      },
+      "exit": {
+        "decision": "每层通关后可选「继续 / 带出」",
+        "detail": "每层结算后弹出选择：继续下一层（保留本层掉落）或带出（结束本次爬塔并落盘）。"
+      },
+      "reenter": {
+        "decision": "可自选任意已解锁层",
+        "detail": "最高已解锁层 = 已通关最高层 + 1。可自选 1 到「最高已解锁层」之间任意层开始。",
+        "_why": "30 层每次从头爬不可接受（重复劳动枯燥感）。"
+      }
+    },
+    "progress_fields": {
+      "_note": "与 S10 的 `save_data.tower_progress` 对应（见 06-tickets.json）。",
+      "highest_unlocked": "int · 最高已解锁层（初始 1）",
+      "best_layer": "int · 历史最高到达层",
+      "runs": "int · 累计爬塔次数",
+      "cleared_layers": "Array[int] · 已通关层号列表（用于「已解锁层」判定与成就）"
+    }
+  },
+
+  "entry_requirements": {
+    "ticket_cost": [
+      { "layer_range": "1–15", "item": "ticket_normal", "amount": 1 },
+      { "layer_range": "16–30", "item": "key_advanced", "amount": 1 }
+    ],
+    "_note": "进入塔消耗门票按**起始层**判定 —— 从第 16 层开始须用高级钥匙。",
+    "unlock_chain": [
+      { "gate": "首次解锁塔入口", "condition": "累计通关 3 关（ch1_l01–ch1_l03）", "source": "复用 unlock_system.is_level_unlocked 的 cleared_count 口径" },
+      { "gate": "解锁第 16 层", "condition": "通关第 15 层" },
+      { "gate": "解锁第 30 层", "condition": "通关第 29 层" }
+    ]
+  },
+
+  "eng_patch": {
+    "_note": "工程侧需改动的清单（写工单用，不含代码）。",
+    "items": [
+      { "site": "hub.gd:22-31", "action": "新增 `PANEL_TOWER := \"tower\"` 常量", "risk": "🟡 三处必须同步（常量 / PANEL_IDS / match）" },
+      { "site": "hub.gd:30-32 PANEL_IDS", "action": "追加 PANEL_TOWER", "risk": "🟡" },
+      { "site": "hub.gd:33-39 PANEL_TITLES", "action": "追加标题「永恒之塔」", "risk": "🟢" },
+      { "site": "hub.gd:289-308 _ensure_panel", "action": "match 追加 `PANEL_TOWER:` 分支", "risk": "🔴 漏 match ⇒ 面板点开无反应" },
+      { "site": "data/levels/（新增）", "action": "新增 30 条塔层关卡数据（建议独立文件 `data/levels/tower.json`，避免污染 chapter1-3.json）", "risk": "🟠" },
+      { "site": "ConfigLoader 关卡加载", "action": "需让塔层数据被加载（当前只扫 chapter1-3）", "risk": "🔴 只加文件不改加载器 ⇒ 塔层完全不存在（静默）" },
+      { "site": "save_data.gd", "action": "新增 `tower_progress` 字段（见 06-tickets.json）", "risk": "🟠" },
+      { "site": "level_scene.gd:1333-1378 _persist", "action": "塔层的门票/进度落盘挂点", "risk": "🟠" }
+    ]
+  },
+
+  "assertions_for_checker": [
+    { "id": "TW1", "desc": "layer_table.rows 长度 == 30 且 layer 连续 1..30" },
+    { "id": "TW2", "desc": "is_boss == true 的层共有 6 个，且层号 ∈ {5,10,15,20,25,30}" },
+    { "id": "TW3", "desc": "monster_level 全部落在 [1, 20] 且与 `clampi(ceil(N/30*20),1,20)` 一致" },
+    { "id": "TW4", "desc": "difficulty_tier 全部落在 [0, 4]（DIFFICULTY_TIER_COUNT - 1）" },
+    { "id": "TW5", "desc": "difficulty_tier 随 layer 单调不减" },
+    { "id": "TW6", "desc": "normal_ticket 只在层 1–15 出现，advanced_key 只在层 16–30 出现" },
+    { "id": "TW7", "desc": "objective 全部 ∈ OBJECTIVE_KEYS（6 种），且无大小写错误" },
+    { "id": "TW8", "desc": "layer_table 与 step_summary 的 boss_id 序列一致" },
+    { "id": "TW9", "desc": "step_summary 每台阶 `unlock_affix` 唯一，共 6 条" },
+    { "id": "TW10", "desc": "相邻台阶 boss_id 不重复（必换 BOSS）" },
+    { "id": "TW11", "desc": "layout.seed_mode == \"fixed\" 且层数据不含 `layout.cells`（两者不可并存）" },
+    { "id": "TW12", "desc": "塔层数据文件与 chapter1-3.json 的关卡 id 无冲突（前缀 `tw_`）" },
+    { "id": "TW13", "desc": "eng_patch 已登记 `hub.gd` 三处同步（常量 / PANEL_IDS / match）" },
+    { "id": "TW14", "desc": "eng_patch 已登记「ConfigLoader 需加载塔层数据」（否则塔层静默不存在）" },
+    { "id": "TW15", "desc": "budget 值全部 ∈ 05-levels.json 既有出现的集合 {40,50,54,55,56,58,60,62,64,66,68,70,72,76,84}" }
+  ]
+}

@@ -1,0 +1,552 @@
+{
+  "_meta": {
+    "step": 5,
+    "name": "怪物 · 关卡 · BOSS 扩充",
+    "artifact": "05-monsters.json",
+    "doc": "05-怪物关卡BOSS.md",
+    "date": "2026-09-24",
+    "status": "已拍板（D1–D5 全部裁定 2026-09-24，見 decisions_2026_09_24）",
+    "scope_note": "本文件为策划产物，供工程侧参考实施。不构成代码改动。",
+    "read_only_baseline": {
+      "source": "game/data/monsters/monsters.json",
+      "count_now": 16,
+      "ai_id_distinct_now": 6,
+      "ai_id_implemented_now": 0,
+      "element_dist_now": {
+        "physical": 6,
+        "fire": 5,
+        "cold": 3,
+        "poison": 2,
+        "lightning": 0,
+        "shadow": 0
+      }
+    }
+  },
+
+  "goal": {
+    "one_line": "让每个等级的怪都有≥4种可选，且 ai_id 真的分出6种行为、6种元素都有承载怪。",
+    "targets": {
+      "monster_total": 24,
+      "min_normal_options_per_level": 4,
+      "min_elite_options_from_L1": 1,
+      "elements_all_covered": true,
+      "ai_id_implemented": 6
+    },
+    "acceptance": [
+      "L1–L20 每级普通怪可选数 ≥ 4",
+      "L1–L4 精英可选数 ≥ 1（现为 0）",
+      "6 种元素各 ≥ 2 只承载怪",
+      "ai_id 的 6 个取值在 enemy_base.gd 里各有 ≥1 处 match 分支"
+    ]
+  },
+
+  "ai_behavior_contract": {
+    "_note": "本段是本步最重要的契约：ai_id 是 String 而非 enum，无编译期约束 ⇒ 必须靠本契约 + 校验脚本兜底。",
+    "current_defect": {
+      "declared": 6,
+      "implemented_branches": 0,
+      "only_occurrences": [
+        "monster_data.gd:89  @export var ai_id: String = \"melee_chaser\"（默认值）",
+        "config_loader.gd:290  读入 json 到字段",
+        "self_check.gd:722     断言非空（唯一校验）"
+      ],
+      "consequence": "16 只怪行为完全一致：PATROL→CHASE(直冲)→ATTACK。改 ai_id 不产生任何行为变化，且所有回归全绿。"
+    },
+    "fields_to_add": [
+      { "name": "preferred_range",     "type": "float", "default": 0.0,   "unit": "px",  "used_by": ["ranged_kiter", "lobber"], "note": ">0 时启用保持距离；是最关键的新字段" },
+      { "name": "charge_speed_mult",   "type": "float", "default": 2.2,   "unit": "×",   "used_by": ["melee_charger"] },
+      { "name": "charge_range",        "type": "float", "default": 180.0, "unit": "px",  "used_by": ["melee_charger"] },
+      { "name": "charge_windup",       "type": "float", "default": 0.45,  "unit": "s",   "used_by": ["melee_charger"], "note": "蓄力时长，必须可被玩家反应" },
+      { "name": "erratic_amplitude",   "type": "float", "default": 26.0,  "unit": "px",  "used_by": ["erratic_chaser"] },
+      { "name": "erratic_frequency",   "type": "float", "default": 2.4,   "unit": "Hz",  "used_by": ["erratic_chaser"] },
+      { "name": "projectile_speed",    "type": "float", "default": 180.0, "unit": "px/s","used_by": ["ranged_kiter"] },
+      { "name": "lob_radius",          "type": "float", "default": 52.0,  "unit": "px",  "used_by": ["lobber"] },
+      { "name": "lob_windup",          "type": "float", "default": 0.6,   "unit": "s",   "used_by": ["lobber"], "note": "沿用现有 AOE_TELEGRAPH_TIME 口径" }
+    ],
+    "behaviors": [
+      {
+        "ai_id": "melee_chaser",
+        "name_cn": "直线追击",
+        "chase": "direction_to(player) 直冲",
+        "attack": "近战弧（att_attack_range）",
+        "positioning": "贴身",
+        "player_perception": "最标准的怪",
+        "new_fields_used": [],
+        "reuses": ["现有 PATROL/CHASE/ATTACK"],
+        "impl_state_now": "implicitly_done",
+        "impl_note": "现有唯一行为即是它 ⇒ 分派后可原样保留为 default 分支"
+      },
+      {
+        "ai_id": "ranged_kiter",
+        "name_cn": "远程风筝",
+        "chase": "保持 preferred_range：太近则后退、太远则进、中间横向微移",
+        "attack": "投射物",
+        "positioning": "距离 110–160",
+        "player_perception": "它一直躲，得追",
+        "new_fields_used": ["preferred_range", "projectile_speed"],
+        "reuses": ["move_and_slide()", "玩家侧投射物管线可参考 skill_controller"],
+        "impl_state_now": "not_implemented",
+        "impl_note": "现 4 只 ranged_kiter 全部贴脸砍"
+      },
+      {
+        "ai_id": "erratic_chaser",
+        "name_cn": "飘忽突击",
+        "chase": "追击方向加入正弦扰动",
+        "attack": "近战弧",
+        "positioning": "贴身（走 Z 字）",
+        "player_perception": "走位很怪，难打中",
+        "new_fields_used": ["erratic_amplitude", "erratic_frequency"],
+        "reuses": ["move_and_slide()"],
+        "impl_state_now": "not_implemented"
+      },
+      {
+        "ai_id": "lobber",
+        "name_cn": "抛掷",
+        "chase": "半速移动，不贴脸（保持 80–140）",
+        "attack": "抛物线落点 AoE（预警圈 → 延迟命中）",
+        "positioning": "中距",
+        "player_perception": "地上会有落点圈",
+        "new_fields_used": ["preferred_range", "lob_radius", "lob_windup"],
+        "reuses": ["_aoe_strike() 两段式", "AOE_TELEGRAPH_TIME=0.6"],
+        "impl_state_now": "not_implemented",
+        "impl_note": "公平性与手感已被 BOSS 的 AoE 验证过，属复用而非新系统"
+      },
+      {
+        "ai_id": "melee_charger",
+        "name_cn": "冲锋",
+        "chase": "进入 charge_range 先蓄力，再高速直线冲刺",
+        "attack": "冲锋撞人 + 近战",
+        "positioning": "直线上",
+        "player_perception": "会突然冲过来",
+        "new_fields_used": ["charge_speed_mult", "charge_range", "charge_windup"],
+        "reuses": ["move_and_slide()"],
+        "impl_state_now": "not_implemented"
+      },
+      {
+        "ai_id": "boss_phased",
+        "name_cn": "BOSS 阶段",
+        "chase": "同 melee_chaser（BOSS 移速低）",
+        "attack": "阶段技能（见 05-bosses.json）",
+        "positioning": "中远",
+        "player_perception": "招式会变",
+        "new_fields_used": [],
+        "reuses": ["现有 _check_boss_phase / _cast_boss_skill"],
+        "impl_state_now": "partially_done",
+        "impl_note": "阶段系统独立存在；ai_id 此处只是标签，可不单独实现"
+      }
+    ],
+    "phasing_option": {
+      "_note": "对应 D1。⚠️ D1 已拍板『一次做全』⇒ 本分级表**不作执行**，仅存档备查。",
+      "phase1": { "ai_ids": ["ranged_kiter", "lobber"], "reason": "改变玩家的移动决策，手感差异最大" },
+      "phase2": { "ai_ids": ["melee_charger", "erratic_chaser"], "reason": "近战变体，差异在走位细节" },
+      "phase3": { "ai_ids": ["boss_phased"], "reason": "已有独立阶段系统，可不做" }
+    },
+    "files_touched": {
+      "enemy_base.gd": "W5-1 在 _chase_state / _attack_state 内加 match data.ai_id 分派",
+      "monster_data.gd": "W5-2 新增 9 个 @export 字段"
+    },
+    "forbidden": [
+      "不要重写状态机骨架（仍保持 PATROL→CHASE→ATTACK）",
+      "不要引入 NavigationAgent2D / 寻路（本步全部行为都在 move_and_slide 基础上做）"
+    ]
+  },
+
+  "new_fields_schema_note": "以上 9 个字段对现有 16 只怪全部可用默认值 ⇒ 向下兼容，无需批量回填。只有 8 只新怪 + 需区分行为的怪才显式写值。",
+
+  "monsters_now": [
+    { "id": "spider_cave",       "display_name": "洞穴蛛",   "tier": "normal", "level_min": 1,  "level_max": 6,  "ai_id": "melee_chaser",   "element": "physical", "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 10.0,  "move_speed": 75.0,  "attack_range": 34.0 },
+    { "id": "bat_swarm",         "display_name": "蝠群",     "tier": "normal", "level_min": 1,  "level_max": 8,  "ai_id": "erratic_chaser", "element": "physical", "hp_scale": 0.7,  "damage_scale": 0.875, "base_xp": 9.0,   "move_speed": 95.0,  "attack_range": 30.0 },
+    { "id": "skeleton_warrior",  "display_name": "骸骨战士", "tier": "normal", "level_min": 2,  "level_max": 12, "ai_id": "melee_chaser",   "element": "physical", "hp_scale": 1.25, "damage_scale": 1.25,  "base_xp": 14.0,  "move_speed": 58.0,  "attack_range": 40.0 },
+    { "id": "slime_acid",        "display_name": "酸液史莱姆","tier": "normal","level_min": 3,  "level_max": 10, "ai_id": "lobber",         "element": "poison",   "hp_scale": 1.58, "damage_scale": 1.125, "base_xp": 12.0,  "move_speed": 40.0,  "attack_range": 32.0 },
+    { "id": "brute_butcher",     "display_name": "屠夫",     "tier": "elite",  "level_min": 5,  "level_max": 20, "ai_id": "melee_charger",  "element": "physical", "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 90.0,  "move_speed": 52.0,  "attack_range": 46.0 },
+    { "id": "wraith_frost",      "display_name": "霜怨灵",   "tier": "elite",  "level_min": 8,  "level_max": 20, "ai_id": "ranged_kiter",   "element": "cold",     "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 95.0,  "move_speed": 68.0,  "attack_range": 90.0 },
+    { "id": "boss_bone_tyrant",  "display_name": "骸骨暴君", "tier": "boss",   "level_min": 6,  "level_max": 7,  "ai_id": "boss_phased",    "element": "physical", "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 900.0, "move_speed": 48.0,  "attack_range": 70.0 },
+    { "id": "boss_ember_lord",   "display_name": "烬焰君主", "tier": "boss",   "level_min": 19, "level_max": 20, "ai_id": "boss_phased",    "element": "fire",     "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 3200.0,"move_speed": 52.0,  "attack_range": 80.0 },
+    { "id": "mushroom_spore",    "display_name": "孢子菇",   "tier": "normal", "level_min": 3,  "level_max": 9,  "ai_id": "lobber",         "element": "poison",   "hp_scale": 1.1,  "damage_scale": 1.05,  "base_xp": 13.0,  "move_speed": 34.0,  "attack_range": 92.0 },
+    { "id": "warg_dark",         "display_name": "暗狼",     "tier": "normal", "level_min": 2,  "level_max": 9,  "ai_id": "melee_chaser",   "element": "physical", "hp_scale": 0.8,  "damage_scale": 1.05,  "base_xp": 15.0,  "move_speed": 108.0, "attack_range": 36.0 },
+    { "id": "golem_ember",       "display_name": "烬石魔像", "tier": "normal", "level_min": 8,  "level_max": 16, "ai_id": "melee_charger",  "element": "fire",     "hp_scale": 1.9,  "damage_scale": 1.35,  "base_xp": 26.0,  "move_speed": 36.0,  "attack_range": 46.0 },
+    { "id": "imp_hellfire",      "display_name": "烬火魔精", "tier": "normal", "level_min": 7,  "level_max": 14, "ai_id": "ranged_kiter",   "element": "fire",     "hp_scale": 0.72, "damage_scale": 1.1,   "base_xp": 22.0,  "move_speed": 88.0,  "attack_range": 108.0 },
+    { "id": "hound_ash",         "display_name": "灰烬猎犬", "tier": "normal", "level_min": 9,  "level_max": 16, "ai_id": "erratic_chaser", "element": "fire",     "hp_scale": 0.66, "damage_scale": 1.05,  "base_xp": 24.0,  "move_speed": 120.0, "attack_range": 34.0 },
+    { "id": "pyromancer_cultist","display_name": "烬焰信徒", "tier": "elite",  "level_min": 10, "level_max": 18, "ai_id": "ranged_kiter",   "element": "fire",     "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 120.0, "move_speed": 60.0,  "attack_range": 118.0 },
+    { "id": "frozen_husk",       "display_name": "冻骸",     "tier": "normal", "level_min": 14, "level_max": 20, "ai_id": "melee_chaser",   "element": "cold",     "hp_scale": 1.75, "damage_scale": 1.3,   "base_xp": 40.0,  "move_speed": 44.0,  "attack_range": 42.0 },
+    { "id": "ice_wraith",        "display_name": "冰魄",     "tier": "elite",  "level_min": 15, "level_max": 20, "ai_id": "ranged_kiter",   "element": "cold",     "hp_scale": 1.0,  "damage_scale": 1.0,   "base_xp": 150.0, "move_speed": 72.0,  "attack_range": 122.0 }
+  ],
+  "monsters_now_count": 16,
+  "monsters_now_note": "以上 16 条为 game/data/monsters/monsters.json 的实测快照（2026-09-24 回读）。tier 分布：normal 10 / elite 4 / boss 2。字段命名注意：工程用 damage_scale（非 dmg_scale）；本文件的 monsters_new 段为便于阅读沿用了 dmg_scale，落地时请写 damage_scale。",
+
+  "ai_id_dist_now": { "melee_chaser": 4, "ranged_kiter": 4, "erratic_chaser": 2, "lobber": 2, "melee_charger": 2, "boss_phased": 2 },
+  "ai_id_dist_note": "6 个取值全部有配置承载（16 只怪），但代码分支 0 ⇒ 典型『数据齐、实现空』。",
+
+  "monsters_new": [
+    {
+      "id": "rat_swarm",
+      "display_name": "腐鼠群",
+      "tier": "elite",
+      "level_min": 2,
+      "level_max": 9,
+      "ai_id": "erratic_chaser",
+      "element": "physical",
+      "hp_scale": 1.6,
+      "dmg_scale": 1.1,
+      "base_xp": 55,
+      "move_speed": 92,
+      "attack_range": 30,
+      "preferred_range": 0.0,
+      "reason": "补 L1–L4 精英空缺（现该段精英=0，但前 4 关 elite_count 写了 2/2/2/3 ⇒ 共 9 只刷不出来）",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "精英可稍大" }
+    },
+    {
+      "id": "storm_wisp",
+      "display_name": "雷灵",
+      "tier": "normal",
+      "level_min": 10,
+      "level_max": 20,
+      "ai_id": "ranged_kiter",
+      "element": "lightning",
+      "hp_scale": 0.75,
+      "dmg_scale": 1.15,
+      "base_xp": 30,
+      "move_speed": 88,
+      "attack_range": 150,
+      "preferred_range": 130.0,
+      "projectile_speed": 200.0,
+      "reason": "补 lightning 元素（现 0 只承载怪 ⇒ 第四步的电抗装备是废属性）",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "建议半透明发光" }
+    },
+    {
+      "id": "plague_bearer",
+      "display_name": "疫病携者",
+      "tier": "normal",
+      "level_min": 11,
+      "level_max": 20,
+      "ai_id": "melee_charger",
+      "element": "poison",
+      "hp_scale": 1.4,
+      "dmg_scale": 1.2,
+      "base_xp": 34,
+      "move_speed": 78,
+      "attack_range": 36,
+      "charge_speed_mult": 2.2,
+      "charge_range": 180.0,
+      "charge_windup": 0.45,
+      "reason": "补 poison 后期（现 poison 只到 L10）",
+      "sprite": { "size": "48x48 内", "frames": 84 }
+    },
+    {
+      "id": "shade_stalker",
+      "display_name": "影袭者",
+      "tier": "normal",
+      "level_min": 12,
+      "level_max": 20,
+      "ai_id": "erratic_chaser",
+      "element": "shadow",
+      "hp_scale": 1.05,
+      "dmg_scale": 1.3,
+      "base_xp": 44,
+      "move_speed": 105,
+      "attack_range": 34,
+      "erratic_amplitude": 30.0,
+      "erratic_frequency": 2.6,
+      "reason": "补 shadow 元素（现 0 只承载怪 ⇒ 第四步的暗影抗装备是废属性）+ L17–20 普通怪多样性",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "建议暗色剪影" }
+    },
+    {
+      "id": "thunder_herald",
+      "display_name": "雷罚使徒",
+      "tier": "elite",
+      "level_min": 12,
+      "level_max": 20,
+      "ai_id": "lobber",
+      "element": "lightning",
+      "hp_scale": 1.0,
+      "dmg_scale": 1.25,
+      "base_xp": 165,
+      "move_speed": 62,
+      "attack_range": 130,
+      "preferred_range": 110.0,
+      "lob_radius": 58.0,
+      "lob_windup": 0.6,
+      "reason": "补 lightning 精英（第二只承载怪，使元素不止 1 只）",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "精英" }
+    },
+    {
+      "id": "bone_archer",
+      "display_name": "骸骨弓手",
+      "tier": "normal",
+      "level_min": 14,
+      "level_max": 20,
+      "ai_id": "ranged_kiter",
+      "element": "physical",
+      "hp_scale": 0.85,
+      "dmg_scale": 1.2,
+      "base_xp": 42,
+      "move_speed": 70,
+      "attack_range": 160,
+      "preferred_range": 145.0,
+      "projectile_speed": 190.0,
+      "reason": "补 L17–20 段远程普通怪（现该段只剩 frozen_husk 1 种）",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "attack 需体现拉弓" }
+    },
+    {
+      "id": "frost_lobber",
+      "display_name": "霜爆投手",
+      "tier": "normal",
+      "level_min": 15,
+      "level_max": 20,
+      "ai_id": "lobber",
+      "element": "cold",
+      "hp_scale": 1.15,
+      "dmg_scale": 1.25,
+      "base_xp": 46,
+      "move_speed": 58,
+      "attack_range": 135,
+      "preferred_range": 115.0,
+      "lob_radius": 52.0,
+      "lob_windup": 0.6,
+      "reason": "补 L17–20 段投掷普通怪",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "attack 需体现抛掷" }
+    },
+    {
+      "id": "void_priest",
+      "display_name": "虚空祭司",
+      "tier": "elite",
+      "level_min": 16,
+      "level_max": 20,
+      "ai_id": "lobber",
+      "element": "shadow",
+      "hp_scale": 1.0,
+      "dmg_scale": 1.3,
+      "base_xp": 190,
+      "move_speed": 55,
+      "attack_range": 145,
+      "preferred_range": 125.0,
+      "lob_radius": 60.0,
+      "lob_windup": 0.65,
+      "reason": "补 shadow 精英 + L17–20 精英多样性",
+      "sprite": { "size": "48x48 内", "frames": 84, "note": "精英" }
+    }
+  ],
+  "monsters_new_count": 8,
+
+  "hp_scale_caveat": {
+    "severity": "待验证",
+    "detail": "上述 hp_scale / dmg_scale 是在旧成长率（1.22/1.16）下标定的。第四步 W1 落地 1.12/1.12 后，高等级怪绝对 HP 将大幅下降：1.12^19 / 1.22^19 ≈ 0.19 ⇒ L20 怪 HP 只剩原来的约 19%。",
+    "proposed_probe": "W1 落地后统一把新怪 hp_scale × 1.3、dmg_scale × 0.9 试跑；若仍偏软，再从 TTK ratio 反推（见第四步 §2.2 口径）。",
+    "must_not": "不要在 W1 未落地时调这两个值（会二次漂移）"
+  },
+
+  "coverage_matrix": {
+    "_note": "实测复算（2026-09-24）。口径：按 monster.level_min/level_max 逐级展开，统计 normal / elite 的可选怪数（boss 不计入普通/精英，但 boss_phased 的行为由 BOSS 自身承载）。",
+    "now_by_level": [
+      { "L": 1,  "normal": 2, "elite": 0 },
+      { "L": 2,  "normal": 4, "elite": 0 },
+      { "L": 3,  "normal": 6, "elite": 0 },
+      { "L": 4,  "normal": 6, "elite": 0 },
+      { "L": 5,  "normal": 6, "elite": 1 },
+      { "L": 6,  "normal": 6, "elite": 1 },
+      { "L": 7,  "normal": 6, "elite": 1 },
+      { "L": 8,  "normal": 7, "elite": 2 },
+      { "L": 9,  "normal": 7, "elite": 2 },
+      { "L": 10, "normal": 5, "elite": 3 },
+      { "L": 11, "normal": 4, "elite": 3 },
+      { "L": 12, "normal": 4, "elite": 3 },
+      { "L": 13, "normal": 3, "elite": 3, "flag": "局部低谷" },
+      { "L": 14, "normal": 4, "elite": 3 },
+      { "L": 15, "normal": 3, "elite": 4 },
+      { "L": 16, "normal": 3, "elite": 4 },
+      { "L": 17, "normal": 1, "elite": 4, "flag": "塌缩起点" },
+      { "L": 18, "normal": 1, "elite": 4, "flag": "塌缩" },
+      { "L": 19, "normal": 1, "elite": 3, "flag": "塌缩" },
+      { "L": 20, "normal": 1, "elite": 3, "flag": "塌缩" }
+    ],
+    "now_summary": {
+      "normal_ge4_levels": 11,
+      "normal_lt4_levels": [1, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20],
+      "normal_eq1_levels": [17, 18, 19, 20],
+      "elite_eq0_levels": [1, 2, 3, 4],
+      "worst_normal": "L17–L20 仅 frozen_husk 1 种",
+      "worst_elite": "L1–L4 精英 = 0，但前 4 关 elite_count = 2/2/2/3（共 9 只刷不出来）"
+    },
+    "target_by_level": {
+      "L1":       { "normal": 2, "elite": 1, "added_elite": ["rat_swarm"] },
+      "L2-L4":    { "normal": "4-6", "elite": 1, "added_elite": ["rat_swarm"] },
+      "L5-L9":    { "normal": "6-7", "elite": "2-3", "unchanged": true },
+      "L10-L12":  { "normal": "6-7", "elite": "3-4", "added_normal": ["storm_wisp"], "added_elite": ["thunder_herald"] },
+      "L13":      { "normal": 6, "elite": 4, "added_normal": ["storm_wisp", "plague_bearer"], "note": "局部低谷消失（现状 3）" },
+      "L14-L16":  { "normal": "8", "elite": "4-6", "added_normal": ["plague_bearer", "shade_stalker", "bone_archer"] },
+      "L17-L18":  { "normal": 6, "elite": 6, "added_normal": ["bone_archer", "frost_lobber", "shade_stalker"], "added_elite": ["thunder_herald", "void_priest"] },
+      "L19-L20":  { "normal": 6, "elite": 5, "note": "其中 storm_wisp / plague_bearer 的 level_max 已提到 20" }
+    },
+    "target_recomputed": [
+      { "L": 1,  "normal": 2, "elite": 0 },
+      { "L": 2,  "normal": 4, "elite": 1 },
+      { "L": 3,  "normal": 6, "elite": 1 },
+      { "L": 4,  "normal": 6, "elite": 1 },
+      { "L": 5,  "normal": 6, "elite": 2 },
+      { "L": 6,  "normal": 6, "elite": 2 },
+      { "L": 7,  "normal": 6, "elite": 2 },
+      { "L": 8,  "normal": 7, "elite": 3 },
+      { "L": 9,  "normal": 7, "elite": 3 },
+      { "L": 10, "normal": 6, "elite": 3 },
+      { "L": 11, "normal": 6, "elite": 3 },
+      { "L": 12, "normal": 7, "elite": 4 },
+      { "L": 13, "normal": 6, "elite": 4 },
+      { "L": 14, "normal": 8, "elite": 4 },
+      { "L": 15, "normal": 8, "elite": 5 },
+      { "L": 16, "normal": 8, "elite": 6 },
+      { "L": 17, "normal": 6, "elite": 6 },
+      { "L": 18, "normal": 6, "elite": 6 },
+      { "L": 19, "normal": 6, "elite": 5 },
+      { "L": 20, "normal": 6, "elite": 5 }
+    ],
+    "diagnosis": {
+      "L17-L20_normal_multiplier": "1 → 5（5 倍）",
+      "L17-L20_elite": "3-4 → 5",
+      "L17-L20_element_diversity": "1 种（cold）→ cold/physical/shadow 3 种普通 + lightning 精英",
+      "L13_false_valley": "实测 L13 普通怪为 3 种（golem_ember / imp_hellfire / hound_ash），是全局局部低谷；新增 storm_wisp(10-18)/plague_bearer(11-18) 后消失",
+      "L1-L4_elite_gap": "0 → 1，同时修掉 ch1_l01–l04 的 9 个刷不出来的精英槽位"
+    }
+  },
+
+  "element_distribution": {
+    "now":   { "physical": 6, "fire": 5, "cold": 3, "poison": 2, "lightning": 0, "shadow": 0 },
+    "target":{ "physical": 6, "fire": 5, "cold": 4, "poison": 3, "lightning": 2, "shadow": 2 },
+    "added_carriers": {
+      "cold": ["frost_lobber"],
+      "poison": ["plague_bearer"],
+      "lightning": ["storm_wisp", "thunder_herald"],
+      "shadow": ["shade_stalker", "void_priest"]
+    },
+    "downstream": "第四步 §4.3 的 6 元素专精（含电抗 / 暗影抗）从『废属性』变为有效属性。"
+  },
+
+  "data_conflicts_found": [
+    {
+      "id": "conflict_boss_level_range",
+      "severity": "P1",
+      "detail": "ch3_l20（关卡等级 20）的 boss_id = boss_bone_tyrant，但该 BOSS 的 level_min/max = 6/7 ⇒ 终局 BOSS 的等级区间与所在关卡不符。",
+      "risk": "若生成侧按 monster/boss 的 level_max 取等级，终局 BOSS 只有 L7 强度，等于『打空气』。",
+      "action": "工程侧需确认 BOSS 等级取值口径（按关卡 or 按 boss.level_max）；同时 W5-6 建议把 level_max 由 7 放开到 20。"
+    },
+    {
+      "id": "conflict_elite_slots",
+      "severity": "P1",
+      "detail": "ch1_l01–l04 的 elite_count = 2/2/2/3，但 L1–L4 段没有任何精英怪（level_min ≥ 5）⇒ 共 9 个精英槽位刷不出来。",
+      "action": "新增 rat_swarm（elite, 2–9）后自然修复；或工程侧需确认『刷不出来时是否静默降级为普通怪』。"
+    },
+    {
+      "id": "conflict_pack_actions",
+      "severity": "P2",
+      "detail": "enemy_base.gd:497 的 PACK_ACTIONS 同时列了 \"death\" 与 \"die\"，但素材只有 die。且 PACK_DIRS 声明 8 方向、素材只有 4 方向（n/e/s/w）。",
+      "action": "W5-11 删除冗余的 \"death\"；PACK_DIRS 是否收窄到 4 方向需工程侧评估（收窄更快，但若未来补 8 方向素材会返工）。"
+    }
+  ],
+
+  "work_orders": [
+    { "id": "W5-1",  "priority": "P0", "file": "enemy_base.gd",            "change": "按 data.ai_id 分派 6 种行为（match），复用 move_and_slide + AOE_TELEGRAPH_TIME" },
+    { "id": "W5-2",  "priority": "P0", "file": "monster_data.gd",          "change": "新增 9 个字段（见 ai_behavior_contract.fields_to_add）" },
+    { "id": "W5-3",  "priority": "P0", "file": "data/monsters/monsters.json","change": "新增 8 种怪（monsters_new）+ 修正 4 处 level_max 与关卡等级的矛盾" },
+    { "id": "W5-11", "priority": "P2", "file": "enemy_base.gd:497",        "change": "PACK_ACTIONS 删除冗余 \"death\"" }
+  ],
+
+  "batch_rule": {
+    "must_batch": ["W5-1", "W5-3"],
+    "reason": "只加怪不改 AI ⇒ 8 种新怪行为上仍只有 1 种，672 帧素材成本全浪费。先修底座（W5-1），再加内容（W5-3），顺序不可逆。"
+  },
+
+  "asset_orders": {
+    "sprite_spec": {
+      "path": "res://assets/pack/creatures/<id>/char_<id>_<action>_<dir>_<NN>.png",
+      "actions": { "idle": 4, "walk": 4, "attack": 4, "hurt": 3, "die": 6 },
+      "frames_per_direction": 21,
+      "directions": ["n", "e", "s", "w"],
+      "frames_per_monster": 84,
+      "naming_rule": "NN 从 01 起、遇缺即停，不可跳号",
+      "hard_rules": [
+        "铁律一：全部像素必须落在 PALETTE_ALL（44 色）",
+        "铁律二：单精灵 ≤24 色、尺寸 ≤48x48、只允许整数缩放、禁止运行时旋转",
+        "fps 硬编码 12.0（enemy_base.gd dnfn_load_names）⇒ 改帧率需改代码"
+      ]
+    },
+    "new_monster_sprites": {
+      "count": 8,
+      "frames_total": 672,
+      "items": [
+        { "id": "rat_swarm",     "frames": 84, "note": "精英，可稍大" },
+        { "id": "storm_wisp",    "frames": 84, "note": "半透明发光" },
+        { "id": "plague_bearer", "frames": 84 },
+        { "id": "shade_stalker", "frames": 84, "note": "暗色剪影" },
+        { "id": "thunder_herald","frames": 84, "note": "精英" },
+        { "id": "bone_archer",   "frames": 84, "note": "attack 体现拉弓" },
+        { "id": "frost_lobber",  "frames": 84, "note": "attack 体现抛掷" },
+        { "id": "void_priest",   "frames": 84, "note": "精英" }
+      ]
+    },
+    "new_fx": [
+      { "file": "fx_lightning_spark.png", "size": "32x32", "frames": 4, "for": "感电命中（第四步定义了异常但无特效）" },
+      { "file": "fx_shadow_curse.png",    "size": "32x32", "frames": 4, "for": "诅咒命中" },
+      { "file": "fx_bone_slam.png",       "size": "64x64", "frames": 4, "for": "bone_slam 扇形重击（W5-5）" },
+      { "file": "fx_lob_impact.png",      "size": "48x48", "frames": 4, "for": "lobber 落点冲击" },
+      { "file": "tile_exit_portal.png",   "size": "32x32", "frames": 4, "for": "reach_exit 出口传送门（W5-7）" },
+      { "file": "fx_enrage_flash.png",    "size": "全屏叠加", "frames": 4, "for": "enrage 狂暴视觉（W5-5）" }
+    ],
+    "fx_frames_total": 24,
+    "grand_total_frames": 696
+  },
+
+  "decisions_pending": [],
+
+  "decisions_2026_09_24": {
+    "_note": "用戶於 2026-09-24 對 D1–D5 全部拍板，五項全取本步推薦值。本段為權威記錄，下方工單按此落地。",
+    "decided_at": "2026-09-24",
+    "decided_by": "用戶",
+    "items": [
+      {
+        "id": "D1",
+        "question": "ai_id 6 種行為：一次做全，還是分期？",
+        "decision": "all",
+        "decision_label": "一次做全 6 種（不分期）",
+        "impact": "W5-1 單工單體量較大，但底座一次到位；phasing_option 段永久失效，僅存檔。"
+      },
+      {
+        "id": "D2",
+        "question": "budget 與 count_* 的關係：改數據還是改代碼？",
+        "decision": "route1",
+        "decision_label": "路線①：改 20 關 count_min/count_max（不動代碼）",
+        "impact": "W5-4 落地；路線②（W5-12）降級為 P3 可選、本步不執行。與第四步 W2 同批。"
+      },
+      {
+        "id": "D3",
+        "question": "怪物擴充：+8 種（16→24）是否接受？",
+        "decision": "accept",
+        "decision_label": "接受 +8 種（16 → 24）",
+        "impact": "monsters.json 條數目標 24；素材 672 幀入工單（只指明方向）。"
+      },
+      {
+        "id": "D4",
+        "question": "新增 BOSS 嗎？",
+        "decision": "none",
+        "decision_label": "不新增 BOSS；改做「召喚流 vs 法術流」差異化",
+        "impact": "bosses_new_draft.execute 維持 false（永久存檔）；W5-5 / W5-6 為本項落地路徑。"
+      },
+      {
+        "id": "D5",
+        "question": "補 survive / reach_exit 兩種目標類型嗎？",
+        "decision": "both",
+        "decision_label": "兩種都補",
+        "impact": "W5-7 落地；OBJECTIVE_KEYS 6 種全部可用；20 關目標序列按 05-levels.json 的 objective_target 替換。"
+      }
+    ]
+  },
+
+  "assertions_for_checker": [
+    { "id": "M1", "check": "monsters.json 条数 == 24（拍板 D3=accept 后）", "now": 16, "target": 24 },
+    { "id": "M2", "check": "∀L∈[1,20]：普通怪可选数 ≥4", "now": "L17-20 仅 1", "target": true },
+    { "id": "M3", "check": "∀L∈[1,4]：精英可选数 ≥1", "now": 0, "target": true },
+    { "id": "M4", "check": "6 元素各 ≥2 只承载怪", "now": "lightning=0, shadow=0", "target": true },
+    { "id": "M5", "check": "ai_id 的 6 个取值在 enemy_base.gd 各有 ≥1 处 match 分支", "now": 0, "target": 6 },
+    { "id": "M6", "check": "monster_data.gd 新增 9 个字段齐备", "now": 0, "target": 9 },
+    { "id": "M7", "check": "新增 8 只怪的 ai_id / element 取值均在合法集合内", "target": true },
+    { "id": "M8", "check": "∀新怪 level_min ≤ level_max 且落在 [1,20]", "target": true }
+  ]
+}

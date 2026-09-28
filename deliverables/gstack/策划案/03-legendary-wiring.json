@@ -1,0 +1,522 @@
+{
+ "_meta": {
+  "version": 1,
+  "step": 3,
+  "date": "2026-09-24",
+  "purpose": "31 条传奇特效的接线图：trigger → 事件落点 / effect → 执行方。核心结论：全部定义完整但生产代码零调用。",
+  "source": "game/data/legendary_effects/legendary_effects.json（实测导出）+ 03-装备特色玩法.md §2",
+  "docs": "03-装备特色玩法.md §2.4（trigger 落点清单）/ §2.6（effect 执行清单）",
+  "decisions_2026_09_24": {
+   "on_block": "新增格挡事件（格挡系统已有，仅补广播）",
+   "buff_system": "做（解锁 14 条）",
+   "summon_system": "分期做",
+   "element_split": "拆 5 个非物理子键 + 补 shadow_resist"
+  }
+ },
+ "trigger_sites": {
+  "on_hit": {
+   "site": "EventBus.damage_dealt (is_crit=false)",
+   "src": "skill_controller.gd:180",
+   "ctx": [
+    "attack"
+   ],
+   "status": "ready"
+  },
+  "on_crit": {
+   "site": "EventBus.damage_dealt (is_crit=true)",
+   "src": "skill_controller.gd:180",
+   "ctx": [
+    "attack"
+   ],
+   "status": "ready"
+  },
+  "on_kill": {
+   "site": "EventBus.unit_died",
+   "src": "health_component.gd:287",
+   "ctx": [],
+   "status": "ready"
+  },
+  "on_elite_kill": {
+   "site": "EventBus.unit_died + 精英判定",
+   "src": "health_component.gd:287",
+   "ctx": [],
+   "status": "need_elite_flag"
+  },
+  "on_damage_taken": {
+   "site": "EventBus.damage_taken",
+   "src": "enemy_base.gd:883/892",
+   "ctx": [
+    "max_hp"
+   ],
+   "status": "ready"
+  },
+  "on_low_hp": {
+   "site": "玩家 HP 变化后轮询",
+   "src": "player_controller.gd",
+   "ctx": [
+    "hp_pct",
+    "max_hp"
+   ],
+   "status": "ready_but_ctx_critical"
+  },
+  "on_pickup_gold": {
+   "site": "EventBus.gold_changed (delta>0)",
+   "src": "待确认拾取链路",
+   "ctx": [],
+   "status": "need_verify"
+  },
+  "on_skill_cast": {
+   "site": "SkillController.try_cast() 埋点",
+   "src": "skill_controller.gd:112",
+   "ctx": [],
+   "status": "need_hook"
+  },
+  "on_resource_spend": {
+   "site": "ManaPool.try_spend() 成功处",
+   "src": "skill_controller.gd:113",
+   "ctx": [
+    "amount_spent"
+   ],
+   "status": "need_hook"
+  },
+  "on_block": {
+   "site": "health_component.gd 格挡成功处（新增 EventBus.block_succeeded）",
+   "src": "health_component.gd:131",
+   "ctx": [],
+   "status": "need_hook",
+   "note": "格挡系统已存在（BLOCK_DAMAGE_REDUCTION=0.5 / get_block_chance / _roll_block），仅缺事件广播"
+  }
+ },
+ "effect_executors": {
+  "stack": {
+   "exec": "已在 on_event 内实现",
+   "new_system": false
+  },
+  "deal_damage": {
+   "exec": "调目标 take_damage；area 需范围查询",
+   "new_system": false
+  },
+  "heal": {
+   "exec": "走玩家回血接口",
+   "new_system": false
+  },
+  "gain_resource": {
+   "exec": "ManaPool 加法力",
+   "new_system": false
+  },
+  "resource_refund": {
+   "exec": "返还法力；cooldown_half 改冷却",
+   "new_system": false
+  },
+  "reflect": {
+   "exec": "damage_taken 处对 source 反打",
+   "new_system": false
+  },
+  "revive_protect": {
+   "exec": "死亡拦截 + 回血",
+   "new_system": false
+  },
+  "extra_loot": {
+   "exec": "掉落链路 + 单局计数",
+   "new_system": false
+  },
+  "buff_stat": {
+   "exec": "需临时增益系统",
+   "new_system": true
+  },
+  "ms_boost": {
+   "exec": "需临时增益系统",
+   "new_system": true
+  },
+  "damage_reduction": {
+   "exec": "需临时增益系统",
+   "new_system": true
+  },
+  "summon": {
+   "exec": "需召唤物系统",
+   "new_system": true
+  }
+ },
+ "effects": [
+  {
+   "id": "jin_shi_ran_po_ren",
+   "name": "烬誓·燃魄刃",
+   "slot": "main_hand",
+   "rarity_min": 4,
+   "trigger": "on_crit",
+   "effect": "stack",
+   "on_full_effect": "deal_damage",
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "kuang_lan_chao_xi_ren",
+   "name": "狂澜·潮汐刃",
+   "slot": "main_hand",
+   "rarity_min": 4,
+   "trigger": "on_hit",
+   "effect": "buff_stat",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "lie_kong_lei_bao_chui",
+   "name": "裂空·雷暴锤",
+   "slot": "main_hand",
+   "rarity_min": 4,
+   "trigger": "on_crit",
+   "effect": "deal_damage",
+   "on_full_effect": null,
+   "cooldown": 1.0,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "zhong_mo_hui_xiang",
+   "name": "终末回响",
+   "slot": "main_hand",
+   "rarity_min": 5,
+   "trigger": "on_skill_cast",
+   "effect": "resource_refund",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "need_hook",
+   "needs_new_system": false
+  },
+  {
+   "id": "shou_hu_jian_bi",
+   "name": "守护·坚壁",
+   "slot": "off_hand",
+   "rarity_min": 4,
+   "trigger": "on_block",
+   "effect": "heal",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "missing",
+   "needs_new_system": false
+  },
+  {
+   "id": "an_shi_zhou_yin_shu",
+   "name": "暗蚀·咒印书",
+   "slot": "off_hand",
+   "rarity_min": 4,
+   "trigger": "on_kill",
+   "effect": "summon",
+   "on_full_effect": null,
+   "cooldown": 3.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "ju_neng_ao_shu_qiu",
+   "name": "聚能·奥术球",
+   "slot": "off_hand",
+   "rarity_min": 4,
+   "trigger": "on_skill_cast",
+   "effect": "stack",
+   "on_full_effect": "deal_damage",
+   "cooldown": 0.0,
+   "trigger_landing": "need_hook",
+   "needs_new_system": false
+  },
+  {
+   "id": "qi_chong_hui_xiang_zhi_guan",
+   "name": "七重回响之冠",
+   "slot": "helm",
+   "rarity_min": 4,
+   "trigger": "on_resource_spend",
+   "effect": "summon",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "need_hook",
+   "needs_new_system": true
+  },
+  {
+   "id": "qi_jie_zhi_guan",
+   "name": "七劫之冠",
+   "slot": "helm",
+   "rarity_min": 5,
+   "trigger": "on_low_hp",
+   "effect": "stack",
+   "on_full_effect": "buff_stat",
+   "cooldown": 0.0,
+   "trigger_landing": "ready_but_ctx_critical",
+   "needs_new_system": true
+  },
+  {
+   "id": "qing_xing_dong_cha_guan",
+   "name": "清醒·洞察冠",
+   "slot": "helm",
+   "rarity_min": 4,
+   "trigger": "on_crit",
+   "effect": "gain_resource",
+   "on_full_effect": null,
+   "cooldown": 0.5,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "jian_ren_tie_lu_kui",
+   "name": "坚韧·铁颅盔",
+   "slot": "helm",
+   "rarity_min": 4,
+   "trigger": "on_damage_taken",
+   "effect": "stack",
+   "on_full_effect": "buff_stat",
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "bu_xiu_zhe_de_can_qu",
+   "name": "不朽者的残躯",
+   "slot": "chest",
+   "rarity_min": 4,
+   "trigger": "on_low_hp",
+   "effect": "revive_protect",
+   "on_full_effect": null,
+   "cooldown": 90.0,
+   "trigger_landing": "ready_but_ctx_critical",
+   "needs_new_system": false
+  },
+  {
+   "id": "pan_shi_bu_dong_jia",
+   "name": "磐石·不动甲",
+   "slot": "chest",
+   "rarity_min": 4,
+   "trigger": "on_damage_taken",
+   "effect": "stack",
+   "on_full_effect": "buff_stat",
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "chi_yang_lie_yan_xiong",
+   "name": "炽阳·烈焰胸",
+   "slot": "chest",
+   "rarity_min": 4,
+   "trigger": "on_hit",
+   "effect": "deal_damage",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "you_an_yi_ying_pao",
+   "name": "幽暗·影蚀袍",
+   "slot": "chest",
+   "rarity_min": 4,
+   "trigger": "on_kill",
+   "effect": "buff_stat",
+   "on_full_effect": null,
+   "cooldown": 1.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "ji_feng_lie_shou_zhua",
+   "name": "疾风·猎手爪",
+   "slot": "gloves",
+   "rarity_min": 4,
+   "trigger": "on_hit",
+   "effect": "stack",
+   "on_full_effect": "buff_stat",
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "cui_du_she_ya_tao",
+   "name": "淬毒·蛇牙套",
+   "slot": "gloves",
+   "rarity_min": 4,
+   "trigger": "on_hit",
+   "effect": "deal_damage",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "sui_jia_po_jun_quan",
+   "name": "碎甲·破军拳",
+   "slot": "gloves",
+   "rarity_min": 4,
+   "trigger": "on_crit",
+   "effect": "buff_stat",
+   "on_full_effect": null,
+   "cooldown": 1.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "xun_jie_ji_xing_tui",
+   "name": "迅捷·疾行腿",
+   "slot": "legs",
+   "rarity_min": 4,
+   "trigger": "on_kill",
+   "effect": "ms_boost",
+   "on_full_effect": null,
+   "cooldown": 0.5,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "tie_bi_zhong_zhuang_tui",
+   "name": "铁壁·重装腿",
+   "slot": "legs",
+   "rarity_min": 4,
+   "trigger": "on_damage_taken",
+   "effect": "damage_reduction",
+   "on_full_effect": null,
+   "cooldown": 0.5,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "shi_yi_zhe_zhi_xue",
+   "name": "拾遗者之靴",
+   "slot": "boots",
+   "rarity_min": 4,
+   "trigger": "on_pickup_gold",
+   "effect": "extra_loot",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "need_verify",
+   "needs_new_system": false
+  },
+  {
+   "id": "ta_yan_huo_xing_xue",
+   "name": "踏焰·火行靴",
+   "slot": "boots",
+   "rarity_min": 4,
+   "trigger": "on_damage_taken",
+   "effect": "reflect",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "shun_ying_huan_bu_xue",
+   "name": "瞬影·幻步靴",
+   "slot": "boots",
+   "rarity_min": 4,
+   "trigger": "on_kill",
+   "effect": "ms_boost",
+   "on_full_effect": null,
+   "cooldown": 2.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  },
+  {
+   "id": "ning_shen_zhuan_zhu_zhui",
+   "name": "凝神·专注坠",
+   "slot": "amulet",
+   "rarity_min": 4,
+   "trigger": "on_skill_cast",
+   "effect": "stack",
+   "on_full_effect": "resource_refund",
+   "cooldown": 0.0,
+   "trigger_landing": "need_hook",
+   "needs_new_system": false
+  },
+  {
+   "id": "xue_qi_xi_xue_lian",
+   "name": "血契·吸血链",
+   "slot": "amulet",
+   "rarity_min": 4,
+   "trigger": "on_crit",
+   "effect": "heal",
+   "on_full_effect": null,
+   "cooldown": 0.2,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "wang_quan_tong_yu_zhui",
+   "name": "王权·统御坠",
+   "slot": "amulet",
+   "rarity_min": 4,
+   "trigger": "on_elite_kill",
+   "effect": "buff_stat",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "need_elite_flag",
+   "needs_new_system": true
+  },
+  {
+   "id": "lie_jie_zhi_huan",
+   "name": "裂界指环",
+   "slot": "ring_a",
+   "rarity_min": 4,
+   "trigger": "on_elite_kill",
+   "effect": "ms_boost",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "need_elite_flag",
+   "needs_new_system": true
+  },
+  {
+   "id": "tan_lan_ju_bao_jie",
+   "name": "贪婪·聚宝戒",
+   "slot": "ring_a",
+   "rarity_min": 4,
+   "trigger": "on_pickup_gold",
+   "effect": "buff_stat",
+   "on_full_effect": null,
+   "cooldown": 0.0,
+   "trigger_landing": "need_verify",
+   "needs_new_system": true
+  },
+  {
+   "id": "feng_bao_lei_jie",
+   "name": "风暴·雷戒",
+   "slot": "ring_a",
+   "rarity_min": 4,
+   "trigger": "on_crit",
+   "effect": "deal_damage",
+   "on_full_effect": null,
+   "cooldown": 1.5,
+   "trigger_landing": "ready",
+   "needs_new_system": false
+  },
+  {
+   "id": "fu_su_sheng_ming_jie",
+   "name": "复苏·生命戒",
+   "slot": "ring_b",
+   "rarity_min": 4,
+   "trigger": "on_low_hp",
+   "effect": "heal",
+   "on_full_effect": null,
+   "cooldown": 12.0,
+   "trigger_landing": "ready_but_ctx_critical",
+   "needs_new_system": false
+  },
+  {
+   "id": "ying_zhe_zhi_hun_jie",
+   "name": "影者之魂戒",
+   "slot": "ring_b",
+   "rarity_min": 4,
+   "trigger": "on_kill",
+   "effect": "stack",
+   "on_full_effect": "buff_stat",
+   "cooldown": 0.0,
+   "trigger_landing": "ready",
+   "needs_new_system": true
+  }
+ ],
+ "summary": {
+  "total": 31,
+  "ready_to_wire": 22,
+  "need_hook": 5,
+  "need_verify": 4,
+  "missing_landing": 0,
+  "need_new_system": 16
+ }
+}

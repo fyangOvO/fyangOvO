@@ -1,0 +1,311 @@
+{
+  "version": "0.1",
+  "_meta": {
+    "step": 6,
+    "topic": "BOSS 二阶段重设",
+    "status": "已拍板（S11 · 2026-09-24）",
+    "decided_by": "用户裁定：「S11 BOSS 二阶段内容 —— 2 招→4 招；场地变化做「火环 + 缩小战场」；damage_mult 1.4」",
+    "impact_level": "🔴 高（牵动 boss_phase_controller.gd 的 4 处硬断言 + bosses.json + verify_boss63.gd A–G 全组）"
+  },
+
+  "current_state_4phase": {
+    "_note": "工程实测现状。第五步 05-bosses.json 的 bosses_now[2] 记录的就是这个。S11 后失效。",
+    "_file": "game/data/bosses/bosses.json",
+    "_controller": "game/scripts/enemies/boss_phase_controller.gd",
+    "controller_constants": {
+      "DEFAULT_THRESHOLDS": [0.75, 0.5, 0.25],
+      "PHASE_NAMES": ["Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ"],
+      "clamp_in_current_phase": "clampi(phase, 1, 4)",
+      "is_enraged_condition": "phase >= 4"
+    },
+    "validate_assertions": {
+      "thresholds": "必须 3 项",
+      "phase_skills": "必须 4 段",
+      "phase_damage_mult": "必须 4 段",
+      "summon_pool": "必须非空",
+      "enrage": "必须非空",
+      "_warn": "🔴 这是运行期断言，不是编译期。只改 JSON 不改 .gd ⇒ 启动不报错，拿到 BOSS 时才静默失败。"
+    },
+    "bosses": [
+      {
+        "id": "boss_bone_tyrant",
+        "display_name": "骸骨暴君",
+        "level_range": [6, 20],
+        "phase_count": 4,
+        "thresholds": [0.75, 0.5, 0.25],
+        "phase_skills": {
+          "1": ["bone_slam"],
+          "2": ["bone_slam", "summon_skeleton"],
+          "3": ["bone_slam", "summon_skeleton", "shockwave"],
+          "4": ["bone_slam", "summon_skeleton", "shockwave", "enrage"]
+        },
+        "summon_count": [0, 2, 3, 4],
+        "phase_damage_mult": [1.0, 1.1, 1.2, 1.35]
+      },
+      {
+        "id": "boss_ember_lord",
+        "display_name": "熔心之主",
+        "level_range": [19, 20],
+        "phase_count": 4,
+        "thresholds": [0.75, 0.5, 0.25],
+        "phase_skills": {
+          "1": ["fireball"],
+          "2": ["fireball", "summon_imp"],
+          "3": ["fireball", "summon_imp", "magma_eruption"],
+          "4": ["fireball", "summon_imp", "magma_eruption", "enrage"]
+        },
+        "summon_count": [0, 2, 3, 4],
+        "phase_damage_mult": [1.0, 1.12, 1.25, 1.4]
+      }
+    ]
+  },
+
+  "target_state_2phase": {
+    "_note": "S11 拍板后的目标 JSON，可直接替换 game/data/bosses/bosses.json。",
+    "spec": {
+      "phase_count": 2,
+      "thresholds": [0.6],
+      "phase_skills_segments": 2,
+      "phase_damage_mult_segments": 2,
+      "summon_count_segments": 2,
+      "enrage_at_phase": 2,
+      "arena_change": "新增字段，二阶段生效",
+      "damage_mult_phase2": 1.4
+    },
+    "bosses": [
+      {
+        "id": "boss_bone_tyrant",
+        "display_name": "骸骨暴君",
+        "archetype": "召唤流",
+        "level_range": [6, 20],
+        "phase_count": 2,
+        "thresholds": [0.6],
+        "phase_skills": {
+          "1": ["bone_slam", "summon_skeleton"],
+          "2": ["bone_slam", "summon_skeleton", "shockwave", "enrage"]
+        },
+        "summon_pool": ["skeleton_warrior", "warg_dark"],
+        "summon_count": [2, 5],
+        "summon_interval": 8.0,
+        "enrage": { "attack_interval_mult": 0.65, "damage_mult": 1.4 },
+        "phase_damage_mult": [1.0, 1.4],
+        "arena_change": { "fire_ring": true, "shrink_arena": true }
+      },
+      {
+        "id": "boss_ember_lord",
+        "display_name": "熔心之主",
+        "archetype": "法术流",
+        "level_range": [19, 20],
+        "phase_count": 2,
+        "thresholds": [0.6],
+        "phase_skills": {
+          "1": ["fireball", "magma_eruption"],
+          "2": ["fireball", "magma_eruption", "summon_imp", "enrage"]
+        },
+        "summon_pool": ["imp_hellfire", "hound_ash"],
+        "summon_count": [1, 3],
+        "summon_interval": 9.0,
+        "enrage": { "attack_interval_mult": 0.6, "damage_mult": 1.4 },
+        "phase_damage_mult": [1.0, 1.4],
+        "arena_change": { "fire_ring": true, "shrink_arena": true }
+      }
+    ],
+    "_design_notes": [
+      "一阶段即有 2 招：不再是「只有 1 招的过渡期」，一阶段本身要有威胁，二阶段才有对比。",
+      "召唤流 vs 法术流的差异保留：骸骨暴君一阶段就召唤（summon_count[0]=2）、熔心之主一阶段优先自伤法术（summon_count[0]=1）。与第五步 D4「不新增 BOSS、改做差异化」一致。",
+      "summon_count 从 4 段压成 2 段且二阶段数值抬升（5 / 3）：制造二阶段的压迫感。",
+      "enrage 从「阶段 4」提前到「阶段 2」：因只剩两个阶段，狂暴即二阶段标志。"
+    ]
+  },
+
+  "arena_change_spec": {
+    "_note": "S11 新增系统。两种场地变化可叠加，但叠加时有硬约束，必须给 assert。",
+    "effects": [
+      {
+        "id": "fire_ring",
+        "name": "地面火环",
+        "element": "fire",
+        "semantics": "场地外圈持续火伤，周期性向中心收缩",
+        "affected_zone": "距场地中心 > R_inner 的环带",
+        "params": {
+          "R_initial": "战场半径 × 0.9",
+          "R_inner_final": "战场半径 × 0.35",
+          "shrink_duration_sec": 12.0,
+          "tick_interval_sec": 0.5,
+          "damage_per_tick_pct_max_hp": 0.015
+        },
+        "timing": "独立计时，不受 shrink_arena 影响"
+      },
+      {
+        "id": "shrink_arena",
+        "name": "缩小战场",
+        "element": null,
+        "semantics": "战场可走区域半径随时间收缩，视觉为暗色边界内推",
+        "affected_zone": "全局 R_arena",
+        "params": {
+          "R_start": "战场半径 × 1.0",
+          "R_arena_final": "战场半径 × 0.45",
+          "shrink_duration_sec": 15.0
+        },
+        "timing": "独立计时"
+      }
+    ],
+    "stacking_constraint": {
+      "_critical": true,
+      "rule": "R_inner（火环内沿）必须 >= R_arena（缩小后的战场半径）",
+      "why": "否则火环会烧在整个战场内侧 ⇒ 玩家无处可站 ⇒ 【不可通过的 BOSS】",
+      "suggested_assert": "assert(fire_ring_inner_radius >= arena_radius_at_end, \"火环内沿不得小于战场半径，否则 BOSS 不可通过\")",
+      "safe_zone_semantics": "叠加时安全区 = min(R_inner, R_arena)",
+      "recommended_values": {
+        "safe_margin_px": 24,
+        "note": "R_inner_final(0.35) < R_arena_final(0.45) ⇒ ⚠️ 冲突！建议改为 R_inner_final = 0.50 或 R_arena_final = 0.30，保证 R_inner >= R_arena。"
+      }
+    }
+  },
+
+  "presentation_spec": {
+    "_note": "二阶段触发的演出（建议值，可调）。",
+    "steps": [
+      { "order": 1, "action": "全屏白闪", "duration_sec": 0.2, "color": "#FFFFFF" },
+      { "order": 2, "action": "镜头震动", "intensity_px": 4, "duration_sec": 0.35 },
+      { "order": 3, "action": "横幅播报（复用 notification_requested）", "text": "「%s 进入狂暴状态！」", "color": "神话红 #FF2D55" },
+      { "order": 4, "action": "场地变化启动", "detail": "火环 + 缩小战场同时开始计时" }
+    ],
+    "_reuse": "notification_requested 已在 event_bus.gd 声明且有消费点（hub.gd 与关卡内提示条），无需新建。",
+    "_existing_emit": "EventBus.boss_phase_changed(enemy, phase, skills) 已在 enemy_base.gd:939-968 发出，本次改造复用该信号。"
+  },
+
+  "controller_patch": {
+    "_file": "game/scripts/enemies/boss_phase_controller.gd",
+    "_note": "⚠️ 以下 5 处必须【同批】改，否则运行期断言失败或行为错乱。",
+    "items": [
+      {
+        "id": 1,
+        "target": "DEFAULT_THRESHOLDS",
+        "from": "[0.75, 0.5, 0.25]",
+        "to": "[0.6]",
+        "risk": "🟠 影响所有 BOSS"
+      },
+      {
+        "id": 2,
+        "target": "PHASE_NAMES",
+        "from": "[\"Ⅰ\", \"Ⅱ\", \"Ⅲ\", \"Ⅳ\"]",
+        "to": "[\"Ⅰ\", \"Ⅱ\"]",
+        "risk": "🟡"
+      },
+      {
+        "id": 3,
+        "target": "validate()",
+        "from": "thresholds 必须 3 项 / phase_skills 4 段 / phase_damage_mult 4 段",
+        "to": "thresholds 必须 1 项 / phase_skills 2 段 / phase_damage_mult 2 段",
+        "risk": "🔴 不同批改 ⇒ 运行期断言失败"
+      },
+      {
+        "id": 4,
+        "target": "is_enraged()",
+        "from": "phase >= 4",
+        "to": "phase >= 2",
+        "risk": "🟠"
+      },
+      {
+        "id": 5,
+        "target": "current_phase() 的 clamp",
+        "from": "clampi(phase, 1, 4)",
+        "to": "clampi(phase, 1, 2)",
+        "risk": "🔴"
+      }
+    ],
+    "consumers": [
+      {
+        "file": "game/scripts/enemies/enemy_base.gd",
+        "lines": "939-968",
+        "func": "_check_boss_phase / _apply_boss_phase",
+        "action": "适配 2 阶段；保持 EventBus.boss_phase_changed.emit 不变"
+      },
+      {
+        "file": "game/scripts/enemies/enemy_base.gd",
+        "lines": "972-983",
+        "func": "_cast_boss_skill",
+        "action": "⚠️ 现只做 has_summon + has_aoe 两个布尔闸门 ⇒ 二阶段新增的 shockwave / enrage 表现仍需补实现",
+        "_note": "第五步 W5-5/W5-6 已登记此缺口（bone_slam / fireball 为死数据、enrage 无表现）。S11 后仍适用。"
+      }
+    ]
+  },
+
+  "regression_rewrite": {
+    "_file": "game/tools/verify_boss63.gd",
+    "_note": "🔴 A–G 全组建立在 4 阶段之上，S11 后必然全红。表内为逐行改造方案。",
+    "_danger": "⚠️ B 组不是简单改数字 —— 「70% HP → 阶段 2」在 0.6 阈值下会变成「70% → 阶段 1」（因 0.7 > 0.6）⇒ 【断言语义反转】，必须逐条重算。",
+    "lines": [
+      { "group": "A", "line": "8", "now": "「thresholds / 4 段技能 / 召唤池 / 狂暴」", "to": "「thresholds / 2 段技能 / 召唤池 / 狂暴」" },
+      { "group": "B", "line": "69", "now": "current_phase(1.0) == 1", "to": "current_phase(1.0) == 1", "status": "不变" },
+      { "group": "B", "line": "70", "now": "current_phase(0.8) == 1", "to": "current_phase(0.8) == 1", "status": "不变" },
+      { "group": "B", "line": "71", "now": "current_phase(0.7) == 2（75% 阈值）", "to": "current_phase(0.7) == 1", "status": "🔴 语义反转（0.7 > 0.6）" },
+      { "group": "B", "line": "72", "now": "current_phase(0.4) == 3（50% 阈值）", "to": "current_phase(0.4) == 2（60% 阈值）" },
+      { "group": "B", "line": "73", "now": "current_phase(0.1) == 4（25% 阈值）", "to": "current_phase(0.1) == 2" },
+      { "group": "B", "line": "74", "now": "current_phase(0.0) == 4（不死锁）", "to": "current_phase(0.0) == 2（不死锁）" },
+      { "group": "C", "line": "84", "now": "phase_skills(tyrant, 1) == [\"bone_slam\"]", "to": "phase_skills(tyrant, 1) == [\"bone_slam\", \"summon_skeleton\"]" },
+      { "group": "C", "line": "85", "now": "阶段 2 解锁召唤", "to": "阶段 1 即含召唤（语义调整）" },
+      { "group": "C", "line": "86", "now": "阶段 3 解锁 shockwave", "to": "阶段 2 解锁 shockwave" },
+      { "group": "C", "line": "87-88", "now": "阶段 4 含 enrage", "to": "阶段 2 含 enrage" },
+      { "group": "C", "line": "89-91", "now": "phase_skills(...,4).size() == 4 and (...,3).size() == 3", "to": "phase_skills(...,2).size() == 4" },
+      { "group": "C", "line": "93-94", "now": "ember phase_skills(...,4) == [fireball, summon_imp, magma_eruption, enrage]", "to": "phase_skills(...,2) == [fireball, magma_eruption, summon_imp, enrage]" },
+      { "group": "D", "line": "105-109", "now": "召唤递增 0→2→3→4；summon_count_for(tyrant,4)==4", "to": "summon_count_for(tyrant,1)==2 and (tyrant,2)==5" },
+      { "group": "E", "line": "123-126", "now": "阶段 4 狂暴 interval 0.6 / damage 1.3", "to": "阶段 2 狂暴 interval 0.65 / damage 1.4（骸骨）/ 0.6 / 1.4（熔心）" },
+      { "group": "E", "line": "127", "now": "阶段 1–3 无狂暴", "to": "阶段 1 无狂暴" },
+      { "group": "E", "line": "130-133", "now": "phase_damage_mult 4 段 1.0→1.1→1.2→1.35", "to": "2 段 [1.0, 1.4]" },
+      { "group": "G", "line": "168-173", "now": "把 HP 打到 50% 以下（阶段 2 阈值）", "to": "把 HP 打到 60% 以下（阶段 2 阈值）" }
+    ]
+  },
+
+  "step5_cross_revision": {
+    "_note": "✅ 已确认接受回改。处理方式：不动第五步文件（保留历史快照），在第七步汇总文档做「跨步修订表」。",
+    "rows": [
+      { "file": "05-bosses.json", "field": "bosses_now[*].phase_count", "from": 4, "to": 2 },
+      { "file": "05-bosses.json", "field": "bosses_now[*].thresholds", "from": "[0.75,0.5,0.25]", "to": "[0.6]" },
+      { "file": "05-bosses.json", "field": "bosses_now[*].phase_skills", "from": "4 段", "to": "2 段" },
+      { "file": "05-bosses.json", "field": "bosses_now[*].phase_damage_mult", "from": "4 段", "to": "2 段" },
+      { "file": "05-bosses.json", "field": "bosses_now[*].summon_count", "from": "[0,2,3,4]", "to": "[2,5] / [1,3]" },
+      { "file": "05-bosses.json", "field": "bosses_now[*].arena_change", "from": "（不存在）", "to": "新增 {fire_ring, shrink_arena}" },
+      { "file": "05-怪物关卡BOSS.md", "field": "§3.4.3 表格", "from": "「阶段 4 狂暴」", "to": "「阶段 2 狂暴」" },
+      { "file": "05-monsters.json", "field": "bosses_now[2]", "from": "4 阶段", "to": "2 阶段 + arena_change" }
+    ]
+  },
+
+  "asset_orders": {
+    "_note": "二阶段新增素材需求（像素须落 PALETTE_ALL · 铁律一）。",
+    "fx": [
+      { "id": "fx_phase2_flash", "desc": "全屏白闪", "size": "320×180", "frames": 3, "fps": 12 },
+      { "id": "fx_fire_ring", "desc": "地面火环（环形贴图，按 R_inner 缩放）", "size": "128×128", "frames": 6, "fps": 10, "loop": true },
+      { "id": "fx_arena_shrink_edge", "desc": "战场边界暗色内推", "size": "32×32", "frames": 4, "fps": 8, "loop": true },
+      { "id": "fx_enrage_aura", "desc": "BOSS 狂暴光环", "size": "32×32", "frames": 4, "fps": 8, "loop": true }
+    ],
+    "total_frames": 17,
+    "_audio": [
+      { "id": "sfx_phase2_roar", "desc": "二阶段触发咆哮" },
+      { "id": "sfx_enrage_loop", "desc": "狂暴持续音" }
+    ]
+  },
+
+  "works_orders_preview": [
+    { "seq": 1, "id": "W6-B1", "desc": "boss_phase_controller.gd 五处同批改", "risk": "🔴", "status": "S11 已定，可落地" },
+    { "seq": 2, "id": "W6-B2", "desc": "bosses.json 两 BOSS 改二阶段（含 arena_change 字段）", "risk": "🟠", "status": "S11 已定" },
+    { "seq": 3, "id": "W6-B3", "desc": "二阶段场地变化系统（火环 + 缩小战场 + 叠加约束 assert）", "risk": "🔴", "status": "S11 已定" },
+    { "seq": 4, "id": "W6-B4", "desc": "verify_boss63.gd A–G 全组重写（18 处）", "risk": "🔴", "status": "S11 已定" },
+    { "seq": 5, "id": "W6-B5", "desc": "_cast_boss_skill 补 shockwave / enrage 表现（与第五步 W5-5/W5-6 合并）", "risk": "🟠", "status": "S11 已定" },
+    { "seq": 6, "id": "W6-B6", "desc": "二阶段演出（白闪/震屏/横幅）", "risk": "🟡", "status": "S11 已定" }
+  ],
+
+  "assertions_for_checker": [
+    { "id": "B2-1", "desc": "bosses.json 两 BOSS 的 phase_count == 2" },
+    { "id": "B2-2", "desc": "thresholds 长度 == 1 且值 == 0.6" },
+    { "id": "B2-3", "desc": "phase_skills 段数 == 2 且阶段 2 累积 == 4 招（含 enrage）" },
+    { "id": "B2-4", "desc": "phase_damage_mult 长度 == 2 且 [1.0, 1.4]" },
+    { "id": "B2-5", "desc": "summon_count 长度 == 2 且二阶段 > 一阶段" },
+    { "id": "B2-6", "desc": "arena_change 字段存在且 fire_ring / shrink_arena 均为 true" },
+    { "id": "B2-7", "desc": "火环 R_inner_final >= 战场 R_arena_final（叠加约束）" },
+    { "id": "B2-8", "desc": "controller 的 5 处改动与 JSON 一致（thresholds/PHASE_NAMES/validate/is_enraged/clamp）" },
+    { "id": "B2-9", "desc": "verify_boss63.gd 的 18 处断言已按本表重写" },
+    { "id": "B2-10", "desc": "第五步跨步修订表已在本 JSON 中登记（8 行）" }
+  ]
+}

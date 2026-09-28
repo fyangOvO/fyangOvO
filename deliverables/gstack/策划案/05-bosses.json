@@ -1,0 +1,270 @@
+{
+  "_meta": {
+    "step": 5,
+    "name": "怪物 · 关卡 · BOSS 扩充",
+    "artifact": "05-bosses.json",
+    "doc": "05-怪物关卡BOSS.md",
+    "date": "2026-09-24",
+    "status": "已拍板（D4 = 不新增 BOSS，2026-09-24 裁定）",
+    "read_only": true,
+    "baseline_source": "game/data/bosses/bosses.json（2026-09-24 实测回读）"
+  },
+
+  "goal": {
+    "one_line": "让 2 个 BOSS 的战斗节奏真的不同，并让配置里写的 4 类技能都产生行为。",
+    "targets": {
+      "boss_count": 2,
+      "skill_consumed": "4/4 类",
+      "boss_differentiation": "召唤流 vs 法术流",
+      "level_range_fixed": true
+    }
+  },
+
+  "decisions_2026_09_24": {
+    "_note": "用戶於 2026-09-24 拍板 D4 = 不新增 BOSS。",
+    "D4": {
+      "decision": "none",
+      "label": "不新增 BOSS；改做「召喚流 vs 法術流」差異化",
+      "impact": "new_boss_draft.execute 永久維持 false（草案僅存檔）；落地路徑 = W5-5（bone_slam / fireball / enrage 接線）+ W5-6（兩 BOSS 差異化 + level_max 7→20）。boss_frost_monarch 不入素材工單。"
+    }
+  },
+
+  "diagnosis": {
+    "one_line": "2 个 BOSS 配置完整，但代码只消费『有没有召唤』和『有没有 AoE』两个布尔闸门 ⇒ 一半技能名是死数据。",
+    "skill_consumption": {
+      "_basis": "enemy_base.gd:972-983 `_cast_boss_skill()` 只做两次 `.has()` 查询，不看技能名本身",
+      "gates": [
+        { "gate": "has_summon", "expr": "_boss_skills.has(\"summon_skeleton\") or _boss_skills.has(\"summon_imp\")", "line": 975 },
+        { "gate": "has_aoe",    "expr": "_boss_skills.has(\"shockwave\") or _boss_skills.has(\"magma_eruption\")", "line": 976 }
+      ],
+      "skills": [
+        { "name": "summon_skeleton", "state": "consumed", "via": "has_summon → _summon_minions()", "line": 975 },
+        { "name": "summon_imp",      "state": "consumed", "via": "has_summon → _summon_minions()", "line": 975 },
+        { "name": "shockwave",       "state": "consumed", "via": "has_aoe → _aoe_strike()",       "line": 976 },
+        { "name": "magma_eruption",  "state": "consumed", "via": "has_aoe → _aoe_strike()",       "line": 976 },
+        { "name": "bone_slam",       "state": "DEAD_DATA", "via": "无任何分支读取", "line": null, "impact": "boss_bone_tyrant 的阶段 1 只有这一个技能 ⇒ 阶段 1 实际是『只会走走』的哑巴阶段" },
+        { "name": "fireball",        "state": "DEAD_DATA", "via": "无任何分支读取", "line": null, "impact": "boss_ember_lord 的阶段 1 同理；阶段 2/3 也只多了一个召唤或 AoE" },
+        { "name": "enrage",          "state": "PARTIAL",   "via": "BossPhaseController.enrage_multipliers(boss_config, phase) 只折算 attack_interval_mult / damage_mult", "line": 963, "impact": "倍率生效但无任何视觉表现 ⇒ 玩家感知不到『它狂暴了』" }
+      ],
+      "summary": { "consumed": 4, "dead": 2, "partial": 1, "distinct_behaviours": 2 }
+    },
+    "differentiation": {
+      "one_line": "两个 BOSS 的阶段技能结构完全相同（基础 → +召唤 → +AoE → +狂暴），仅技能名不同。",
+      "bone_tyrant_phases": { "1": ["bone_slam"], "2": ["bone_slam", "summon_skeleton"], "3": ["bone_slam", "summon_skeleton", "shockwave"], "4": ["bone_slam", "summon_skeleton", "shockwave", "enrage"] },
+      "ember_lord_phases":  { "1": ["fireball"],  "2": ["fireball", "summon_imp"],         "3": ["fireball", "summon_imp", "magma_eruption"], "4": ["fireball", "summon_imp", "magma_eruption", "enrage"] },
+      "verdict": "同构 ⇒ 玩家感知是『同一个 BOSS 换个皮 + 换个元素』"
+    },
+    "level_range_conflicts": [
+      { "boss": "boss_bone_tyrant", "declared": "6/7",  "used_by_levels": ["ch1_l06 (L6) ✅", "ch3_l20 (L20) 🔴"], "verdict": "ch3_l20 不匹配" },
+      { "boss": "boss_ember_lord",  "declared": "19/20","used_by_levels": ["ch2_l13 (L13) 🔴"], "verdict": "ch2_l13 不匹配" }
+    ],
+    "level_range_note": "⚠️ BOSS 的 level_min/max 在 monsters.json 里（tier=boss），不在 bosses.json 里 ⇒ 需跨文件修。"
+  },
+
+  "bosses_now": [
+    {
+      "id": "boss_bone_tyrant",
+      "display_name": "骸骨暴君",
+      "level_min": 6,
+      "level_max": 7,
+      "element": "physical",
+      "phase_count": 4,
+      "thresholds": [0.75, 0.5, 0.25],
+      "phase_skills": {
+        "1": ["bone_slam"],
+        "2": ["bone_slam", "summon_skeleton"],
+        "3": ["bone_slam", "summon_skeleton", "shockwave"],
+        "4": ["bone_slam", "summon_skeleton", "shockwave", "enrage"]
+      },
+      "summon_pool": ["skeleton_warrior", "warg_dark"],
+      "summon_count": [0, 2, 3, 4],
+      "summon_interval": 8.0,
+      "enrage": { "attack_interval_mult": 0.6, "damage_mult": 1.3 },
+      "phase_damage_mult": [1.0, 1.1, 1.2, 1.35]
+    },
+    {
+      "id": "boss_ember_lord",
+      "display_name": "熔心之主",
+      "level_min": 19,
+      "level_max": 20,
+      "element": "fire",
+      "phase_count": 4,
+      "thresholds": [0.75, 0.5, 0.25],
+      "phase_skills": {
+        "1": ["fireball"],
+        "2": ["fireball", "summon_imp"],
+        "3": ["fireball", "summon_imp", "magma_eruption"],
+        "4": ["fireball", "summon_imp", "magma_eruption", "enrage"]
+      },
+      "summon_pool": ["imp_hellfire", "hound_ash"],
+      "summon_count": [0, 2, 3, 4],
+      "summon_interval": 9.0,
+      "enrage": { "attack_interval_mult": 0.55, "damage_mult": 1.35 },
+      "phase_damage_mult": [1.0, 1.12, 1.25, 1.4]
+    }
+  ],
+
+  "skill_wiring_spec": {
+    "_note": "对应文档 §3.4①。全部复用已有基建，属『接线』而非『开发』。",
+    "existing_reuse": [
+      "_aoe_strike() 的『0.6s 预警 → 延迟命中』两段式（enemy_base.gd:1012-1018）",
+      "AOE_TELEGRAPH_TIME = 0.6（:1009）",
+      "AOE_RADIUS = 110.0（:1010）",
+      "玩家侧的扇形/投射物判定（可参考 skill_controller / player_controller）"
+    ],
+    "specs": [
+      {
+        "name": "bone_slam",
+        "cn": "前方扇形重击",
+        "state_now": "DEAD_DATA",
+        "behaviour": "对自己面前约 120° 扇形、半径 attack_range × 1.6 结算一次高伤",
+        "windup": 0.4,
+        "windup_note": "短于 AoE 的 0.6s（因为扇形范围更可预期），仍给玩家反应窗口",
+        "damage_mult": "1.6× 普通攻击",
+        "impl": "复用 _aoe_strike 的两段式，把圆形判定换成扇形",
+        "assets": ["fx_bone_slam.png (64x64, 4帧)"]
+      },
+      {
+        "name": "fireball",
+        "cn": "直线投射物",
+        "state_now": "DEAD_DATA",
+        "behaviour": "向玩家发射 1–3 发慢速火球，命中给燃烧",
+        "projectile_speed": 140,
+        "count_by_phase": { "1": 1, "2": 1, "3": 2, "4": 3 },
+        "status_applied": "burning",
+        "impl": "复用现有投射物管线（与 ranged_kiter 的 projectile_speed 同源需求）",
+        "assets": ["可复用 fx.json 已注册的 pyromancer_cast / ember_lord_aura"]
+      },
+      {
+        "name": "enrage",
+        "cn": "狂暴",
+        "state_now": "PARTIAL（倍率生效、无表现）",
+        "behaviour": "狂暴瞬间全屏红闪 + 移速/攻速提升",
+        "impl": "**只缺表现** —— 数值侧 attack_interval_mult / damage_mult 已在 BossPhaseController 生效",
+        "minimal_acceptable": "全屏红色闪光 0.3s（2–3 帧即可）",
+        "assets": ["fx_enrage_flash.png (全屏叠加, 4帧)"]
+      }
+    ]
+  },
+
+  "differentiation_spec": {
+    "_note": "对应文档 §3.4②。目标：把两个 BOSS 变成『人海 vs 法术』。",
+    "rows": [
+      {
+        "boss": "boss_bone_tyrant",
+        "role_target": "召唤流（人海）",
+        "summon_count_now": [0, 2, 3, 4],
+        "summon_count_target": [0, 3, 5, 7],
+        "main_output": "bone_slam（需接线）",
+        "aoe": "shockwave",
+        "enrage_phase_now": 4,
+        "enrage_phase_target": 4,
+        "level_min_max_now": "6/7",
+        "level_min_max_target": "6/20",
+        "rationale": "强化『打不完的小怪』压迫感；AoE 只保留 shockwave 避免与召唤抢焦点"
+      },
+      {
+        "boss": "boss_ember_lord",
+        "role_target": "法术流（投射物 + AoE）",
+        "summon_count_now": [0, 2, 3, 4],
+        "summon_count_target": [0, 1, 2, 2],
+        "main_output": "fireball（需接线）+ magma_eruption",
+        "aoe": "magma_eruption",
+        "enrage_phase_now": 4,
+        "enrage_phase_target": 3,
+        "level_min_max_now": "19/20",
+        "level_min_max_target": "19/20（不变）",
+        "rationale": "减少召唤、把输出压在投射物 + 地面 AoE；enrage 提前到阶段 3 ⇒ 后 50% 血量全程高压"
+      }
+    ],
+    "phase_skills_target": {
+      "boss_bone_tyrant": {
+        "1": ["bone_slam"],
+        "2": ["bone_slam", "summon_skeleton"],
+        "3": ["bone_slam", "summon_skeleton", "shockwave"],
+        "4": ["bone_slam", "summon_skeleton", "shockwave", "enrage"]
+      },
+      "boss_ember_lord": {
+        "1": ["fireball"],
+        "2": ["fireball", "summon_imp"],
+        "3": ["fireball", "summon_imp", "magma_eruption", "enrage"],
+        "4": ["fireball", "summon_imp", "magma_eruption", "enrage"]
+      }
+    },
+    "phase_damage_mult_note": "phase_damage_mult 保持现值（ember_lord 已略高于 bone_tyrant：1.4 vs 1.35），与『法术流更痛』的定位一致。"
+  },
+
+  "new_boss_draft": {
+    "_note": "⚠️ D4 已拍板「不新增 BOSS」⇒ execute=false 為最終狀態，本草案僅存檔，不入工單、不入素材清單。对应文档 §6.2。",
+    "execute": false,
+    "reason": "路线 A 已把账号上限压到 20 ⇒ 现有 2 个 BOSS（L6/L20）恰好覆盖两头。新增 BOSS 需 84 帧精灵 + 专属技能实现，成本高收益低。",
+    "boss": {
+      "id": "boss_frost_monarch",
+      "display_name": "霜渊君主",
+      "level_min": 20,
+      "level_max": 20,
+      "element": "cold",
+      "role": "控场流",
+      "phase_count": 4,
+      "thresholds": [0.75, 0.5, 0.25],
+      "phase_skills": {
+        "1": ["ice_nova"],
+        "2": ["ice_nova", "summon_ice_wraith"],
+        "3": ["ice_nova", "summon_ice_wraith", "glacial_spike"],
+        "4": ["ice_nova", "summon_ice_wraith", "glacial_spike", "enrage"]
+      },
+      "summon_pool": ["ice_wraith", "frost_lobber"],
+      "summon_count": [0, 2, 3, 4],
+      "summon_interval": 9.0,
+      "enrage": { "attack_interval_mult": 0.6, "damage_mult": 1.3 },
+      "phase_damage_mult": [1.0, 1.1, 1.2, 1.35],
+      "new_skills_required": ["ice_nova", "summon_ice_wraith", "glacial_spike"],
+      "risk": "⚠️ 这 3 个技能名若不同批接线，就会重演 bone_slam / fireball 的死数据问题（本步确立的第二条判据）。",
+      "use_case": "未来扩章 / 替换 ch3_l20 的 BOSS"
+    }
+  },
+
+  "work_orders": [
+    { "id": "W5-5", "priority": "P1", "file": "enemy_base.gd (_cast_boss_skill)", "change": "补 bone_slam（扇形重击）/ fireball（直线投射物）/ enrage（视觉表现）" },
+    { "id": "W5-6", "priority": "P1", "file": "data/bosses/bosses.json + data/monsters/monsters.json", "change": "2 个 BOSS 差异化（summon_count / enrage 阶段）；boss_bone_tyrant 的 level_max 7→20（⚠️ level 字段在 monsters.json）" }
+  ],
+
+  "batch_rule": {
+    "must_batch": ["W5-5", "W5-6"],
+    "reason": "只改 summon_count/enrage 阶段（W5-6）而 skill 未接线（W5-5）⇒ 差异化只体现在倍率上，玩家仍看不到 bone_slam / fireball ⇒ 改了等于没改。"
+  },
+
+  "asset_orders": {
+    "new_fx": [
+      { "file": "fx_bone_slam.png", "size": "64x64", "frames": 4, "for": "bone_slam 扇形重击" },
+      { "file": "fx_enrage_flash.png", "size": "全屏叠加", "frames": 4, "for": "enrage 狂暴表现" }
+    ],
+    "new_boss_sprite": {
+      "id": "boss_frost_monarch",
+      "frames": 84,
+      "note": "仅扩章时制作（execute=false）",
+      "spec": "同怪物精灵：char_<id>_<action>_<dir>_<NN>.png，4 方向 × 21 帧；BOSS 用 256x256"
+    }
+  },
+
+  "assertions_for_checker": [
+    { "id": "B1", "check": "所有 phase_skills 里出现的技能名都在 enemy_base.gd 有消费分支", "now": "5/7（bone_slam/fireball 死数据）", "target": "7/7" },
+    { "id": "B2", "check": "enrage 有独立视觉表现（非仅倍率）", "now": false, "target": true },
+    { "id": "B3", "check": "2 个 BOSS 的阶段技能结构不完全相同", "now": true, "target": true, "note": "结构本来就不同（技能名不同），真正的判据是『behavior 是否不同』" },
+    { "id": "B4", "check": "boss_bone_tyrant.level_max ≥ 使用它的最高关卡等级(20)", "now": "7 < 20 ❌", "target": true },
+    { "id": "B5", "check": "boss_ember_lord.level_min ≤ 使用它的最低关卡等级(13)", "now": "19 > 13 ❌", "target": true },
+    { "id": "B6", "check": "2 个 BOSS 的 summon_count 序列不相同", "now": false, "target": true }
+  ],
+
+  "open_questions": [
+    {
+      "id": "Q_boss_level_source",
+      "question": "BOSS 的实际等级从哪来？",
+      "options": [
+        { "key": "from_level", "desc": "按所在关卡的 level 覆盖 ⇒ 终局 BOSS 有 L20 强度（推荐）" },
+        { "key": "from_boss", "desc": "按 monsters.json 的 level_min/max ⇒ ch3_l20 的 BOSS 只有 L7 强度（现症状）" }
+      ],
+      "impact": "决定 ch3_l20 是「终局战斗」还是「打一个 L7 沙包」，是本步最需要工程侧确认的一项。"
+    }
+  ]
+}

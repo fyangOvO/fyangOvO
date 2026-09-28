@@ -1,0 +1,487 @@
+{
+ "_meta": {
+  "name": "04-monster-budget",
+  "step": 4,
+  "topic": "关卡预算与关卡XP的现状↔目标对照",
+  "generated": "2026-09-24",
+  "note": "current = 工程实测（chapter*.json 实读）；target = 路线A（§3.1+§3.4）提预算值(120→440)，落点按路线A重标推荐等级。",
+  "constraints": [
+   "total_monster_budget 被 verify_metrics.gd:342 断言绑定，改动需同批更新该断言",
+   "手绘关卡 'm' 标记数不得超该关 Σcount_max（level_generator.gd:385-390），超则整关不可玩",
+   "target budget 曲线严格单调递增（消除 ch2/ch3 开头的倒挂）",
+   "路线A：reward_xp 维持现值不变（不提），账号上限降至20，recommended_player_level 按实际落点+1 重标"
+  ],
+  "decision_2026_09_24": {
+   "date": "2026-09-24",
+   "user_rulings": {
+    "D1": "路线A · 提预算（不采用路线C的XP形状重排）",
+    "D1_patch": "提预算 + 降等级上限（用户原话22；实测按20落地，见 account_level 段）",
+    "D2": "hp_growth=1.12 / dmg_growth=1.12（同值 ⇒ 相对强度恒定）",
+    "D3": "掉落改 clamp + 装备池提上限（上限对齐 D1，取22，非60）",
+    "D4": "预算曲线按章节梯度（120→440，均值283.0）",
+    "D5": "三项新增设计数值照 §4 落地"
+   },
+   "route_A_landing_trio": [
+    "W2(关卡XP/预算)",
+    "W10(MAX_ACCOUNT_LEVEL 60→20)",
+    "W11(recommended_player_level 重标)"
+   ],
+   "route_A_note": "关卡reward_xp是账号等级XP唯一来源；怪物击杀XP只进局内等级 ⇒ 只提预算不修落差（仍 -3→+19）"
+  }
+ },
+ "summary": {
+  "current": {
+   "budget_total": 1199,
+   "budget_avg": 60.0,
+   "xp_total": 148600,
+   "final_level": 19,
+   "final_gap": 19,
+   "gap_curve": "第1关 -3 -> 第20关 +19（单调恶化）",
+   "vs_gdd_269_per_level": "60.0/关 = GDD 269 的 22.3%"
+  },
+  "target": {
+   "budget_total": 5660,
+   "budget_avg": 283.0,
+   "xp_total": 856500,
+   "final_level": 38,
+   "final_gap": 0,
+   "gap_curve": "第1关 -3 -> 第20关 0（全程收敛）",
+   "vs_gdd_269_per_level": "283.0/关 = GDD 269 的 105.2%"
+  },
+  "xp_multiplier": 5.76,
+  "budget_multiplier": 4.72,
+  "sawtooth_current": [
+   {
+    "after": "ch1_l06(66)",
+    "next": "ch2_l07(54)",
+    "drop": 12
+   },
+   {
+    "after": "ch2_l13(66)",
+    "next": "ch3_l14(58)",
+    "drop": 8
+   }
+  ],
+  "route_A": {
+   "budget_total": 5660,
+   "budget_avg": 283.0,
+   "reward_xp_total": 148600,
+   "reward_xp_changed": false,
+   "account_max_level": 20,
+   "recommended_level_range": [
+    5,
+    20
+   ],
+   "final_gap": 1,
+   "gap_curve": "第1关 +1 -> 第20关 +1（全程收敛，恒+1）",
+   "landing_trio": [
+    "W2",
+    "W10",
+    "W11"
+   ],
+   "must_be_batched": true
+  }
+ },
+ "levels": [
+  {
+   "id": "ch1_l01",
+   "chapter": 1,
+   "monster_level": 1,
+   "recommended_player_level": 1,
+   "current": {
+    "total_monster_budget": 40,
+    "reward_xp": 2500,
+    "cum_xp": 2500,
+    "reached_level": 4,
+    "gap": -3
+   },
+   "target": {
+    "total_monster_budget": 120,
+    "reward_xp": 2500,
+    "cum_xp": 2500,
+    "reached_level": 4,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch1_l02",
+   "chapter": 1,
+   "monster_level": 2,
+   "recommended_player_level": 2,
+   "current": {
+    "total_monster_budget": 50,
+    "reward_xp": 2800,
+    "cum_xp": 5300,
+    "reached_level": 5,
+    "gap": -3
+   },
+   "target": {
+    "total_monster_budget": 140,
+    "reward_xp": 2500,
+    "cum_xp": 5000,
+    "reached_level": 5,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch1_l03",
+   "chapter": 1,
+   "monster_level": 3,
+   "recommended_player_level": 4,
+   "current": {
+    "total_monster_budget": 55,
+    "reward_xp": 3100,
+    "cum_xp": 8400,
+    "reached_level": 6,
+    "gap": -2
+   },
+   "target": {
+    "total_monster_budget": 160,
+    "reward_xp": 4500,
+    "cum_xp": 9500,
+    "reached_level": 7,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch1_l04",
+   "chapter": 1,
+   "monster_level": 4,
+   "recommended_player_level": 5,
+   "current": {
+    "total_monster_budget": 58,
+    "reward_xp": 3400,
+    "cum_xp": 11800,
+    "reached_level": 7,
+    "gap": -2
+   },
+   "target": {
+    "total_monster_budget": 175,
+    "reward_xp": 6000,
+    "cum_xp": 15500,
+    "reached_level": 8,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch1_l05",
+   "chapter": 1,
+   "monster_level": 5,
+   "recommended_player_level": 7,
+   "current": {
+    "total_monster_budget": 62,
+    "reward_xp": 3700,
+    "cum_xp": 15500,
+    "reached_level": 8,
+    "gap": -1
+   },
+   "target": {
+    "total_monster_budget": 190,
+    "reward_xp": 9000,
+    "cum_xp": 24500,
+    "reached_level": 10,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch1_l06",
+   "chapter": 1,
+   "monster_level": 6,
+   "recommended_player_level": 8,
+   "current": {
+    "total_monster_budget": 66,
+    "reward_xp": 4000,
+    "cum_xp": 19500,
+    "reached_level": 9,
+    "gap": -1
+   },
+   "target": {
+    "total_monster_budget": 210,
+    "reward_xp": 11000,
+    "cum_xp": 35500,
+    "reached_level": 11,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch2_l07",
+   "chapter": 2,
+   "monster_level": 7,
+   "recommended_player_level": 10,
+   "current": {
+    "total_monster_budget": 54,
+    "reward_xp": 4500,
+    "cum_xp": 24000,
+    "reached_level": 9,
+    "gap": 1
+   },
+   "target": {
+    "total_monster_budget": 230,
+    "reward_xp": 15500,
+    "cum_xp": 51000,
+    "reached_level": 13,
+    "gap": -3
+   }
+  },
+  {
+   "id": "ch2_l08",
+   "chapter": 2,
+   "monster_level": 8,
+   "recommended_player_level": 12,
+   "current": {
+    "total_monster_budget": 56,
+    "reward_xp": 5000,
+    "cum_xp": 29000,
+    "reached_level": 10,
+    "gap": 2
+   },
+   "target": {
+    "total_monster_budget": 250,
+    "reward_xp": 20000,
+    "cum_xp": 71000,
+    "reached_level": 14,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch2_l09",
+   "chapter": 2,
+   "monster_level": 9,
+   "recommended_player_level": 14,
+   "current": {
+    "total_monster_budget": 58,
+    "reward_xp": 5600,
+    "cum_xp": 34600,
+    "reached_level": 11,
+    "gap": 3
+   },
+   "target": {
+    "total_monster_budget": 265,
+    "reward_xp": 25500,
+    "cum_xp": 96500,
+    "reached_level": 16,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch2_l10",
+   "chapter": 2,
+   "monster_level": 10,
+   "recommended_player_level": 16,
+   "current": {
+    "total_monster_budget": 60,
+    "reward_xp": 6300,
+    "cum_xp": 40900,
+    "reached_level": 12,
+    "gap": 4
+   },
+   "target": {
+    "total_monster_budget": 280,
+    "reward_xp": 31000,
+    "cum_xp": 127500,
+    "reached_level": 18,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch2_l11",
+   "chapter": 2,
+   "monster_level": 11,
+   "recommended_player_level": 18,
+   "current": {
+    "total_monster_budget": 62,
+    "reward_xp": 7000,
+    "cum_xp": 47900,
+    "reached_level": 12,
+    "gap": 6
+   },
+   "target": {
+    "total_monster_budget": 295,
+    "reward_xp": 37000,
+    "cum_xp": 164500,
+    "reached_level": 20,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch2_l12",
+   "chapter": 2,
+   "monster_level": 12,
+   "recommended_player_level": 20,
+   "current": {
+    "total_monster_budget": 64,
+    "reward_xp": 7800,
+    "cum_xp": 55700,
+    "reached_level": 13,
+    "gap": 7
+   },
+   "target": {
+    "total_monster_budget": 310,
+    "reward_xp": 43000,
+    "cum_xp": 207500,
+    "reached_level": 22,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch2_l13",
+   "chapter": 2,
+   "monster_level": 13,
+   "recommended_player_level": 22,
+   "current": {
+    "total_monster_budget": 66,
+    "reward_xp": 9500,
+    "cum_xp": 65200,
+    "reached_level": 14,
+    "gap": 8
+   },
+   "target": {
+    "total_monster_budget": 325,
+    "reward_xp": 50000,
+    "cum_xp": 257500,
+    "reached_level": 24,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch3_l14",
+   "chapter": 3,
+   "monster_level": 14,
+   "recommended_player_level": 24,
+   "current": {
+    "total_monster_budget": 58,
+    "reward_xp": 8500,
+    "cum_xp": 73700,
+    "reached_level": 15,
+    "gap": 9
+   },
+   "target": {
+    "total_monster_budget": 340,
+    "reward_xp": 57000,
+    "cum_xp": 314500,
+    "reached_level": 26,
+    "gap": -2
+   }
+  },
+  {
+   "id": "ch3_l15",
+   "chapter": 3,
+   "monster_level": 15,
+   "recommended_player_level": 26,
+   "current": {
+    "total_monster_budget": 60,
+    "reward_xp": 9500,
+    "cum_xp": 83200,
+    "reached_level": 15,
+    "gap": 11
+   },
+   "target": {
+    "total_monster_budget": 355,
+    "reward_xp": 64500,
+    "cum_xp": 379000,
+    "reached_level": 27,
+    "gap": -1
+   }
+  },
+  {
+   "id": "ch3_l16",
+   "chapter": 3,
+   "monster_level": 16,
+   "recommended_player_level": 28,
+   "current": {
+    "total_monster_budget": 62,
+    "reward_xp": 10600,
+    "cum_xp": 93800,
+    "reached_level": 16,
+    "gap": 12
+   },
+   "target": {
+    "total_monster_budget": 370,
+    "reward_xp": 72500,
+    "cum_xp": 451500,
+    "reached_level": 29,
+    "gap": -1
+   }
+  },
+  {
+   "id": "ch3_l17",
+   "chapter": 3,
+   "monster_level": 17,
+   "recommended_player_level": 30,
+   "current": {
+    "total_monster_budget": 64,
+    "reward_xp": 11800,
+    "cum_xp": 105600,
+    "reached_level": 17,
+    "gap": 13
+   },
+   "target": {
+    "total_monster_budget": 385,
+    "reward_xp": 81000,
+    "cum_xp": 532500,
+    "reached_level": 31,
+    "gap": -1
+   }
+  },
+  {
+   "id": "ch3_l18",
+   "chapter": 3,
+   "monster_level": 18,
+   "recommended_player_level": 32,
+   "current": {
+    "total_monster_budget": 66,
+    "reward_xp": 13000,
+    "cum_xp": 118600,
+    "reached_level": 18,
+    "gap": 14
+   },
+   "target": {
+    "total_monster_budget": 400,
+    "reward_xp": 89500,
+    "cum_xp": 622000,
+    "reached_level": 33,
+    "gap": -1
+   }
+  },
+  {
+   "id": "ch3_l19",
+   "chapter": 3,
+   "monster_level": 19,
+   "recommended_player_level": 35,
+   "current": {
+    "total_monster_budget": 68,
+    "reward_xp": 14200,
+    "cum_xp": 132800,
+    "reached_level": 18,
+    "gap": 17
+   },
+   "target": {
+    "total_monster_budget": 420,
+    "reward_xp": 109000,
+    "cum_xp": 731000,
+    "reached_level": 35,
+    "gap": 0
+   }
+  },
+  {
+   "id": "ch3_l20",
+   "chapter": 3,
+   "monster_level": 20,
+   "recommended_player_level": 38,
+   "current": {
+    "total_monster_budget": 70,
+    "reward_xp": 15800,
+    "cum_xp": 148600,
+    "reached_level": 19,
+    "gap": 19
+   },
+   "target": {
+    "total_monster_budget": 440,
+    "reward_xp": 125500,
+    "cum_xp": 856500,
+    "reached_level": 38,
+    "gap": 0
+   }
+  }
+ ]
+}

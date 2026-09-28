@@ -1,0 +1,153 @@
+{
+  "version": "1.0",
+  "_meta": {
+    "step": 6,
+    "topic": "深渊副本（Abyss）—— 3 副本 × 3 房间 + 票/钥匙分级消耗",
+    "status": "已拍板（S1 / S6 · 2026-09-24）",
+    "impact_level": "🟠 中",
+    "_note": "与爬塔共用关卡容器与结算挂点（见 06-tower.json），差异只在「固定 3 房间 + 独立产出池 + 独立专属词缀」。"
+  },
+
+  "decisions": {
+    "S1": { "decision": "深渊 3 个（对应三章主题）", "count": 3 },
+    "S6": {
+      "decision": "3 副本 × 3 房间；票 ×2 / 票 ×3 / 钥匙 ×1；无次数限制",
+      "rooms_per_dungeon": 3,
+      "costs": [
+        { "dungeon": "abyss_verdant", "item": "ticket_normal", "amount": 2 },
+        { "dungeon": "abyss_molten",  "item": "ticket_normal", "amount": 3 },
+        { "dungeon": "abyss_throne",  "item": "key_advanced",  "amount": 1 }
+      ],
+      "repeatable": true,
+      "attempt_limit": null,
+      "_attempt_note": "**无每日/每周次数限制** —— 纯门票驱动。避免引入需要真实时间感的系统（与纯单机基调不符）。"
+    }
+  },
+
+  "dungeons": [
+    {
+      "id": "abyss_verdant",
+      "display_name": "幽林深渊",
+      "chapter": 1,
+      "theme_source": "第一章 幽林 —— 复用既有章节美术色，素材零额外设计",
+      "ambient_color": "#2A3A2E",
+      "base_monster_level": 5,
+      "monster_level_range": [4, 6],
+      "difficulty_tier": 1,
+      "entry_cost": { "item": "ticket_normal", "amount": 2 },
+      "recommended_player_level": 5,
+      "rooms": [
+        { "room": 1, "role": "进",   "objective": "clear_all", "budget": 40, "reward_xp": 3000, "reward_gold": [120, 200],  "reward_equipment": 1 },
+        { "room": 2, "role": "中",   "objective": "kill_elite", "budget": 50, "reward_xp": 4000, "reward_gold": [180, 300],  "reward_equipment": 1 },
+        { "room": 3, "role": "BOSS", "objective": "kill_boss", "budget": 60, "reward_xp": 6500, "reward_gold": [400, 640],  "reward_equipment": 2, "boss_id": "boss_bone_tyrant", "boss_variant": "summon" }
+      ],
+      "layout": { "seed_mode": "fixed", "_seed_formula": "seed = 7000 + room_no（7001–7003）" },
+      "exclusive_affix_ids": ["abyss_verdant_01", "abyss_verdant_02", "abyss_verdant_03", "abyss_verdant_04"],
+      "drop_table": { "rarity_weights_override": ["common", "magic", "rare", "epic", "legendary", "mythic", "set", "hidden", "special_abyss"], "_note": "深渊专属表 —— 见 § drop_tables" }
+    },
+    {
+      "id": "abyss_molten",
+      "display_name": "熔岩深渊",
+      "chapter": 2,
+      "theme_source": "第二章 熔岩 —— 复用既有章节美术色",
+      "ambient_color": "#3A2418",
+      "base_monster_level": 10,
+      "monster_level_range": [9, 12],
+      "difficulty_tier": 2,
+      "entry_cost": { "item": "ticket_normal", "amount": 3 },
+      "recommended_player_level": 10,
+      "rooms": [
+        { "room": 1, "role": "进",   "objective": "clear_all",  "budget": 54, "reward_xp": 5600, "reward_gold": [220, 340], "reward_equipment": 1 },
+        { "room": 2, "role": "中",   "objective": "survive",    "budget": 60, "reward_xp": 7000, "reward_gold": [300, 460], "reward_equipment": 1 },
+        { "room": 3, "role": "BOSS", "objective": "kill_boss",  "budget": 66, "reward_xp": 11000, "reward_gold": [640, 1000], "reward_equipment": 2, "boss_id": "boss_ember_lord", "boss_variant": "spell" }
+      ],
+      "layout": { "seed_mode": "fixed", "_seed_formula": "seed = 7100 + room_no（7101–7103）" },
+      "exclusive_affix_ids": ["abyss_molten_01", "abyss_molten_02", "abyss_molten_03", "abyss_molten_04"],
+      "drop_table": { "rarity_weights_override": ["common", "magic", "rare", "epic", "legendary", "mythic", "set", "hidden", "special_abyss"], "_note": "深渊专属表" }
+    },
+    {
+      "id": "abyss_throne",
+      "display_name": "王庭深渊",
+      "chapter": 3,
+      "theme_source": "第三章 王庭 —— 复用既有章节美术色",
+      "ambient_color": "#2A2436",
+      "base_monster_level": 16,
+      "monster_level_range": [15, 20],
+      "difficulty_tier": 3,
+      "entry_cost": { "item": "key_advanced", "amount": 1 },
+      "recommended_player_level": 16,
+      "rooms": [
+        { "room": 1, "role": "进",   "objective": "kill_elite", "budget": 62, "reward_xp": 12000, "reward_gold": [480, 720],  "reward_equipment": 1 },
+        { "room": 2, "role": "中",   "objective": "clear_all",  "budget": 68, "reward_xp": 15000, "reward_gold": [620, 940],  "reward_equipment": 1 },
+        { "room": 3, "role": "BOSS", "objective": "kill_boss",  "budget": 76, "reward_xp": 22000, "reward_gold": [1100, 1700], "reward_equipment": 3, "boss_id": "boss_bone_tyrant", "boss_variant": "summon" }
+      ],
+      "layout": { "seed_mode": "fixed", "_seed_formula": "seed = 7200 + room_no（7201–7203）" },
+      "exclusive_affix_ids": ["abyss_throne_01", "abyss_throne_02", "abyss_throne_03", "abyss_throne_04"],
+      "drop_table": { "rarity_weights_override": ["common", "magic", "rare", "epic", "legendary", "mythic", "set", "hidden", "special_abyss"], "_note": "深渊专属表 — 唯一产出 special_abyss 档" }
+    }
+  ],
+
+  "drop_tables": {
+    "_note": "深渊**不复用** monster_loot_tables.json，用专属表 —— 但表结构完全一致（10 位 rarity_weights）。",
+    "_critical": "⚠️ 深渊表是**唯一**产出 `special_abyss`(8) 档的入口；爬塔表是唯一产出 `special_tower`(9) 档的入口。两表都必须显式覆盖 8 或 9 档，否则**特殊档永远不会掉落**（且无报错）。",
+    "tables": [
+      {
+        "id": "abyss_normal",
+        "applies_to": "深渊房间 1–2（普通怪）",
+        "rarity_weights": [70.00, 20.00, 6.50, 1.60, 0.50, 0.15, 1.00, 0.05, 0.20, 0.00],
+        "_sum": 100.00,
+        "_note": "第 9 位（special_tower）为 0 —— 深渊不掉塔装。"
+      },
+      {
+        "id": "abyss_boss",
+        "applies_to": "深渊房间 3（BOSS）",
+        "rarity_weights": [25.00, 30.00, 22.00, 12.00, 5.00, 1.50, 3.00, 0.20, 1.30, 0.00],
+        "_sum": 100.00,
+        "_note": "BOSS 表把 weight 大幅推向高稀有度；special_abyss 1.30% 是**深渊装主产出**。"
+      }
+    ]
+  },
+
+  "eng_patch": {
+    "items": [
+      { "site": "hub.gd:22-31", "action": "新增 `PANEL_ABYSS := \"abyss\"` 常量", "risk": "🟡 三处同步" },
+      { "site": "hub.gd:30-32 PANEL_IDS", "action": "追加 PANEL_ABYSS", "risk": "🟡" },
+      { "site": "hub.gd:33-39 PANEL_TITLES", "action": "追加标题「深渊」", "risk": "🟢" },
+      { "site": "hub.gd:289-308 _ensure_panel", "action": "match 追加 `PANEL_ABYSS:` 分支", "risk": "🔴 漏 match ⇒ 面板点开无反应" },
+      { "site": "data/levels/（新增）", "action": "新增 9 条深渊房间数据（3 副本 × 3 房间，建议独立文件 `data/levels/abyss.json`）", "risk": "🟠" },
+      { "site": "ConfigLoader 关卡加载", "action": "需让深渊数据被加载（当前只扫 chapter1-3）", "risk": "🔴 只加文件不改加载器 ⇒ 深渊完全不存在（静默）" },
+      { "site": "data/loot_tables/（新增）", "action": "新增 `abyss_loot_tables.json`（2 张表，结构同 monster_loot_tables）", "risk": "🔴 表长度必须 10，否则 verify_loot_tables.gd:85 断言失败" },
+      { "site": "loot_roller.gd", "action": "需支持「按副本取专属表」（当前只按怪物类型取表）", "risk": "🟠" }
+    ]
+  },
+
+  "room_role_semantics": {
+    "_note": "3 房间 = 「铺垫 → 高潮 → BOSS」的最小完整叙事单元。",
+    "rows": [
+      { "role": "进", "design_intent": "低压力铺开，让玩家熟悉本次深渊的怪物组合", "objective_preference": "clear_all / kill_elite" },
+      { "role": "中", "design_intent": "抬升张力，用不同目标类型制造节奏差异", "objective_preference": "survive / collect / clear_all" },
+      { "role": "BOSS", "design_intent": "终点战，二阶段 BOSS + 最高产出", "objective_preference": "kill_boss" }
+    ],
+    "_warn": "⚠️ 三个房间的 `objective` 不应全同 —— 若全是 `clear_all`，深渊会退化成「打三波怪」，与普通关卡无差异。上表已刻意让每副本至少含 2 种目标类型。"
+  },
+
+  "assertions_for_checker": [
+    { "id": "AB1", "desc": "dungeons 长度 == 3，id 唯一，chapter 分别为 1/2/3" },
+    { "id": "AB2", "desc": "每个副本 rooms 长度 == 3 且 room 序号为 1/2/3" },
+    { "id": "AB3", "desc": "每个副本的 entry_cost 与 decisions.S6.costs 一致" },
+    { "id": "AB4", "desc": "消耗分级：副本 1 = 票 ×2、副本 2 = 票 ×3、副本 3 = 钥匙 ×1（票数递增后换钥匙）" },
+    { "id": "AB5", "desc": "每个副本 room 3 为 kill_boss 且含 boss_id" },
+    { "id": "AB6", "desc": "每个副本房间 objective 至少 2 种不同值（防退化成「打三波怪」）" },
+    { "id": "AB7", "desc": "每个副本 exclusive_affix_ids 长度 == 4，3 副本共 12 条" },
+    { "id": "AB8", "desc": "12 条专属词缀 id 全局唯一且不与塔的 6 条冲突" },
+    { "id": "AB9", "desc": "drop_tables.tables 共 2 张，rarity_weights 长度均为 10" },
+    { "id": "AB10", "desc": "2 张深渊表的 rarity_weights 各自和 == 100（±0.001）" },
+    { "id": "AB11", "desc": "深渊表第 9 位（special_tower）均为 0（深渊不掉塔装）" },
+    { "id": "AB12", "desc": "abyss_boss 表第 8 位（special_abyss）> 0（否则深渊装永不掉落）" },
+    { "id": "AB13", "desc": "repeatable == true 且 attempt_limit == null（无次数限制）" },
+    { "id": "AB14", "desc": "layout.seed_mode == \"fixed\" 且层数据不含 layout.cells" },
+    { "id": "AB15", "desc": "monster_level_range 落在 [1, 20] 且 lo <= hi" },
+    { "id": "AB16", "desc": "eng_patch 已登记 `hub.gd` 三处同步 + ConfigLoader 加载器改造" },
+    { "id": "AB17", "desc": "eng_patch 已登记「rarity_weights 长度必须 10」，关联 verify_loot_tables.gd:85 硬编码" }
+  ]
+}

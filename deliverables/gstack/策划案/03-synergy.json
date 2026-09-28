@@ -1,0 +1,159 @@
+{
+ "_meta": {
+  "version": 1,
+  "step": 3,
+  "date": "2026-09-24",
+  "purpose": "装备 × 技能联动矩阵：6 条联动线 + 3 组天然流派",
+  "docs": "03-装备特色玩法.md §4"
+ },
+ "lines": [
+  {
+   "id": "L1",
+   "name": "元素强化",
+   "equip_field": "elemental_damage",
+   "skill_field": "SkillData.element",
+   "rule": "elem_mult 按技能元素取通用元素加成；physical 技能不吃",
+   "hook": "DamageCalc.compute_hit 第5形参",
+   "current": "硬编码 0.0",
+   "landing": [
+    "skill_controller.gd:168",
+    "player_controller.gd:945"
+   ],
+   "hook_status": "dead",
+   "from_step": 2,
+   "workorder": "X1"
+  },
+  {
+   "id": "L2",
+   "name": "技能等级",
+   "equip_field": "skill_level",
+   "skill_field": "SkillData.level(缺失)",
+   "rule": "倍率 = multiplier x (1+0.08x(level-1))",
+   "hook": "skill_controller.gd:161 裸 data.multiplier",
+   "current": "SkillData 无 level 字段",
+   "landing": [
+    "skill_data.gd",
+    "stat_calculator.gd FINAL_KEYS",
+    "skill_controller.gd:161"
+   ],
+   "hook_status": "dead",
+   "from_step": 2,
+   "workorder": "X2",
+   "blocked_by": "第一步未实现技能等级系统"
+  },
+  {
+   "id": "L3",
+   "name": "冷却缩减",
+   "equip_field": "cooldown_reduction",
+   "skill_field": "SkillData.cooldown",
+   "rule": "实际CD = cooldown x (1-cdr/100)，clamp >= 0.2s",
+   "hook": "_cooldowns[id] = data.cooldown",
+   "current": "裸赋值",
+   "landing": [
+    "skill_controller.gd:116"
+   ],
+   "hook_status": "dead",
+   "from_step": 2,
+   "workorder": "X3",
+   "redline": "cdr 上限 60%"
+  },
+  {
+   "id": "L4",
+   "name": "耗蓝缩减",
+   "equip_field": "skill_cost_reduction",
+   "skill_field": "SkillData.mana_cost",
+   "rule": "实际耗蓝 = mana_cost x (1-scr/100)，clamp >= 0",
+   "hook": "mana.try_spend(data.mana_cost)",
+   "current": "裸扣",
+   "landing": [
+    "skill_controller.gd:113"
+   ],
+   "hook_status": "dead",
+   "from_step": 2,
+   "workorder": "X4",
+   "redline": "clamp >= 0 防负耗蓝回蓝"
+  },
+  {
+   "id": "L5",
+   "name": "触发型联动",
+   "equip_field": "legendary_effect_id",
+   "skill_field": "技能施放/暴击事件",
+   "rule": "技能行为触发装备特效",
+   "hook": "EventBus 三信号 -> LegendaryBus -> on_event",
+   "landing": [
+    "legendary_bus.gd(新建)"
+   ],
+   "hook_status": "not_implemented",
+   "from_step": 3,
+   "workorder": "K1/K4"
+  },
+  {
+   "id": "L6",
+   "name": "召唤物联动",
+   "equip_field": "effect.summon",
+   "skill_field": "summon 技能",
+   "rule": "技能召唤 与 装备召唤 共用一个召唤物系统",
+   "hook": "SummonComponent(新建)",
+   "landing": [
+    "summon_system(新建)"
+   ],
+   "hook_status": "missing_system",
+   "from_step": 3,
+   "workorder": "延后",
+   "skills": [
+    "spirit_wolf",
+    "summon_elemental"
+   ],
+   "effects": [
+    "an_shi_zhou_yin_shu",
+    "qi_chong_hui_xiang_zhi_guan"
+   ]
+  }
+ ],
+ "elemental_affinity": [
+  {
+   "set": "frostbite",
+   "element": "cold",
+   "skills": [
+    "frost_nova",
+    "frost_bolt"
+   ],
+   "class_hint": "法师",
+   "playstyle": "冰霜流"
+  },
+  {
+   "set": "emberpath",
+   "element": "fire",
+   "skills": [
+    "fireball",
+    "meteor",
+    "explosive_arrow"
+   ],
+   "class_hint": "法师/弓手",
+   "playstyle": "火伤流"
+  },
+  {
+   "set": "oathkeeper",
+   "element": null,
+   "skills": [
+    "iron_bulwark",
+    "arcane_shield"
+   ],
+   "class_hint": "战士",
+   "playstyle": "坦克流"
+  }
+ ],
+ "element_scope": {
+  "equip_key": "elemental_damage（第二步 §7.2 定为单一总键）",
+  "skill_elements": [
+   "physical",
+   "fire",
+   "cold",
+   "lightning",
+   "poison",
+   "shadow"
+  ],
+  "rule": "通用元素加成仅对非 physical 技能生效",
+  "decision": "本期不拆 6 个子键（避免口径分裂），见 §九 决策 4"
+ }
+}

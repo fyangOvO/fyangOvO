@@ -1,0 +1,391 @@
+{
+ "_meta": {
+  "version": 1,
+  "step": 3,
+  "date": "2026-09-24",
+  "purpose": "元素体系清单 + 素材需求 + 工单（2026-09-24 用户拍板「拆 6 个子键」并要求元素清单素材入工单）",
+  "decisions": {
+   "element_split": "拆（实际 5 个非物理子键）",
+   "shadow_resist": "必修",
+   "ailment_new": "可延后"
+  },
+  "docs": "03-装备特色玩法.md §4.2（设计）/ §十一（清单+素材+工单）",
+  "asset_path_rule": "UI 图标属路径A(UISkin TEX 表)，必须登记否则取不到；见第二步 §B.1.1"
+ },
+ "elements": [
+  {
+   "index": 0,
+   "key": "physical",
+   "cn": "物理",
+   "const": "ELEMENT_PHYSICAL",
+   "damage_subkey": null,
+   "damage_subkey_note": "不建子键，走 pct_attack",
+   "resist_key": null,
+   "resist_note": "走护甲（armor）",
+   "resist_status": "by_armor",
+   "ailment": null,
+   "ailment_status": "none",
+   "ailment_suggest": "—",
+   "color_suggest": "#D8D8D8 银白",
+   "skills": 9,
+   "sets": [],
+   "effects": []
+  },
+  {
+   "index": 1,
+   "key": "fire",
+   "cn": "火",
+   "const": "ELEMENT_FIRE",
+   "damage_subkey": "elemental_damage_fire",
+   "resist_key": "fire_resist",
+   "resist_status": "exists",
+   "ailment": "burn",
+   "ailment_status": "exists",
+   "ailment_cn": "燃烧",
+   "color_suggest": "#E8603C 橙红",
+   "skills": 3,
+   "sets": [
+    "emberpath"
+   ],
+   "effects": [
+    "jin_shi_ran_po_ren",
+    "chi_yang_lie_yan_xiong",
+    "ta_yan_huo_xing_xue"
+   ]
+  },
+  {
+   "index": 2,
+   "key": "cold",
+   "cn": "冰",
+   "const": "ELEMENT_COLD",
+   "damage_subkey": "elemental_damage_cold",
+   "resist_key": "cold_resist",
+   "resist_status": "exists",
+   "ailment": "slow",
+   "ailment_status": "exists",
+   "ailment_cn": "冰冻/减速",
+   "color_suggest": "#5CC8E8 冰蓝",
+   "skills": 2,
+   "sets": [
+    "frostbite"
+   ],
+   "effects": [
+    "frostbite_slow",
+    "frostbite_burst"
+   ]
+  },
+  {
+   "index": 3,
+   "key": "lightning",
+   "cn": "雷",
+   "const": "ELEMENT_LIGHTNING",
+   "damage_subkey": "elemental_damage_lightning",
+   "resist_key": "lightning_resist",
+   "resist_status": "exists",
+   "ailment": null,
+   "ailment_status": "missing",
+   "ailment_cn": null,
+   "ailment_suggest": "麻痹（攻速 -20%）",
+   "color_suggest": "#F5D040 亮黄",
+   "skills": 2,
+   "sets": [],
+   "effects": [
+    "lie_kong_lei_bao_chui",
+    "feng_bao_lei_jie"
+   ]
+  },
+  {
+   "index": 4,
+   "key": "poison",
+   "cn": "毒",
+   "const": "ELEMENT_POISON",
+   "damage_subkey": "elemental_damage_poison",
+   "resist_key": "poison_resist",
+   "resist_status": "exists",
+   "ailment": "poison",
+   "ailment_status": "exists",
+   "ailment_cn": "中毒",
+   "color_suggest": "#8CC63F 毒绿",
+   "skills": 3,
+   "sets": [],
+   "effects": [
+    "cui_du_she_ya_tao"
+   ]
+  },
+  {
+   "index": 5,
+   "key": "shadow",
+   "cn": "暗影",
+   "const": "ELEMENT_SHADOW",
+   "damage_subkey": "elemental_damage_shadow",
+   "resist_key": "shadow_resist",
+   "resist_status": "MISSING_MUST_FIX",
+   "ailment": null,
+   "ailment_status": "missing",
+   "ailment_cn": null,
+   "ailment_suggest": "虚弱（攻击 -15%）",
+   "color_suggest": "#9B59B6 暗紫",
+   "skills": 4,
+   "sets": [],
+   "effects": []
+  }
+ ],
+ "gaps": [
+  {
+   "id": 1,
+   "gap": "5 个元素伤害子键不存在",
+   "must_fix": true,
+   "workorder": "E1/E2",
+   "impact": "元素专精流派无法建立（拆键的核心）"
+  },
+  {
+   "id": 2,
+   "gap": "shadow_resist 不存在",
+   "must_fix": true,
+   "workorder": "E3/E5",
+   "impact": "暗影伤害对一切目标全额穿透，无装备可挡 ⇒ 破坏平衡"
+  },
+  {
+   "id": 3,
+   "gap": "_RESIST_KEY_BY_ELEMENT 缺 shadow 映射",
+   "must_fix": true,
+   "workorder": "E4",
+   "impact": "get_resist('shadow') 恒返回 0.0"
+  },
+  {
+   "id": 4,
+   "gap": "lightning 无异常状态",
+   "must_fix": false,
+   "workorder": "E8(可选)",
+   "impact": "雷属性攻击不产生异常，建议「麻痹」"
+  },
+  {
+   "id": 5,
+   "gap": "shadow 无异常状态",
+   "must_fix": false,
+   "workorder": "E8(可选)",
+   "impact": "暗影属性攻击不产生异常，建议「虚弱」"
+  }
+ ],
+ "naming": {
+  "element_icon": "elem_<key>_24.png",
+  "resist_icon": "resist_<key>_24.png",
+  "ailment_icon": "ailment_<key>_24.png",
+  "attach_layer": "attach_<key>_32.png",
+  "skill_frame": "skill_frame_<key>_48.png",
+  "affix_badge": "elem_badge_<key>_16.png"
+ },
+ "assets": {
+  "current": 0,
+  "general": [
+   {
+    "item": "元素属性图标",
+    "count": 6,
+    "spec": "24x24",
+    "naming": "elem_<key>_24.png",
+    "priority": "P0"
+   },
+   {
+    "item": "元素伤害数字配色",
+    "count": 6,
+    "spec": "code-only",
+    "naming": "—",
+    "priority": "P0",
+    "note": "改代码配色表，无需贴图"
+   },
+   {
+    "item": "元素抗性图标",
+    "count": 5,
+    "spec": "24x24",
+    "naming": "resist_<key>_24.png",
+    "priority": "P0",
+    "note": "物理走护甲，不需抗性图标"
+   },
+   {
+    "item": "元素异常状态图标",
+    "count": 3,
+    "spec": "24x24",
+    "naming": "ailment_<key>_24.png",
+    "priority": "P1",
+    "note": "燃烧/冰冻/中毒"
+   },
+   {
+    "item": "元素附着覆盖层",
+    "count": 6,
+    "spec": "32x32",
+    "naming": "attach_<key>_32.png",
+    "priority": "P2"
+   },
+   {
+    "item": "元素技能边框",
+    "count": 6,
+    "spec": "48x48",
+    "naming": "skill_frame_<key>_48.png",
+    "priority": "P3",
+    "note": "可复用 slot_*_48 改色"
+   },
+   {
+    "item": "元素专精词缀角标",
+    "count": 5,
+    "spec": "16x16",
+    "naming": "elem_badge_<key>_16.png",
+    "priority": "P3"
+   }
+  ],
+  "general_total": 37,
+  "refined_extra": [
+   {
+    "item": "元素图标分档",
+    "count": 12,
+    "note": "每元素 3 档强度"
+   },
+   {
+    "item": "元素异常状态动画",
+    "count": 12,
+    "note": "3 种现状异常 x 4 帧"
+   },
+   {
+    "item": "新增异常状态图标",
+    "count": 2,
+    "note": "麻痹/虚弱"
+   },
+   {
+    "item": "新增异常状态动画",
+    "count": 8,
+    "note": "2 种 x 4 帧"
+   },
+   {
+    "item": "元素抗性分档",
+    "count": 5,
+    "note": "抵抗/免疫/弱点"
+   },
+   {
+    "item": "元素专精特效",
+    "count": 4
+   }
+  ],
+  "refined_total": 80,
+  "refined_extra_total": 43
+ },
+ "workorders": {
+  "E": [
+   {
+    "id": "E1",
+    "task": "新增 5 个元素伤害子键常量",
+    "file": "game_constants.gd",
+    "verify": "5 常量可用"
+   },
+   {
+    "id": "E2",
+    "task": "元素子键进 stat_calculator direct 表",
+    "file": "stat_calculator.gd:126",
+    "verify": "子键可被装备注入"
+   },
+   {
+    "id": "E3",
+    "task": "新增 STAT_SHADOW_RESIST",
+    "file": "game_constants.gd:1331",
+    "verify": "常量可用",
+    "must": true
+   },
+   {
+    "id": "E4",
+    "task": "_RESIST_KEY_BY_ELEMENT 补 shadow 映射",
+    "file": "player_controller.gd:241",
+    "verify": "get_resist('shadow') 不再恒 0",
+    "must": true
+   },
+   {
+    "id": "E5",
+    "task": "shadow_resist 进 direct 表",
+    "file": "stat_calculator.gd:130",
+    "verify": "抗性可被装备注入",
+    "must": true
+   },
+   {
+    "id": "E6",
+    "task": "元素取键口径接入（专精子键 + 通用总键）",
+    "file": "skill_controller.gd:168 / player_controller.gd:945",
+    "verify": "穿元素装放对应技能伤害提升"
+   },
+   {
+    "id": "E7",
+    "task": "元素伤害飘字配色表",
+    "file": "伤害飘字处",
+    "verify": "6 元素各一色"
+   },
+   {
+    "id": "E8",
+    "task": "（可选）lightning/shadow 异常状态",
+    "file": "game_constants.gd AILMENT_*",
+    "verify": "2 种新异常",
+    "optional": true
+   }
+  ],
+  "M": [
+   {
+    "id": "M1",
+    "task": "元素属性图标 6 张",
+    "output": "assets/ui/elements/elem_*_24.png",
+    "priority": "P0",
+    "depends": "E1"
+   },
+   {
+    "id": "M2",
+    "task": "元素抗性图标 5 张",
+    "output": "assets/ui/elements/resist_*_24.png",
+    "priority": "P0",
+    "depends": "E3/E4"
+   },
+   {
+    "id": "M3",
+    "task": "元素异常状态图标 3 张",
+    "output": "assets/ui/elements/ailment_*_24.png",
+    "priority": "P1"
+   },
+   {
+    "id": "M4",
+    "task": "元素附着覆盖层 6 张",
+    "output": "assets/fx/attach_*_32.png",
+    "priority": "P2"
+   },
+   {
+    "id": "M5",
+    "task": "元素技能边框 6 张",
+    "output": "assets/icons/skills/skill_frame_*_48.png",
+    "priority": "P3"
+   },
+   {
+    "id": "M6",
+    "task": "元素专精词缀角标 5 张",
+    "output": "assets/ui/elements/elem_badge_*_16.png",
+    "priority": "P3",
+    "depends": "E1"
+   },
+   {
+    "id": "M7",
+    "task": "注册进 ui_skin.gd 的 TEX 表",
+    "file": "ui_skin.gd",
+    "must": true,
+    "note": "路径A：表外素材取不到（静默 null）"
+   },
+   {
+    "id": "M8",
+    "task": "verify_ui_assets.gd 补元素素材断言",
+    "file": "tools/verify_ui_assets.gd",
+    "must": true
+   }
+  ]
+ },
+ "summary": {
+  "elements_total": 6,
+  "elements_subkey_needed": 5,
+  "gaps_total": 5,
+  "gaps_must_fix": 3,
+  "assets_current": 0,
+  "assets_general": 37,
+  "assets_refined": 80,
+  "workorders_E": 8,
+  "workorders_M": 8
+ }
+}

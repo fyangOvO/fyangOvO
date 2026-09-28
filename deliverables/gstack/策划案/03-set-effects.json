@@ -1,0 +1,152 @@
+{
+ "_meta": {
+  "version": 1,
+  "step": 3,
+  "date": "2026-09-24",
+  "purpose": "6 个套装 effect_id 的设计定义（当前全部为死 ID，零引用零实现）",
+  "source": "game/data/sets/sets.json（实测：6 个 effect_id 引用数全为 0）",
+  "docs": "03-装备特色玩法.md §3.1",
+  "structure": "复用传奇特效三要素结构，用同一套 LegendaryEffectSystem 结算引擎"
+ },
+ "set_effects": [
+  {
+   "id": "frostbite_slow",
+   "set_id": "frostbite",
+   "set_name": "霜噬",
+   "pieces": 4,
+   "display_name": "霜噬·减速",
+   "theme": "冰霜流",
+   "trigger": {
+    "type": "on_hit"
+   },
+   "effect": {
+    "type": "buff_stat",
+    "stat": "move_speed",
+    "value": -20.0,
+    "duration": 2.0,
+    "target": "enemy"
+   },
+   "cooldown": 0.0,
+   "design": "攻击命中使目标移速 -20%，持续 2 秒（可刷新）",
+   "status": "undefined"
+  },
+  {
+   "id": "frostbite_burst",
+   "set_id": "frostbite",
+   "set_name": "霜噬",
+   "pieces": 6,
+   "display_name": "霜噬·霜爆",
+   "theme": "冰霜流",
+   "trigger": {
+    "type": "on_crit",
+    "require_target_buff": "frostbite_slow"
+   },
+   "effect": {
+    "type": "deal_damage",
+    "damage_pct": 2.0,
+    "element": "cold",
+    "area": true
+   },
+   "cooldown": 3.0,
+   "design": "对已减速目标暴击时引发霜爆，200% 攻击力冰伤范围伤害",
+   "status": "undefined"
+  },
+  {
+   "id": "emberpath_frenzy",
+   "set_id": "emberpath",
+   "set_name": "烬途",
+   "pieces": 4,
+   "display_name": "烬途·狂焰",
+   "theme": "火伤流",
+   "trigger": {
+    "type": "on_hit",
+    "stacks_until": 5
+   },
+   "effect": {
+    "type": "stack",
+    "on_full": {
+     "type": "buff_stat",
+     "stat": "crit_chance",
+     "value": 100.0,
+     "duration": 1.0,
+     "target": "self"
+    }
+   },
+   "cooldown": 0.0,
+   "design": "连续命中叠焰，满 5 层下次攻击必定暴击",
+   "status": "undefined"
+  },
+  {
+   "id": "emberpath_ember",
+   "set_id": "emberpath",
+   "set_name": "烬途",
+   "pieces": 6,
+   "display_name": "烬途·余烬",
+   "theme": "火伤流",
+   "trigger": {
+    "type": "on_kill"
+   },
+   "effect": {
+    "type": "deal_damage",
+    "damage_pct": 1.5,
+    "element": "fire",
+    "area": true,
+    "dot": 0.5,
+    "dot_ticks": 3
+   },
+   "cooldown": 1.0,
+   "design": "击杀点燃周围敌人，150% 攻击力火伤 + 3 跳持续伤害",
+   "status": "undefined"
+  },
+  {
+   "id": "oathkeeper_block_heal",
+   "set_id": "oathkeeper",
+   "set_name": "守誓者",
+   "pieces": 4,
+   "display_name": "守誓·回春",
+   "theme": "坦克流",
+   "trigger": {
+    "type": "on_damage_taken",
+    "pct": 0.25
+   },
+   "effect": {
+    "type": "heal",
+    "heal_pct": 0.04
+   },
+   "cooldown": 0.0,
+   "design": "受到伤害时 25% 概率回复 4% 最大生命",
+   "status": "undefined"
+  },
+  {
+   "id": "oathkeeper_last_stand",
+   "set_id": "oathkeeper",
+   "set_name": "守誓者",
+   "pieces": 6,
+   "display_name": "守誓·背水",
+   "theme": "坦克流",
+   "trigger": {
+    "type": "on_low_hp",
+    "hp_below_pct": 0.3
+   },
+   "effect": {
+    "type": "buff_stat",
+    "stat": "pct_armor",
+    "value": 50.0,
+    "duration": 5.0,
+    "target": "self"
+   },
+   "cooldown": 75.0,
+   "design": "濒死(HP<30%)获得 50% 护甲+攻击加成，持续 5 秒，冷却 75 秒",
+   "status": "undefined"
+  }
+ ],
+ "summary": {
+  "total": 6,
+  "undefined": 6,
+  "sets": [
+   "frostbite",
+   "emberpath",
+   "oathkeeper"
+  ]
+ }
+}

@@ -1,0 +1,215 @@
+{
+  "version": "1.0",
+  "_meta": {
+    "step": 6,
+    "topic": "特殊装备产出（专属词缀 + 唯一性 + 掉落特效映射）",
+    "status": "已拍板（S7 / S12 / Q-a / Q-b / Q-c · 2026-09-24）",
+    "impact_level": "🔴 高",
+    "_note": "本文件是特殊装备的**产出侧**规格：18 条专属词缀、唯一性分组、两档光柱与特效映射、掉落表落点。"
+  },
+
+  "decisions": {
+    "S7": { "decision": "塔 6 条 + 每深渊 4 条 = 18 条专属词缀", "count": 18 },
+    "S12": { "decision": "新增特殊档：SPECIAL_ABYSS=8（深渊装）/ SPECIAL_TOWER=9（塔装）" },
+    "Q-a": { "decision": "不吃越级惩罚" },
+    "Q-b": { "decision": "可以分解（abyss_shard / tower_sigil）" },
+    "Q-c": { "decision": "需要强化 + 半重铸（锁 ≤4）" }
+  },
+
+  "exclusive_affixes": {
+    "_note": "18 条专属词缀。⚠️ 全部必须带 `source` 字段（tower / abyss_verdant / abyss_molten / abyss_throne），供 AffixRoller 做来源过滤与「专属词缀默认锁定」判定。",
+    "_warn": [
+      "⚠️ 现有 `affixes/*.json` 的 `position` 是**字符串** `\"prefix\"` / `\"suffix\"`，不是 0/1。新增条目必须沿用字符串。",
+      "⚠️ 专属词缀**必须新增字段 `source`**（现有词缀无此字段）⇒ `AffixData` 需扩字段，`AffixRoller._collect_candidates` 需加过滤。",
+      "⚠️ 池不需要 `slot`/`rarity` 字段（部位过滤走 `AffixData.allowed_slots` + `fits_slot()`）。但专属词缀的 `min_rarity` 必须设为 8，否则低档装备也会抽到专属词缀。"
+    ],
+    "tower": [
+      { "id": "tower_affix_01", "source": "tower", "position": "prefix", "cn": "登高的", "stat": "move_speed_percent", "range": [6.0, 12.0], "min_rarity": 8, "unlock_step": 1, "_flavor": "塔感 —— 越往上越快" },
+      { "id": "tower_affix_02", "source": "tower", "position": "prefix", "cn": "层叠的", "stat": "damage_percent_per_kill_streak", "range": [1.5, 3.0], "max_stacks": 5, "min_rarity": 8, "unlock_step": 2, "_flavor": "连杀累积 —— 呼应层进" },
+      { "id": "tower_affix_03", "source": "tower", "position": "suffix", "cn": "· 之巅", "stat": "max_hp_percent", "range": [8.0, 14.0], "min_rarity": 8, "unlock_step": 3 },
+      { "id": "tower_affix_04", "source": "tower", "position": "prefix", "cn": "不坠的", "stat": "knockback_resist_percent", "range": [20.0, 35.0], "min_rarity": 8, "unlock_step": 4, "_flavor": "塔上不掉下去" },
+      { "id": "tower_affix_05", "source": "tower", "position": "suffix", "cn": "· 之阶", "stat": "skill_damage_percent", "range": [10.0, 18.0], "min_rarity": 8, "unlock_step": 5 },
+      { "id": "tower_affix_06", "source": "tower", "position": "prefix", "cn": "永恒的", "stat": "cooldown_reduction_percent", "range": [8.0, 15.0], "min_rarity": 8, "unlock_step": 6, "_flavor": "顶层词缀 —— 呼应塔名「永恒之塔」" }
+    ],
+    "abyss_verdant": [
+      { "id": "abyss_verdant_01", "source": "abyss_verdant", "position": "prefix", "cn": "缠根的", "stat": "poison_damage_percent", "range": [12.0, 20.0], "min_rarity": 8 },
+      { "id": "abyss_verdant_02", "source": "abyss_verdant", "position": "suffix", "cn": "· 之荫", "stat": "damage_reduction_percent", "range": [4.0, 8.0], "min_rarity": 8 },
+      { "id": "abyss_verdant_03", "source": "abyss_verdant", "position": "prefix", "cn": "迷雾的", "stat": "evade_percent", "range": [5.0, 10.0], "min_rarity": 8, "_flavor": "呼应第一章「幽林 · 迷雾边缘」" },
+      { "id": "abyss_verdant_04", "source": "abyss_verdant", "position": "suffix", "cn": "· 之息", "stat": "hp_regen_per_sec", "range": [2.0, 5.0], "min_rarity": 8 }
+    ],
+    "abyss_molten": [
+      { "id": "abyss_molten_01", "source": "abyss_molten", "position": "prefix", "cn": "熔铸的", "stat": "fire_damage_percent", "range": [14.0, 24.0], "min_rarity": 8 },
+      { "id": "abyss_molten_02", "source": "abyss_molten", "position": "suffix", "cn": "· 之焰", "stat": "burn_duration_percent", "range": [15.0, 30.0], "min_rarity": 8 },
+      { "id": "abyss_molten_03", "source": "abyss_molten", "position": "prefix", "cn": "焦土的", "stat": "area_damage_percent", "range": [8.0, 15.0], "min_rarity": 8 },
+      { "id": "abyss_molten_04", "source": "abyss_molten", "position": "suffix", "cn": "· 之心", "stat": "max_mp_percent", "range": [10.0, 18.0], "min_rarity": 8, "_flavor": "呼应 BOSS「熔心之主」" }
+    ],
+    "abyss_throne": [
+      { "id": "abyss_throne_01", "source": "abyss_throne", "position": "prefix", "cn": "王权的", "stat": "all_stats_percent", "range": [3.0, 6.0], "min_rarity": 8 },
+      { "id": "abyss_throne_02", "source": "abyss_throne", "position": "suffix", "cn": "· 之冠", "stat": "crit_damage_percent", "range": [12.0, 22.0], "min_rarity": 8 },
+      { "id": "abyss_throne_03", "source": "abyss_throne", "position": "prefix", "cn": "统御的", "stat": "minion_damage_percent", "range": [15.0, 28.0], "min_rarity": 8, "_flavor": "呼应召唤流 build" },
+      { "id": "abyss_throne_04", "source": "abyss_throne", "position": "suffix", "cn": "· 之座", "stat": "shadow_damage_percent", "range": [12.0, 20.0], "min_rarity": 8 }
+    ],
+    "_stats_warning": "🔴 上表 `stat` 字段使用了若干**可能不存在于现有白名单**的键（如 `damage_percent_per_kill_streak` / `knockback_resist_percent` / `burn_duration_percent` / `minion_damage_percent`）。⚠️ **落地前必须先与 `stat_calculator.gd` 的 FINAL_KEYS / 直接键白名单核对**；不在白名单的键会**静默不生效**（本项目「静默失败」第 ⑤ 类：String 类型字段静默脱钩）。建议做法：优先改用**已存在的 stat 键**，只有确实需要时才扩白名单。"
+  },
+
+  "uniqueness": {
+    "_decided": "唯一粒度 = 装备组（`unique_group`）；多存档槽每槽独立；拆解后**不能再掉**。",
+    "group_definition": {
+      "_note": "塔装与深渊装各定义若干「唯一组」。同组内只允许存在 1 件（已获得后不再掉落）。",
+      "tower_groups": [
+        { "group": "tower_relic_weapon", "slot": "weapon", "cn": "永恒之刃", "rarity": 9 },
+        { "group": "tower_relic_armor",  "slot": "armor",  "cn": "永恒之铠", "rarity": 9 },
+        { "group": "tower_relic_jewel",  "slot": "jewelry", "cn": "永恒之环", "rarity": 9 }
+      ],
+      "abyss_groups": [
+        { "group": "abyss_relic_weapon", "slot": "weapon", "cn": "深渊之牙", "rarity": 8 },
+        { "group": "abyss_relic_armor",  "slot": "armor",  "cn": "深渊之壳", "rarity": 8 },
+        { "group": "abyss_relic_jewel",  "slot": "jewelry", "cn": "深渊之瞳", "rarity": 8 }
+      ],
+      "_count": 6
+    },
+    "save_side": {
+      "field": "obtained_unique_groups",
+      "type": "Array[String] 或 Dictionary",
+      "_critical": "🔴 **append-only**：Q-b 裁定「可以分解」⇒ 分解**不释放**唯一标记。若释放 ⇒ 「获得 → 分解 → 再刷」无限重复 ⇒ 与「拆解后不能再掉」自相矛盾。",
+      "_per_slot": "每个存档槽独立维护（不同角色可各自获得）"
+    },
+    "drop_gate": {
+      "_site": "loot_roller 或 _pick_template 之后",
+      "_rule": "若 `template.unique_group` 非空且已在 `obtained_unique_groups` 中 ⇒ **跳过该模板**（重新抽取或本件不产）。",
+      "_warn": "⚠️ 若唯一组内所有模板都已获得 ⇒ 池可能为空 ⇒ 落入 `pool.is_empty(): return null` **静默不掉落**。必须补「唯一组全获得时回退到非唯一模板」的分支。"
+    }
+  },
+
+  "special_tags": {
+    "_note": "装备实例上的来源标记，驱动掉落特效与半重铸的专属词缀锁定。",
+    "rows": [
+      { "tag": "special_abyss", "rarity": 8, "cn": "深渊", "beam_shape": "SPECIAL_PRISM", "beam_shape_index": 8, "beam_height": 48 },
+      { "tag": "special_tower", "rarity": 9, "cn": "塔",   "beam_shape": "SPECIAL_SPIRE", "beam_shape_index": 9, "beam_height": 48 }
+    ],
+    "_instantiation": "由 `EquipmentInstance.rarity` 直接推导，**不需要新增字段**（避免又一个可脱钩的 String 字段）。"
+  },
+
+  "drop_fx": {
+    "_note": "掉落特效链路的**消费侧**规格（链路本身已通，见 §3.6.1）。",
+    "existing_chain": [
+      { "layer": "地面物件", "impl": "稀有度色方块 + 描边", "site": "loot_drop.gd:150-157", "need_change": false },
+      { "layer": "地面光柱", "impl": "RARITY_BEAM_HEIGHTS[rarity] + RARITY_BEAM_SHAPES[rarity]", "site": "game_constants.gd:121/135", "need_change": "扩 2 项" },
+      { "layer": "顶端亮点", "impl": "高出 3px 金字塔", "site": "loot_drop.gd:154-157", "need_change": false },
+      { "layer": "拾取光晕", "impl": "FxTable.spawn(\"pickup_glow\")", "site": "loot_drop.gd:126", "need_change": false },
+      { "layer": "拾取提示", "impl": "PickupToastHUD.spawn(entry)", "site": "pickup_toast.gd:23", "need_change": "加特殊分支" },
+      { "layer": "全局信号", "impl": "EventBus.loot_picked_up / loot_dropped / notification_requested", "site": "event_bus.gd", "need_change": false }
+    ],
+    "new_requirements": [
+      {
+        "id": "FX-1",
+        "layer": "落地演出",
+        "trigger": "LootDrop.setup() 检测 `instance.rarity >= 8`",
+        "content": "光柱爆发 + 地面涟漪 + 音效",
+        "new_fx": "special_drop_burst",
+        "frames": 6,
+        "size": "32×32",
+        "risk": "🟡"
+      },
+      {
+        "id": "FX-2",
+        "layer": "光柱差异（两套）",
+        "trigger": "按 rarity 8 / 9 分别取 shape",
+        "content": "`SPECIAL_PRISM`（深紫+青双向棱镜柱）/ `SPECIAL_SPIRE`（竖塔形分段柱）",
+        "new_enum": "BeamShape 扩 2 项（8 项 → 10 项）",
+        "risk": "🔴 `loot_drop._draw_beam()` **当前未按 shape 分支** ⇒ 只加枚举不画新形状 ⇒ 两档视觉完全相同（静默）"
+      },
+      {
+        "id": "FX-3",
+        "layer": "拾取提示",
+        "trigger": "PickupToastHUD.spawn() 遇到 rarity >= 8",
+        "content": "加前缀「★」+ 存活时间 2.2s → 3.5s + 颜色用新档色",
+        "risk": "🟡"
+      },
+      {
+        "id": "FX-4",
+        "layer": "全局播报",
+        "trigger": "拾取特殊装备",
+        "content": "notification_requested 顶部横幅「获得唯一装备：XXX」",
+        "risk": "🟢 复用既有信号"
+      },
+      {
+        "id": "FX-5",
+        "layer": "死钩子补 emit",
+        "trigger": "特殊装备落地",
+        "content": "`EventBus.rare_loot_spawned(item, position)` 补 emit（**当前 0 个 emit 点**）",
+        "risk": "🟢 但若补了 emit 却无消费者 ⇒ 仍是死钩子；本步 FX-1 即为其消费者"
+      }
+    ],
+    "beam_shape_spec": {
+      "_constraint": "⚠️ 铁律一：**禁止运行时旋转**。两套形状必须在**静态帧**就能区分 —— 差异只能来自「形状 + 颜色 + 分段节奏」，不能靠动画方向。",
+      "rows": [
+        { "idx": 8, "key": "SPECIAL_PRISM", "cn": "三色棱镜柱", "desc": "深紫为主色，青/品红双色分层交替，柱身呈棱镜切面（每 8px 一个切面）", "height": 48 },
+        { "idx": 9, "key": "SPECIAL_SPIRE", "cn": "竖塔形分段柱", "desc": "青白为主色，柱身分 3 段递窄（塔形），每段之间有 2px 暗色分隔", "height": 48 }
+      ],
+      "_distinguish_test": "缩小到 12px 高度后，两者仍可区分（棱镜 = 多色分层；塔 = 单色递窄分段）。"
+    }
+  },
+
+  "asset_orders": {
+    "_note": "本项素材需求（AI 生成 + 精修，落地前须做色板量化）。",
+    "fx": [
+      { "id": "special_drop_burst", "frames": 6, "size": "32×32", "sheets": 1, "note": "特殊装备落地爆发" },
+      { "id": "special_beam_prism", "frames": 1, "size": "8×48", "sheets": 1, "note": "深渊光柱（静态帧）" },
+      { "id": "special_beam_spire", "frames": 1, "size": "8×48", "sheets": 1, "note": "塔光柱（静态帧）" },
+      { "id": "special_ripple", "frames": 5, "size": "48×48", "sheets": 1, "note": "地面涟漪" }
+    ],
+    "_fx_total_frames": 13,
+    "audio": [
+      { "id": "sfx_special_drop", "note": "特殊掉落的「发现」音效，须与既有稀有掉落音效区分（更厚重、带回响尾）" },
+      { "id": "sfx_special_pick", "note": "拾取音效（复用 pickup_glow 音效亦可，建议升级为独立音）" }
+    ],
+    "ui": [
+      { "id": "special_tag_icon_abyss", "size": "12×12", "note": "深渊来源角标" },
+      { "id": "special_tag_icon_tower", "size": "12×12", "note": "塔来源角标" },
+      { "id": "forge_lock_on", "size": "12×12", "note": "半重铸词缀锁定开关（开）" },
+      { "id": "forge_lock_off", "size": "12×12", "note": "半重铸词缀锁定开关（关）" }
+    ],
+    "material_icons": [
+      { "id": "icon_abyss_shard", "size": "16×16", "note": "深渊碎片材料图标" },
+      { "id": "icon_tower_sigil", "size": "16×16", "note": "塔之徽记材料图标" }
+    ],
+    "_palette_warning": "⚠️ 全部新素材（烘焙图像）像素必须落在 `PALETTE_ALL`（铁律一）。两档新色若不在 44 色中，需先扩色板或从既有色中选取。"
+  },
+
+  "eng_patch": {
+    "items": [
+      { "site": "AffixData（新增字段）", "action": "扩 `source: String` 字段", "risk": "🔴 漏扩 ⇒ 专属词缀的来源过滤无法生效（静默：所有装备都可能抽到专属词缀）" },
+      { "site": "AffixRoller._collect_candidates", "action": "加 source 过滤 + 「重抽时排除专属词缀」", "risk": "🔴 Q-c 半重铸的关键" },
+      { "site": "affixes/*.json", "action": "新增 18 条专属词缀（带 source / min_rarity=8）", "risk": "🟠 position 必须用字符串" },
+      { "site": "EquipmentData（新增字段）", "action": "扩 `unique_group: String`", "risk": "🟠" },
+      { "site": "save_data.gd", "action": "新增 `obtained_unique_groups`（append-only）", "risk": "🔴 Q-b：分解不释放" },
+      { "site": "loot_roller.gd", "action": "唯一组门控 + 「全组已获得」回退分支", "risk": "🔴 无回退分支 ⇒ 池空 ⇒ 静默不掉落" },
+      { "site": "game_constants.gd:124-138", "action": "BeamShape 扩 2 项 + RARITY_BEAM_SHAPES 扩 2 项", "risk": "🟡" },
+      { "site": "loot_drop.gd:167-189 _draw_beam", "action": "补 2 种 shape 的绘制分支（当前按高度画，未按 shape 分支）", "risk": "🔴 只扩枚举不改绘制 ⇒ 两档视觉相同" },
+      { "site": "pickup_toast.gd", "action": "spawn() 加 rarity >= 8 分支（前缀 + 延长存活）", "risk": "🟢" },
+      { "site": "event_bus.gd:127", "action": "补 `rare_loot_spawned` 的 emit 点", "risk": "🟢" }
+    ]
+  },
+
+  "assertions_for_checker": [
+    { "id": "SL1", "desc": "exclusive_affixes 共 18 条（塔 6 + 3 副本 × 4）" },
+    { "id": "SL2", "desc": "18 条 id 全局唯一" },
+    { "id": "SL3", "desc": "全部 18 条均带 `source` 字段且值 ∈ {tower, abyss_verdant, abyss_molten, abyss_throne}" },
+    { "id": "SL4", "desc": "全部 18 条 `min_rarity` == 8（否则低档装备会抽到专属词缀）" },
+    { "id": "SL5", "desc": "全部 18 条 `position` ∈ {\"prefix\", \"suffix\"}（字符串，非 0/1）" },
+    { "id": "SL6", "desc": "塔 6 条的 `unlock_step` 为 1..6 各一次" },
+    { "id": "SL7", "desc": "全部 `stat` 键与 stat_calculator 白名单核对已登记为待办（`_stats_warning` 存在）" },
+    { "id": "SL8", "desc": "tower_groups + abyss_groups 共 6 组，group id 唯一" },
+    { "id": "SL9", "desc": "唯一组 slot 覆盖 weapon/armor/jewelry 各 2 组（塔 1 + 深渊 1）" },
+    { "id": "SL10", "desc": "uniqueness.save_side 已标注 append-only（Q-b）" },
+    { "id": "SL11", "desc": "uniqueness.drop_gate 已登记「全组已获得」回退分支（否则池空静默不掉落）" },
+    { "id": "SL12", "desc": "special_tags 共 2 行，rarity 分别 8/9，beam_shape_index 分别 8/9" },
+    { "id": "SL13", "desc": "两档 beam_height 均为 48" },
+    { "id": "SL14", "desc": "drop_fx.new_requirements 共 5 项，FX-5 关联 `rare_loot_spawned` 死钩子" },
+    { "id": "SL15", "desc": "beam_shape_spec 已标注「禁止运行时旋转」约束" },
+    { "id": "SL16", "desc": "eng_patch 已登记 `loot_drop._draw_beam` 需按 shape 分支（🔴 静默风险）" },
+    { "id": "SL17", "desc": "eng_patch 已登记 AffixData 需扩 `source` 字段（🔴 静默风险）" },
+    { "id": "SL18", "desc": "asset_orders 含 fx/audio/ui/material_icons 四类，且已标注色板量化要求" }
+  ]
+}

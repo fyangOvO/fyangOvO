@@ -1,0 +1,196 @@
+{
+  "version": "0.1",
+  "_meta": {
+    "step": 6,
+    "topic": "门票与钥匙体系",
+    "status": "存档落点已拍板（S10 · 2026-09-24）；掉落/价格细则待 S8 / S9",
+    "decided_by": "用户裁定：S10 门票存档落点 = ⓒ 新增 save_data.tickets 字典；门票节奏 = 分级门票"
+  },
+
+  "design": {
+    "principle": "分级门票 —— 低层用普通门票宽松、高层用高级钥匙稀缺（用户拍板）",
+    "two_tier": [
+      {
+        "id": "ticket_normal",
+        "cn": "普通门票",
+        "tier": "low",
+        "usage": "塔 1–15 层 / 深渊副本 1–2",
+        "scarcity": "宽松",
+        "sources": ["关卡过关固定掉落", "精英低概率掉落", "关卡内商人购买"],
+        "suggested_drop": "每关通关固定 +1",
+        "suggested_price_gold": 300
+      },
+      {
+        "id": "key_advanced",
+        "cn": "高级钥匙",
+        "tier": "high",
+        "usage": "塔 16–30 层 / 深渊副本 3",
+        "scarcity": "稀缺",
+        "sources": ["BOSS 关固定掉落", "深渊深层通关返还", "商人高价购买"],
+        "suggested_drop": "BOSS 关固定 +1",
+        "suggested_price_gold": 1200
+      }
+    ],
+    "_design_rationale": [
+      "固定掉落（而非概率）才能让玩家精确规划「打几关能进一次塔」—— 这是门票制玩法的核心体验。",
+      "概率掉落会让「攒票」变成不可预期的等待，挫败感大于惊喜感。",
+      "高级钥匙不做概率掉落以外的产出渠道，保证稀缺性。"
+    ]
+  },
+
+  "save_integration": {
+    "_decided": "S10 = ⓒ 新增 save_data.tickets 字典",
+    "_file": "game/resources/save_data.gd",
+    "new_fields": [
+      {
+        "name": "tickets",
+        "type": "Dictionary",
+        "default": {},
+        "comment": "门票 / 钥匙（第六步 S10 拍板 · 2026-09-24）。键 = 门票 id，值 = 持有数。⚠️ 与 materials / consumables 三套并列独立，禁止混用。"
+      },
+      {
+        "name": "tower_progress",
+        "type": "Dictionary",
+        "default": {},
+        "comment": "爬塔进度（S10 连带）。{highest_unlocked: int, current_layer: int, runs: int, best_layer: int}"
+      }
+    ],
+    "patch_items": [
+      { "seq": 1, "target": "create_new()  (save_data.gd:151-178)", "action": "初始化 tickets = {} / tower_progress = {}（不预置 0 值键，与 consumables = {} 口径一致）", "risk": "🟡" },
+      { "seq": 2, "target": "to_dict()  (save_data.gd:255-286)", "action": "加 \"tickets\": tickets 与 \"tower_progress\": tower_progress", "risk": "🟡" },
+      { "seq": 3, "target": "from_dict()  (save_data.gd:290-335)", "action": "加 out.tickets = data.get(\"tickets\", {}) if data.get(\"tickets\") is Dictionary else {}（同 tower_progress）", "risk": "🟡" },
+      { "seq": 4, "target": "migrate()  (save_data.gd:347-369)", "action": "加 4: 分支：tickets = {} / tower_progress = {} → save_version = 5", "risk": "🟠" },
+      { "seq": 5, "target": "SAVE_VERSION  (game_constants.gd:1289)", "action": "4 → 5", "risk": "🟠" }
+    ],
+    "migration_warning": {
+      "_critical": true,
+      "text": "migrate() 是 while save_version < SAVE_VERSION: match save_version: 结构。若只改 SAVE_VERSION=5 而不加 4: 分支，旧档会走到 _: 兜底分支静默跳过 —— from_dict() 的 .get(\"tickets\", {}) 会给出 {} 默认值，【表面上完全正常】。但后续再引入依赖迁移的字段时会缺少一次升级 ⇒ 必须显式写 4: 分支。"
+    },
+    "read_write_api": {
+      "code": [
+        "func get_ticket(ticket_id: String) -> int:",
+        "    return int(tickets.get(ticket_id, 0))",
+        "",
+        "func add_ticket(ticket_id: String, amount: int) -> bool:",
+        "    var next := get_ticket(ticket_id) + amount",
+        "    if next < 0:",
+        "        return false",
+        "    tickets[ticket_id] = next",
+        "    return true"
+      ],
+      "_style_warning": "⚠️ 风格必须统一：save_data.add_material() 是「不足返回 false 不写入」，而 MaterialBag.add() 对 amount <= 0 直接 return 不报错。两套风格并存，新 API 必须选 save_data 风格，否则会出现「门票扣成负数但没人发现」。"
+    }
+  },
+
+  "acquisition_channels": {
+    "_status": "⏳ 待 S8 / S9 拍板，以下为推荐值",
+    "rows": [
+      {
+        "channel": "关卡通关掉落",
+        "ticket": "ticket_normal",
+        "amount": 1,
+        "random": false,
+        "attach_point": "level_scene.gd:1333-1378 _persist()",
+        "_warn": "⚠️ _persist() 是【结算落盘的唯一挂点】，门票发放必须挂此处（与 res.materials_after 同层）。目前该函数处理 gold / materials_after / bagged_equipment / statistics / account_xp / cleared_levels。"
+      },
+      {
+        "channel": "BOSS 关通关掉落",
+        "ticket": "key_advanced",
+        "amount": 1,
+        "random": false,
+        "attach_point": "同上（按 _level_def.boss_id 非空判定）"
+      },
+      {
+        "channel": "精英掉落",
+        "ticket": "ticket_normal",
+        "amount": 1,
+        "random": true,
+        "chance": 0.15,
+        "attach_point": "LootRoller 的怪物掉落表 —— 需新建一张票专属掉落表或扩 monster_loot_tables"
+      },
+      {
+        "channel": "关卡内商人",
+        "ticket": "ticket_normal / key_advanced",
+        "random": true,
+        "spawn_chance": 0.35,
+        "price_gold": [300, 1200],
+        "attach_point": "run_shop.gd:46-49 generate_stock() + buy() 分支"
+      },
+      {
+        "channel": "据点商人",
+        "ticket": null,
+        "status": "❌ 建议暂不做（需新增面板，成本高于收益）",
+        "note": "见文档 S9"
+      }
+    ]
+  },
+
+  "shop_patch": {
+    "_file": "game/scripts/run/run_shop.gd",
+    "_note": "现 _generate_stock() 硬编码只卖 2 种药水（:46-49），buy() 只处理 equipment / potion 两个 kind。",
+    "current_stock_structure": "{kind, label, price, item/key/amount}",
+    "items": [
+      {
+        "seq": 1,
+        "target": "generate_stock()  (:29-55)",
+        "action": "新增门票商品：以 spawn_chance 概率追加 {\"kind\": \"ticket\", \"ticket_id\": \"ticket_normal\", \"amount\": 1, \"label\": \"普通门票（塔/深渊入场）\", \"price\": 300.0}",
+        "risk": "🟡"
+      },
+      {
+        "seq": 2,
+        "target": "buy()  (:93-114)",
+        "action": "⚠️ 现有 if entry[\"kind\"] == \"equipment\" / == \"potion\" 两个分支 ⇒ 必须补 == \"ticket\" 分支，否则门票扣款但【物品凭空消失】（历史上 potion 出过同样的假闭环 bug，见 :104 注释）",
+        "risk": "🟠"
+      }
+    ],
+    "_historical_bug_reference": "run_shop.gd:104 注释记载「步骤 8A 修假闭环：此前只扣款、物品凭空消失」—— 门票新分支必须避免重犯。"
+  },
+
+  "rejected_options": {
+    "_note": "S10 的两个落选方案，记录原因备查。",
+    "rows": [
+      {
+        "option": "ⓐ save_data.materials",
+        "rejected_because": "会加剧「两套材料词表」的既有混乱。hub.gd:50-58 有明确警告注释：MATERIAL_KEY_MAP 只有 4 个键（stone/stones/dust/essence），且 crystal（神话结晶）在存档本就【没有落点】，成本含它时会明确拒绝并提示。再塞两个键会加深这个坑。"
+      },
+      {
+        "option": "ⓑ save_data.consumables",
+        "rejected_because": "语义上可行（票=可用道具），但药水与门票混在同一背包，UI 需要区分展示，而 consumables 目前无分类字段。且 consumables.json 只有 2 条药水，混入票会让「消耗品」概念失焦。"
+      }
+    ]
+  },
+
+  "hub_integration": {
+    "_note": "门票/塔/深渊都需要入口 UI，hub.gd 现只有 6 个面板。",
+    "_file": "game/scripts/core/hub.gd",
+    "current_panels": ["inventory", "character", "equip", "talent", "forge", "skills"],
+    "current_lines": { "PANEL_constants": "22-31", "ensure_panel_match": "296-308", "bind_panel": "337+" },
+    "required_additions": [
+      { "constant": "PANEL_TOWER := \"tower\"", "title": "爬塔" },
+      { "constant": "PANEL_ABYSS := \"abyss\"", "title": "深渊副本" }
+    ],
+    "_warn": "⚠️ 新增面板时必须同步改三处：① PANEL_* 常量 ② PANEL_IDS 数组 ③ _ensure_panel() 的 match 分支。漏任何一处 ⇒ _ensure_panel 返回 false ⇒ 面板静默不显示（且回归全绿）。",
+    "_status_display": "hub.gd:181-191 _refresh_status() 的文本里建议追加门票持有数（现为「账号 Lv / 金币 / 魔石 / 已通关 / 难度」）。"
+  },
+
+  "works_orders_preview": [
+    { "seq": 1, "id": "W6-T1", "desc": "存档升版 v4→v5 + migrate 4: 分支 + tickets / tower_progress 三处（create_new/to_dict/from_dict）", "risk": "🔴", "status": "S10 已定，可落地" },
+    { "seq": 2, "id": "W6-T2", "desc": "门票读写 API（get_ticket / add_ticket）", "risk": "🟡", "status": "S10 已定" },
+    { "seq": 3, "id": "W6-T3", "desc": "门票获取渠道挂 _persist()（通关 / BOSS 关）", "risk": "🟠", "status": "待 S8" },
+    { "seq": 4, "id": "W6-T4", "desc": "run_shop 门票商品 + buy() ticket 分支", "risk": "🟠", "status": "待 S9" },
+    { "seq": 5, "id": "W6-T5", "desc": "hub 新增塔/深渊两个面板（三处同步）", "risk": "🟠", "status": "待 S1" },
+    { "seq": 6, "id": "W6-T6", "desc": "精英掉票的掉落表（新建或扩 monster_loot_tables）", "risk": "🟡", "status": "待 S8" }
+  ],
+
+  "assertions_for_checker": [
+    { "id": "TK1", "desc": "SAVE_VERSION == 5" },
+    { "id": "TK2", "desc": "migrate() 含显式 4: 分支（非仅靠 _: 兜底）" },
+    { "id": "TK3", "desc": "create_new() 初始化 tickets 与 tower_progress 为 {}" },
+    { "id": "TK4", "desc": "to_dict() / from_dict() 均含两字段且往返一致" },
+    { "id": "TK5", "desc": "tickets 与 materials / consumables 无键名重叠" },
+    { "id": "TK6", "desc": "MATERIAL_KEY_MAP 未被改动（门票不走 materials）" },
+    { "id": "TK7", "desc": "run_shop.buy() 存在 ticket 分支（否则扣款不发货）" },
+    { "id": "TK8", "desc": "hub 的 PANEL_* / PANEL_IDS / _ensure_panel match 三处同步（若 S1 落地）" },
+    { "id": "TK9", "desc": "门票数量永不为负（add_ticket 负数返回 false）" }
+  ]
+}

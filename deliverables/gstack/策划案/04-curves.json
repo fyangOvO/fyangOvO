@@ -1,0 +1,433 @@
+{
+ "_meta": {
+  "name": "04-curves",
+  "step": 4,
+  "topic": "数值与数据模型 — 曲线集",
+  "generated": "2026-09-24",
+  "note": "全部曲线由 game_constants.gd 实读常量复算。current=现状；target=路线A落地后（提预算+降上限20+推荐等级重标）。",
+  "decision_2026_09_24": {
+   "date": "2026-09-24",
+   "user_rulings": {
+    "D1": "路线A · 提预算（不采用路线C的XP形状重排）",
+    "D1_patch": "提预算 + 降等级上限（用户原话22；实测按20落地，见 account_level 段）",
+    "D2": "hp_growth=1.12 / dmg_growth=1.12（同值 ⇒ 相对强度恒定）",
+    "D3": "掉落改 clamp + 装备池提上限（上限对齐 D1，取22，非60）",
+    "D4": "预算曲线按章节梯度（120→440，均值283.0）",
+    "D5": "三项新增设计数值照 §4 落地"
+   },
+   "route_A_landing_trio": [
+    "W2(关卡XP/预算)",
+    "W10(MAX_ACCOUNT_LEVEL 60→20)",
+    "W11(recommended_player_level 重标)"
+   ],
+   "route_A_note": "关卡reward_xp是账号等级XP唯一来源；怪物击杀XP只进局内等级 ⇒ 只提预算不修落差（仍 -3→+19）"
+  }
+ },
+ "account_level": {
+  "formula": "xp_to_next(L) = 180 * L^1.6 ; cumulative_to(L) = sum(1..L-1)",
+  "source": "scripts/account/account_level.gd:24-33",
+  "range": [
+   1,
+   60
+  ],
+  "cumulative": {
+   "1": 0,
+   "2": 180.0,
+   "3": 726.0,
+   "4": 1770.0,
+   "5": 3424.0,
+   "6": 5788.0,
+   "7": 8952.0,
+   "8": 13002.0,
+   "9": 18016.0,
+   "10": 24071.0,
+   "12": 39583.0,
+   "14": 60080.0,
+   "16": 86066.0,
+   "18": 118016.0,
+   "19": 136369.0,
+   "20": 156380.0,
+   "21": 178103.0,
+   "22": 201590.0,
+   "24": 254058.0,
+   "25": 283139.0,
+   "26": 314183.0,
+   "28": 382350.0,
+   "30": 458930.0,
+   "32": 544287.0,
+   "35": 689546.0,
+   "38": 856496.0,
+   "40": 980397.0,
+   "45": 1336583.0,
+   "50": 1762955.0,
+   "55": 2264144.0,
+   "60": 2844602.0
+  },
+  "decision": {
+   "current_max_level": 60,
+   "ruled_max_level": 20,
+   "ruled_max_level_user_requested": 22,
+   "deviation_reason": "现有20关XP合计148,600只够到L19；cum(20)=156,380已超出。取20留1级余量。若坚持22需XP×1.36(201,590)",
+   "xp_total_available": 148600,
+   "reachable_level_by_current_xp": 19,
+   "cum_to_20": 156380,
+   "cum_to_22": 201590,
+   "equipment_ilvl_cap_aligned": 22,
+   "workorder": "W10"
+  }
+ },
+ "run_level": {
+  "formula_current": "xp_to_next(L) = 20.0 * L^1.4",
+  "formula_target": "xp_to_next(L) = 50.0 * L^1.4",
+  "source": "scripts/run/run_progression.gd:31-32",
+  "range": [
+   1,
+   10
+  ],
+  "note": "预算 60/关 -> 252/关 后，原系数 20.0 会导致单关提前升满，故 W4 提到 50.0"
+ },
+ "monster": {
+  "formula_current": "HP(L)=100.7*1.22^(L-1)*scale*tier*diff ; DMG(L)=5.61*1.16^(L-1)*scale*diff",
+  "formula_target": "HP(L)=100.7*1.12^(L-1)*scale*tier*diff ; DMG(L)=5.61*1.12^(L-1)*scale*diff",
+  "tier_mult": {
+   "normal": 1.0,
+   "elite": 4.5,
+   "boss": 28.0
+  },
+  "current": {
+   "1": {
+    "hp": 100.7,
+    "dmg": 5.61
+   },
+   "5": {
+    "hp": 223.1,
+    "dmg": 10.16
+   },
+   "10": {
+    "hp": 602.9,
+    "dmg": 21.33
+   },
+   "15": {
+    "hp": 1629.5,
+    "dmg": 44.81
+   },
+   "20": {
+    "hp": 4404.2,
+    "dmg": 94.12
+   },
+   "25": {
+    "hp": 11903.2,
+    "dmg": 197.68
+   },
+   "30": {
+    "hp": 32171.0,
+    "dmg": 415.19
+   },
+   "35": {
+    "hp": 86948.8,
+    "dmg": 872.04
+   },
+   "38": {
+    "hp": 157885.8,
+    "dmg": 1361.16
+   },
+   "40": {
+    "hp": 234997.3,
+    "dmg": 1831.57
+   },
+   "50": {
+    "hp": 1716568.6,
+    "dmg": 8079.87
+   },
+   "60": {
+    "hp": 12538901.2,
+    "dmg": 35643.82
+   }
+  },
+  "target": {
+   "1": {
+    "hp": 100.7,
+    "dmg": 5.61
+   },
+   "5": {
+    "hp": 158.5,
+    "dmg": 8.83
+   },
+   "10": {
+    "hp": 279.2,
+    "dmg": 15.56
+   },
+   "15": {
+    "hp": 492.1,
+    "dmg": 27.42
+   },
+   "20": {
+    "hp": 867.3,
+    "dmg": 48.32
+   },
+   "25": {
+    "hp": 1528.5,
+    "dmg": 85.15
+   },
+   "30": {
+    "hp": 2693.7,
+    "dmg": 150.07
+   },
+   "35": {
+    "hp": 4747.3,
+    "dmg": 264.47
+   },
+   "38": {
+    "hp": 6669.5,
+    "dmg": 371.56
+   },
+   "40": {
+    "hp": 8366.3,
+    "dmg": 466.09
+   },
+   "50": {
+    "hp": 25984.4,
+    "dmg": 1447.59
+   },
+   "60": {
+    "hp": 80703.6,
+    "dmg": 4496.0
+   }
+  }
+ },
+ "player_naked": {
+  "formula": "HP=150*1.11^(L-1) ; AD=12*1.10^(L-1) ; ARM=6*1.10^(L-1) ; DR=ARM/(ARM+50L)",
+  "source": "scripts/core/game_constants.gd:452-459",
+  "current": {
+   "1": {
+    "hp": 150.0,
+    "ad": 12.0,
+    "armor": 6.0
+   },
+   "5": {
+    "hp": 227.7,
+    "ad": 17.57,
+    "armor": 8.78
+   },
+   "10": {
+    "hp": 383.7,
+    "ad": 28.3,
+    "armor": 14.15
+   },
+   "15": {
+    "hp": 646.6,
+    "ad": 45.57,
+    "armor": 22.78
+   },
+   "20": {
+    "hp": 1089.5,
+    "ad": 73.39,
+    "armor": 36.7
+   },
+   "25": {
+    "hp": 1835.9,
+    "ad": 118.2,
+    "armor": 59.1
+   },
+   "30": {
+    "hp": 3093.6,
+    "ad": 190.36,
+    "armor": 95.18
+   },
+   "35": {
+    "hp": 5212.8,
+    "ad": 306.57,
+    "armor": 153.29
+   },
+   "38": {
+    "hp": 7129.2,
+    "ad": 408.05,
+    "armor": 204.02
+   },
+   "40": {
+    "hp": 8783.9,
+    "ad": 493.74,
+    "armor": 246.87
+   },
+   "50": {
+    "hp": 24941.2,
+    "ad": 1280.63,
+    "armor": 640.31
+   },
+   "60": {
+    "hp": 70818.5,
+    "ad": 3321.62,
+    "armor": 1660.81
+   }
+  }
+ },
+ "ttk_ratio": {
+  "definition": "被击杀所需击数 / 击杀一只怪所需击数；>1 玩家占优；健康区间 1.0-3.0（裸装口径）",
+  "current": {
+   "1": {
+    "hits_to_kill": 8.4,
+    "hits_to_die": 26.7,
+    "ratio": 3.186
+   },
+   "5": {
+    "hits_to_kill": 12.7,
+    "hits_to_die": 22.4,
+    "ratio": 1.766
+   },
+   "10": {
+    "hits_to_kill": 21.3,
+    "hits_to_die": 18.0,
+    "ratio": 0.844
+   },
+   "15": {
+    "hits_to_kill": 35.8,
+    "hits_to_die": 14.4,
+    "ratio": 0.404
+   },
+   "20": {
+    "hits_to_kill": 60.0,
+    "hits_to_die": 11.6,
+    "ratio": 0.193
+   },
+   "25": {
+    "hits_to_kill": 100.7,
+    "hits_to_die": 9.3,
+    "ratio": 0.092
+   },
+   "30": {
+    "hits_to_kill": 169.0,
+    "hits_to_die": 7.5,
+    "ratio": 0.044
+   },
+   "35": {
+    "hits_to_kill": 283.6,
+    "hits_to_die": 6.0,
+    "ratio": 0.021
+   },
+   "38": {
+    "hits_to_kill": 386.9,
+    "hits_to_die": 5.2,
+    "ratio": 0.014
+   },
+   "40": {
+    "hits_to_kill": 476.0,
+    "hits_to_die": 4.8,
+    "ratio": 0.01
+   }
+  },
+  "target": {
+   "1": {
+    "hits_to_kill": 8.4,
+    "hits_to_die": 26.7,
+    "ratio": 3.186
+   },
+   "5": {
+    "hits_to_kill": 9.0,
+    "hits_to_die": 25.8,
+    "ratio": 2.86
+   },
+   "10": {
+    "hits_to_kill": 9.9,
+    "hits_to_die": 24.7,
+    "ratio": 2.499
+   },
+   "15": {
+    "hits_to_kill": 10.8,
+    "hits_to_die": 23.6,
+    "ratio": 2.184
+   },
+   "20": {
+    "hits_to_kill": 11.8,
+    "hits_to_die": 22.5,
+    "ratio": 1.908
+   },
+   "25": {
+    "hits_to_kill": 12.9,
+    "hits_to_die": 21.6,
+    "ratio": 1.667
+   },
+   "30": {
+    "hits_to_kill": 14.2,
+    "hits_to_die": 20.6,
+    "ratio": 1.457
+   },
+   "35": {
+    "hits_to_kill": 15.5,
+    "hits_to_die": 19.7,
+    "ratio": 1.273
+   },
+   "38": {
+    "hits_to_kill": 16.3,
+    "hits_to_die": 19.2,
+    "ratio": 1.174
+   },
+   "40": {
+    "hits_to_kill": 16.9,
+    "hits_to_die": 18.8,
+    "ratio": 1.112
+   }
+  }
+ },
+ "fixes": {
+  "W1": {
+   "const": "MONSTER_HP_GROWTH / MONSTER_DMG_GROWTH",
+   "from": [
+    1.22,
+    1.16
+   ],
+   "to": [
+    1.12,
+    1.12
+   ],
+   "file": "game_constants.gd:478,480"
+  },
+  "W3_c": {
+   "const": "AFFIX_ILVL_SCALE_PER_LEVEL",
+   "from": 0.085,
+   "to": 0.1,
+   "file": "game_constants.gd:354",
+   "priority_route_A": "P2（可选）"
+  },
+  "W4": {
+   "const": "run_progression xp_to_next coeff",
+   "from": 20.0,
+   "to": 50.0,
+   "file": "run_progression.gd:31-32"
+  },
+  "W7": {
+   "const": "RESIST_DR_CONSTANT_PER_LEVEL",
+   "from": 50.0,
+   "to": 25.0,
+   "file": "game_constants.gd:944",
+   "status": "待拍板"
+  },
+  "W10": {
+   "const": "MAX_ACCOUNT_LEVEL",
+   "from": 60,
+   "to": 20,
+   "file": "account_level.gd:11",
+   "route": "A"
+  },
+  "W11": {
+   "target": "recommended_player_level 逐关重标",
+   "from_range": [
+    1,
+    38
+   ],
+   "to_range": [
+    5,
+    20
+   ],
+   "file": "data/levels/chapter*.json ×20",
+   "route": "A"
+  },
+  "W3_b_routed": {
+   "const": "item_level_max",
+   "from": "≤20",
+   "to": 22,
+   "new_templates_needed": 0,
+   "file": "game/data/equipment/*.json ×62",
+   "note": "路线A下取22（原案60降级为未来扩级启用）"
+  }
+ }
+}

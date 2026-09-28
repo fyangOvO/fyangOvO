@@ -1,0 +1,276 @@
+{
+ "_meta": {
+  "name": "04-economy",
+  "step": 4,
+  "topic": "掉落经济与定价模型",
+  "generated": "2026-09-24",
+  "note": "全部读自工程常量/公式；含现状与路线A落地后的对比。",
+  "decision_2026_09_24": {
+   "date": "2026-09-24",
+   "user_rulings": {
+    "D1": "路线A · 提预算（不采用路线C的XP形状重排）",
+    "D1_patch": "提预算 + 降等级上限（用户原话22；实测按20落地，见 account_level 段）",
+    "D2": "hp_growth=1.12 / dmg_growth=1.12（同值 ⇒ 相对强度恒定）",
+    "D3": "掉落改 clamp + 装备池提上限（上限对齐 D1，取22，非60）",
+    "D4": "预算曲线按章节梯度（120→440，均值283.0）",
+    "D5": "三项新增设计数值照 §4 落地"
+   },
+   "route_A_landing_trio": [
+    "W2(关卡XP/预算)",
+    "W10(MAX_ACCOUNT_LEVEL 60→20)",
+    "W11(recommended_player_level 重标)"
+   ],
+   "route_A_note": "关卡reward_xp是账号等级XP唯一来源；怪物击杀XP只进局内等级 ⇒ 只提预算不修落差（仍 -3→+19）"
+  }
+ },
+ "gold_sources": {
+  "level_reward": {
+   "source": "chapter*.json reward_gold",
+   "condition": "仅存活通关",
+   "detail": "level_scene.gd:1345-1348"
+  },
+  "monster_drop": {
+   "formula": "4.0 * 1.12^(L-1)",
+   "source": "loot_roller.gd:102-106",
+   "sample": {
+    "1": 4.0,
+    "5": 6.3,
+    "10": 11.1,
+    "15": 19.5,
+    "20": 34.5,
+    "30": 107.0,
+    "38": 264.9
+   }
+  },
+  "settle_rate": {
+   "value": 0.5,
+   "source": "run_result.gd:16",
+   "note": "本局金币 ×0.5 带入局外"
+  }
+ },
+ "shop": {
+  "rarity_price_base": {
+   "common": 10,
+   "magic": 25,
+   "rare": 60,
+   "epic": 150,
+   "legendary": 400,
+   "set": 350,
+   "mythic": 800,
+   "hidden": 1000
+  },
+  "price_formula": "RARITY_PRICE[rarity] * (1 + 0.5 * item_level)",
+  "source": "run_shop.gd:12-18, :87-88",
+  "potion_price": 50.0,
+  "material_price": 30.0,
+  "stock_composition": "装备 count-2 + 药水(50%/40%) + 材料",
+  "price_samples": {
+   "1": {
+    "common": 15,
+    "magic": 38,
+    "rare": 90,
+    "epic": 225,
+    "legendary": 600,
+    "set": 525,
+    "mythic": 1200,
+    "hidden": 1500
+   },
+   "10": {
+    "common": 60,
+    "magic": 150,
+    "rare": 360,
+    "epic": 900,
+    "legendary": 2400,
+    "set": 2100,
+    "mythic": 4800,
+    "hidden": 6000
+   },
+   "20": {
+    "common": 110,
+    "magic": 275,
+    "rare": 660,
+    "epic": 1650,
+    "legendary": 4400,
+    "set": 3850,
+    "mythic": 8800,
+    "hidden": 11000
+   },
+   "30": {
+    "common": 160,
+    "magic": 400,
+    "rare": 960,
+    "epic": 2400,
+    "legendary": 6400,
+    "set": 5600,
+    "mythic": 12800,
+    "hidden": 16000
+   },
+   "38": {
+    "common": 200,
+    "magic": 500,
+    "rare": 1200,
+    "epic": 3000,
+    "legendary": 8000,
+    "set": 7000,
+    "mythic": 16000,
+    "hidden": 20000
+   },
+   "60": {
+    "common": 310,
+    "magic": 775,
+    "rare": 1860,
+    "epic": 4650,
+    "legendary": 12400,
+    "set": 10850,
+    "mythic": 24800,
+    "hidden": 31000
+   }
+  }
+ },
+ "forge": {
+  "max_level": 10,
+  "max_level_mythic": 12,
+  "stat_bonus_per_level": 0.05,
+  "stone_cost": [
+   3,
+   3,
+   3,
+   7,
+   7,
+   7,
+   13,
+   13,
+   25,
+   25
+  ],
+  "stone_total": 106,
+  "gold_formula": "100.0 * 1.35^target",
+  "gold_samples": {
+   "1": 135,
+   "3": 246,
+   "5": 448,
+   "7": 817,
+   "10": 2011,
+   "12": 3664
+  },
+  "full_forge_gold_lv10": 7370
+ },
+ "reroll": {
+  "gold_formula": "500.0 * 1.15^n",
+  "gold_samples": {
+   "1": 575,
+   "2": 661,
+   "3": 760,
+   "5": 1006,
+   "8": 1530
+  }
+ },
+ "rarity_weights": {
+  "base_percent": {
+   "common": 78.02,
+   "magic": 17.55,
+   "rare": 3.5,
+   "epic": 0.45,
+   "legendary": 0.05,
+   "mythic": 0.02,
+   "set": 0.4,
+   "hidden": 0.01
+  },
+  "source": "game_constants.gd:176-185"
+ },
+ "loot_tables": {
+  "monster_normal": {
+   "drop_chance": 0.08,
+   "count": [
+    1,
+    1
+   ],
+   "equipment_share": 0.55,
+   "pity": true
+  },
+  "monster_elite": {
+   "drop_chance": 0.6,
+   "count": [
+    1,
+    2
+   ],
+   "equipment_share": 0.8,
+   "pity": true
+  },
+  "monster_boss": {
+   "drop_chance": 1.0,
+   "count": [
+    2,
+    4
+   ],
+   "equipment_share": 0.9,
+   "pity": false
+  },
+  "source": "game/data/loot_tables/monster_loot_tables.json"
+ },
+ "ilvl_issue": {
+  "current": {
+   "rule": "item_level = 怪物等级（无抖动）",
+   "source": "loot_roller.gd:11",
+   "cap": 20,
+   "consequence": "账号等级 21-60 段装备零成长（后 40 级）"
+  },
+  "proposed": {
+   "rule": "clamp(怪等级 ± 三角抖动, 下限=怪等级-2, 上限=max(怪等级, 玩家等级))",
+   "jitter": {
+    "distribution": "triangular",
+    "span": "±2",
+    "mode": "0"
+   },
+   "consequence": "解除 iLvl 20 硬上限；实际可达区间变为 1-20（被账号上限天然封顶）",
+   "workorder": "W3",
+   "route_A_effective_max": 22
+  }
+ },
+ "equipment_pool": {
+  "current": {
+   "templates": 62,
+   "item_level_max_range": [
+    14,
+    20
+   ],
+   "files": [
+    "armor.json",
+    "weapons.json",
+    "jewelry.json",
+    "set_pieces_emberpath.json",
+    "set_pieces_frostbite.json",
+    "set_pieces_oathkeeper.json"
+   ]
+  },
+  "proposed": {
+   "rule": "item_level_max 由 ≤20 统一提到 22（对齐账号上限20 + 2级余量）",
+   "route": "A",
+   "new_templates_needed": 0,
+   "workorder": "W3-b",
+   "deferred_60_scheme": {
+    "rule": "item_level_max 提到 60，按章节分层",
+    "layer": {
+     "ch1_baseline": 30,
+     "ch2_baseline": 45,
+     "ch3_baseline": 60
+    },
+    "new_templates_needed": 18,
+    "status": "未来扩级（路线C）时启用"
+   }
+  }
+ },
+ "scale_coefficients": {
+  "item_stat_ilvl_scale": {
+   "formula": "1 + 0.12*(L-1)",
+   "source": "game_constants.gd:358"
+  },
+  "affix_ilvl_scale": {
+   "formula": "1 + 0.085*(L-1)",
+   "source": "game_constants.gd:354"
+  },
+  "ratio_at_ilvl_20": 1.254,
+  "ratio_at_ilvl_60": 1.343,
+  "recommendation": "iLvl 释放到 60 后，把 AFFIX_ILVL_SCALE_PER_LEVEL 从 0.085 提到 0.10，使两系数增长同步，避免词缀占比被稀释（workorder W3-c）"
+ }
+}
