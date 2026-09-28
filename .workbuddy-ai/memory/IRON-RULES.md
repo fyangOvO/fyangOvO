@@ -99,6 +99,23 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 ② 看到 `String` 字段（`ai_id`/`pattern`/`kind`/`behavior`）⇒ 先 grep 代碼分支數，命中 ≤1 = 沒實現
 ③ 改「看起來是配置項」的字段前 ⇒ 先 grep 消費點；只有「埋點/展示/註釋」⇒ 改了不會有行為變化
 
+### 🆕 2026-09-28（B0）新踩三坑
+
+**① `Vector2` 分量是 32-bit float ⇒ 數值區間下界被抬高，合法值被誤判失敗**
+`const R := Vector2(0.40, 0.70)` 的 `R.x` 實為 **0.40000000596**（> 0.4）；`1.8 / 4.5 = 0.400` 被判 `< 下界`。
+⇒ **凡存閾值 / 區間 / 精度敏感常量，用 `Array`（64-bit double）或兩個 float 常量，別用 `Vector2`。**
+（GDScript 的 `float` 是 64-bit；`Vector2/3`、`Transform` 的 `real_t` 是 32-bit —— 標準版編譯即是如此。）
+
+**② 同一資料目錄混放「不同頂層結構」的表 ⇒ 被錯誤 loader 讀入並噴噪音警告**
+`data/skills/` 下放了 `branches.json`（頂層 `{_meta, templates}` 對象），而 `_load_skill_dir` 靠
+`_scan_data_files()` 按 `.json` 遞歸枚舉 ⇒ 它被當成一條技能記錄 ⇒ 3 條警告（缺少 id / id 為空 / 缺 display_name）。
+⇒ 修法 `SKILL_DIR_SKIP_FILES = ["branches.json"]`。**凡「同目錄多表」場景，loader 都要有顯式排除清單。**
+
+**③ 策劃校驗腳本按「行號」定位工程側硬編碼 ⇒ 上方任何編輯都造成假陰性**
+`06-check_special_modes.py` 的 `HARDCODED_8_SITES` 原寫 `self_check.gd:[785,786,787]`；B0 給該檔加了 7 行
+⇒ 行號漂到別的代碼，E4 誤報「已修復」（`--repo` 202/0 → 201/1）。
+⇒ 已改為**正則內容定位**（命中行號打在輸出裡）。**凡校驗引用工程側某行，一律用內容/正則而非行號。**
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】

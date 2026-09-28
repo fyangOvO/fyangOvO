@@ -12,14 +12,18 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | ⏳ **未開始** |
+| **工程落地** | 🟡 **B0 數據地基 完成**（13 工單）⇒ 下一步 **B1 數值三件套（7 工單）** |
 
-⇒ **下一步 = 照 `策划案/07-开发总表.md` 的 B0→B7 批次落地，起點 `B0 數據地基`（13 工單）**
-⇒ B0 內容：`1-D1..D7 + 1-L1/L2 + 1-V1..V4` ⇒ 讓「+技能等級」詞綴真生效，**不動戰鬥平衡**
-（現狀實測：`skills.json` **14 條**（目標 36）、無 `runes.json`/`branches.json`、`SkillData` 只 4 種 `SkillType`）
+⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
+/ 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
+**⇒ 驗收：工程側回歸零新增失敗；策劃側 568 通過 / 4 待修（同基線）；技能等級取證 23/23**
+（明細見 `.workbuddy-ai/memory/2026-09-28.md` §六）
 
-⚠️ **git 落後**：最新 commit `d5ca586`(09-23)；其後 5 天（策劃案 + 素材線）**全部未提交**
-（工作區：527 刪除 / 145 修改 / 1337 新增；刪除是**隔離非真刪**，見 `IRON-RULES.md`）
+⚠️ **B1 前須留意**：4 條**無工單**的預存回歸紅（`verify_choice_panel` 裸 Color ／ `verify_player` 手柄映射
+／ `verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4` ／ `self_check` 怪物 L20 舊值→`4-W5-e`）
+⇒ 用戶尚未裁定是否一併修。B1 開工前先確認。
+
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0 另起 commit。
 
 ---
 
