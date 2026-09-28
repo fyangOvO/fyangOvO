@@ -114,6 +114,233 @@ const TEX: Dictionary = {
 	# ── 2026-09-23 步骤 8A：消耗品药水图标（48×48 像素风，与技能图标同套）──
 	"potion_life": "potion_life_48.png",
 	"potion_mana": "potion_mana_48.png",
+	# ── 2026-09-24 步骤 2-L16：词缀图标 48 条（32×32，严格 44 色）──
+	# 由 deliverables/gstack/素材開發/gen_icons.py 产出；一键一图，不复用。
+	# ⚠️ 缺档时 texture() 回 null（安全降级），不会报错。
+	"affix_ailment_chance": "affix_ailment_chance_32.png",
+	"affix_ailment_duration": "affix_ailment_duration_32.png",
+	"affix_ailment_effect": "affix_ailment_effect_32.png",
+	"affix_all_attributes": "affix_all_attributes_32.png",
+	"affix_all_element_damage": "affix_all_element_damage_32.png",
+	"affix_all_resist": "affix_all_resist_32.png",
+	"affix_armor_penetration": "affix_armor_penetration_32.png",
+	"affix_attack_speed": "affix_attack_speed_32.png",
+	"affix_block_chance": "affix_block_chance_32.png",
+	"affix_burn_damage": "affix_burn_damage_32.png",
+	"affix_chill_damage": "affix_chill_damage_32.png",
+	"affix_cold_resist": "affix_cold_resist_32.png",
+	"affix_cooldown_reduction": "affix_cooldown_reduction_32.png",
+	"affix_crit_chance": "affix_crit_chance_32.png",
+	"affix_crit_damage": "affix_crit_damage_32.png",
+	"affix_curse_damage": "affix_curse_damage_32.png",
+	"affix_damage_vs_ailment": "affix_damage_vs_ailment_32.png",
+	"affix_dodge": "affix_dodge_32.png",
+	"affix_echo_strike": "affix_echo_strike_32.png",
+	"affix_elemental_damage": "affix_elemental_damage_32.png",
+	"affix_elemental_penetration": "affix_elemental_penetration_32.png",
+	"affix_fire_resist": "affix_fire_resist_32.png",
+	"affix_flat_armor": "affix_flat_armor_32.png",
+	"affix_flat_attack": "affix_flat_attack_32.png",
+	"affix_flat_hp": "affix_flat_hp_32.png",
+	"affix_gold_gain": "affix_gold_gain_32.png",
+	"affix_kill_heal": "affix_kill_heal_32.png",
+	"affix_life_on_hit": "affix_life_on_hit_32.png",
+	"affix_life_regen": "affix_life_regen_32.png",
+	"affix_lightning_resist": "affix_lightning_resist_32.png",
+	"affix_magic_find": "affix_magic_find_32.png",
+	"affix_max_resource": "affix_max_resource_32.png",
+	"affix_move_speed": "affix_move_speed_32.png",
+	"affix_pct_armor": "affix_pct_armor_32.png",
+	"affix_pct_attack": "affix_pct_attack_32.png",
+	"affix_pct_hp": "affix_pct_hp_32.png",
+	"affix_physical_resist": "affix_physical_resist_32.png",
+	"affix_pickup_radius": "affix_pickup_radius_32.png",
+	"affix_poison_damage": "affix_poison_damage_32.png",
+	"affix_poison_resist": "affix_poison_resist_32.png",
+	"affix_resist_penetration": "affix_resist_penetration_32.png",
+	"affix_resource_regen": "affix_resource_regen_32.png",
+	"affix_shadow_resist": "affix_shadow_resist_32.png",
+	"affix_shock_damage": "affix_shock_damage_32.png",
+	"affix_skill_cost_reduction": "affix_skill_cost_reduction_32.png",
+	"affix_skill_level": "affix_skill_level_32.png",
+	"affix_thorns": "affix_thorns_32.png",
+	"affix_xp_gain": "affix_xp_gain_32.png",
+	# ── 2026-09-24 步骤 3（元素）：属性图标 6 + 抗性图标 5（24×24，严格 44 色）──
+	# 命名依 03-elements.json → naming.element_icon / resist_icon。
+	# 物理无抗性图标（走护甲），故 resist 只有 5 个。
+	"elem_physical": "elem_physical_24.png",
+	"elem_fire": "elem_fire_24.png",
+	"elem_cold": "elem_cold_24.png",
+	"elem_lightning": "elem_lightning_24.png",
+	"elem_poison": "elem_poison_24.png",
+	"elem_shadow": "elem_shadow_24.png",
+	"resist_fire": "resist_fire_24.png",
+	"resist_cold": "resist_cold_24.png",
+	"resist_lightning": "resist_lightning_24.png",
+	"resist_poison": "resist_poison_24.png",
+	"resist_shadow": "resist_shadow_24.png",
+	# ── 2026-09-24 步骤 1（技能体系）：36 技能各自一张专属图标（48×48）──
+	# 旧版是「12 技能共用 4 张通用图标」；本批改为**一技能一图标**（附錄A §A.8）。
+	# 已在上方登记的 4 张（lightning_chain / poison_cloud / piercing_shot / arrow_rain）不重复。
+	"skill_icon_cleave": "skill_icon_cleave_48.png",
+	"skill_icon_spin_slash": "skill_icon_spin_slash_48.png",
+	"skill_icon_dash_strike": "skill_icon_dash_strike_48.png",
+	"skill_icon_power_strike": "skill_icon_power_strike_48.png",
+	"skill_icon_shadow_blink": "skill_icon_shadow_blink_48.png",
+	"skill_icon_whirlwind": "skill_icon_whirlwind_48.png",
+	"skill_icon_shield_bash": "skill_icon_shield_bash_48.png",
+	"skill_icon_warcry": "skill_icon_warcry_48.png",
+	"skill_icon_ground_slam": "skill_icon_ground_slam_48.png",
+	"skill_icon_blade_toss": "skill_icon_blade_toss_48.png",
+	"skill_icon_blood_rage": "skill_icon_blood_rage_48.png",
+	"skill_icon_iron_bulwark": "skill_icon_iron_bulwark_48.png",
+	"skill_icon_venom_shot": "skill_icon_venom_shot_48.png",
+	"skill_icon_multishot": "skill_icon_multishot_48.png",
+	"skill_icon_explosive_arrow": "skill_icon_explosive_arrow_48.png",
+	"skill_icon_trap_spike": "skill_icon_trap_spike_48.png",
+	"skill_icon_hawk_eye": "skill_icon_hawk_eye_48.png",
+	"skill_icon_wind_walk": "skill_icon_wind_walk_48.png",
+	"skill_icon_poison_field": "skill_icon_poison_field_48.png",
+	"skill_icon_spirit_wolf": "skill_icon_spirit_wolf_48.png",
+	"skill_icon_shadow_volley": "skill_icon_shadow_volley_48.png",
+	"skill_icon_hunters_mark": "skill_icon_hunters_mark_48.png",
+	"skill_icon_fireball": "skill_icon_fireball_48.png",
+	"skill_icon_frost_nova": "skill_icon_frost_nova_48.png",
+	"skill_icon_frost_bolt": "skill_icon_frost_bolt_48.png",
+	"skill_icon_meteor": "skill_icon_meteor_48.png",
+	"skill_icon_arcane_shield": "skill_icon_arcane_shield_48.png",
+	"skill_icon_blink": "skill_icon_blink_48.png",
+	"skill_icon_summon_elemental": "skill_icon_summon_elemental_48.png",
+	"skill_icon_thunder_storm": "skill_icon_thunder_storm_48.png",
+	"skill_icon_mana_surge": "skill_icon_mana_surge_48.png",
+	"skill_icon_void_rift": "skill_icon_void_rift_48.png",
+	# ── 2026-09-24 步骤 1：符文图标 24 张（32×32，图鉴式解锁）──
+	# 命名去掉冗余的 `rune_` 前缀：id `rune_projectile` → 键 `rune_icon_projectile`。取用見 `rune_icon()`。
+	"rune_icon_projectile": "rune_icon_projectile_32.png",
+	"rune_icon_chain": "rune_icon_chain_32.png",
+	"rune_icon_split": "rune_icon_split_32.png",
+	"rune_icon_pierce": "rune_icon_pierce_32.png",
+	"rune_icon_ground": "rune_icon_ground_32.png",
+	"rune_icon_echo": "rune_icon_echo_32.png",
+	"rune_icon_fire": "rune_icon_fire_32.png",
+	"rune_icon_cold": "rune_icon_cold_32.png",
+	"rune_icon_lightning": "rune_icon_lightning_32.png",
+	"rune_icon_poison": "rune_icon_poison_32.png",
+	"rune_icon_shadow": "rune_icon_shadow_32.png",
+	"rune_icon_wider": "rune_icon_wider_32.png",
+	"rune_icon_swift": "rune_icon_swift_32.png",
+	"rune_icon_thrifty": "rune_icon_thrifty_32.png",
+	"rune_icon_heavy": "rune_icon_heavy_32.png",
+	"rune_icon_leech": "rune_icon_leech_32.png",
+	"rune_icon_stun": "rune_icon_stun_32.png",
+	"rune_icon_freeze": "rune_icon_freeze_32.png",
+	"rune_icon_burn": "rune_icon_burn_32.png",
+	"rune_icon_execute": "rune_icon_execute_32.png",
+	"rune_icon_opener": "rune_icon_opener_32.png",
+	"rune_icon_barrier": "rune_icon_barrier_32.png",
+	"rune_icon_mana": "rune_icon_mana_32.png",
+	"rune_icon_amplify": "rune_icon_amplify_32.png",
+	# ── 2026-09-24 步骤 2（装备）：强化/洗练/重铸 系统入口标识（48×48）与材料图标（32×32）──
+	"forge_icon": "forge_icon_48.png",
+	"enchant_icon": "enchant_icon_48.png",
+	"reroll_icon": "reroll_icon_48.png",
+	"stone_forge": "stone_forge_32.png",
+	"scroll_enchant": "scroll_enchant_32.png",
+	"crystal_reroll": "crystal_reroll_32.png",
+	# ── 2026-09-28 步骤 3（元素）：异常 6 + 单元素伤害 6 + 附着层 6 + 技能边框 6 + 专精角标 5 ──
+	# 命名依 03-elements.json → naming（ailment_icon / attach_layer / skill_frame / affix_badge），
+	# 并合 04-数值与数据模型.md §8.3。尺寸依序 24 / 24 / 32 / 48 / 16。
+	# ⚠️ elem_dmg_* 与 elem_* **同基元**，只多四向爆裂刺 ⇒ 一眼看出「同元素、加强版」。
+	"ailment_burn": "ailment_burn_24.png",
+	"ailment_chill": "ailment_chill_24.png",
+	"ailment_poison": "ailment_poison_24.png",
+	"ailment_shock": "ailment_shock_24.png",
+	"ailment_curse": "ailment_curse_24.png",
+	"ailment_sunder": "ailment_sunder_24.png",
+	"elem_dmg_physical": "elem_dmg_physical_24.png",
+	"elem_dmg_fire": "elem_dmg_fire_24.png",
+	"elem_dmg_cold": "elem_dmg_cold_24.png",
+	"elem_dmg_lightning": "elem_dmg_lightning_24.png",
+	"elem_dmg_poison": "elem_dmg_poison_24.png",
+	"elem_dmg_shadow": "elem_dmg_shadow_24.png",
+	"attach_physical": "attach_physical_32.png",
+	"attach_fire": "attach_fire_32.png",
+	"attach_cold": "attach_cold_32.png",
+	"attach_lightning": "attach_lightning_32.png",
+	"attach_poison": "attach_poison_32.png",
+	"attach_shadow": "attach_shadow_32.png",
+	"skill_frame_physical": "skill_frame_physical_48.png",
+	"skill_frame_fire": "skill_frame_fire_48.png",
+	"skill_frame_cold": "skill_frame_cold_48.png",
+	"skill_frame_lightning": "skill_frame_lightning_48.png",
+	"skill_frame_poison": "skill_frame_poison_48.png",
+	"skill_frame_shadow": "skill_frame_shadow_48.png",
+	"elem_badge_fire": "elem_badge_fire_16.png",
+	"elem_badge_cold": "elem_badge_cold_16.png",
+	"elem_badge_lightning": "elem_badge_lightning_16.png",
+	"elem_badge_poison": "elem_badge_poison_16.png",
+	"elem_badge_shadow": "elem_badge_shadow_16.png",
+	# ── 2026-09-28 步骤 4（数值）：临时增益系统 UI（04-数值与数据模型.md §8.1）──
+	# ⚠️ 该系统**代码侧尚未实现**（scripts/ 下无 temp_buff / shrine 消费点）
+	# ⇒ 图标先备好并登记，待系统落地即可直接用；现取用会得到非 null 贴图但无人调用。
+	"temp_buff_shrine_fury": "temp_buff_shrine_fury_32.png",
+	"temp_buff_shrine_swift": "temp_buff_shrine_swift_32.png",
+	"temp_buff_shrine_ward": "temp_buff_shrine_ward_32.png",
+	"temp_buff_orb_haste": "temp_buff_orb_haste_24.png",
+	"temp_buff_orb_pierce": "temp_buff_orb_pierce_24.png",
+	"temp_buff_orb_leech": "temp_buff_orb_leech_24.png",
+	"temp_buff_orb_boss_might": "temp_buff_orb_boss_might_24.png",
+	"temp_buff_orb_boss_echo": "temp_buff_orb_boss_echo_24.png",
+	"temp_buff_timer_bar_bg": "temp_buff_timer_bar_bg.png",
+	"temp_buff_timer_bar_fill": "temp_buff_timer_bar_fill.png",
+	# ── 2026-09-28 步骤 1（技能体系）：技能分支图标 28 张（32×32）──
+	# 14 模板 × 2 态（normal / sel）；id 取自 `01-branches.json` 的 `branches[].id`。
+	# ⚠️ **消费端尚未实现**：`skill_controller.gd` 只做了 SINGLE/AOE/DASH，
+	#    缺 projectile / ground / summon / buff —— 分支系统落地后即可直接取用。
+	"branch_icon_single_focus_normal": "branch_icon_single_focus_normal_32.png",
+	"branch_icon_single_focus_sel": "branch_icon_single_focus_sel_32.png",
+	"branch_icon_single_combo_normal": "branch_icon_single_combo_normal_32.png",
+	"branch_icon_single_combo_sel": "branch_icon_single_combo_sel_32.png",
+	"branch_icon_aoe_expand_normal": "branch_icon_aoe_expand_normal_32.png",
+	"branch_icon_aoe_expand_sel": "branch_icon_aoe_expand_sel_32.png",
+	"branch_icon_aoe_linger_normal": "branch_icon_aoe_linger_normal_32.png",
+	"branch_icon_aoe_linger_sel": "branch_icon_aoe_linger_sel_32.png",
+	"branch_icon_dash_pierce_normal": "branch_icon_dash_pierce_normal_32.png",
+	"branch_icon_dash_pierce_sel": "branch_icon_dash_pierce_sel_32.png",
+	"branch_icon_dash_afterimage_normal": "branch_icon_dash_afterimage_normal_32.png",
+	"branch_icon_dash_afterimage_sel": "branch_icon_dash_afterimage_sel_32.png",
+	"branch_icon_proj_sharp_normal": "branch_icon_proj_sharp_normal_32.png",
+	"branch_icon_proj_sharp_sel": "branch_icon_proj_sharp_sel_32.png",
+	"branch_icon_proj_scatter_normal": "branch_icon_proj_scatter_normal_32.png",
+	"branch_icon_proj_scatter_sel": "branch_icon_proj_scatter_sel_32.png",
+	"branch_icon_ground_deep_normal": "branch_icon_ground_deep_normal_32.png",
+	"branch_icon_ground_deep_sel": "branch_icon_ground_deep_sel_32.png",
+	"branch_icon_ground_pulse_normal": "branch_icon_ground_pulse_normal_32.png",
+	"branch_icon_ground_pulse_sel": "branch_icon_ground_pulse_sel_32.png",
+	"branch_icon_summon_legion_normal": "branch_icon_summon_legion_normal_32.png",
+	"branch_icon_summon_legion_sel": "branch_icon_summon_legion_sel_32.png",
+	"branch_icon_summon_elite_normal": "branch_icon_summon_elite_normal_32.png",
+	"branch_icon_summon_elite_sel": "branch_icon_summon_elite_sel_32.png",
+	"branch_icon_buff_lasting_normal": "branch_icon_buff_lasting_normal_32.png",
+	"branch_icon_buff_lasting_sel": "branch_icon_buff_lasting_sel_32.png",
+	"branch_icon_buff_empower_normal": "branch_icon_buff_empower_normal_32.png",
+	"branch_icon_buff_empower_sel": "branch_icon_buff_empower_sel_32.png",
+	# ── 2026-09-28 D4（装备特色玩法）：状态栏图标 12 张（24×24）──
+	# buff 6（teal 系＋▲角標）/ debuff 6（blood 系＋▼角標）；id 依
+	# `03-装备特色玩法.md` §11.1.1（AILMENT_*）與 C4 光環技能裁定。
+	# ⚠️ **消费端尚未实现**（状态栏 UI 本身未做）⇒ 图标先备好，待系统落地。
+	"status_warcry": "status_warcry_24.png",
+	"status_blood_rage": "status_blood_rage_24.png",
+	"status_iron_bulwark": "status_iron_bulwark_24.png",
+	"status_hawk_eye": "status_hawk_eye_24.png",
+	"status_regen": "status_regen_24.png",
+	"status_shield": "status_shield_24.png",
+	"status_burn": "status_burn_24.png",
+	"status_chill": "status_chill_24.png",
+	"status_poison": "status_poison_24.png",
+	"status_shock": "status_shock_24.png",
+	"status_curse": "status_curse_24.png",
+	"status_sunder": "status_sunder_24.png",
 }
 
 ## 稀有度（`GameConstants.Rarity` 下標）→ 格子貼圖名。
@@ -210,6 +437,76 @@ static func backdrop_texture(biome: String) -> Texture2D:
 	if not TEX.has(key):
 		key = "backdrop_forest"
 	return texture(key)
+
+
+## 2026-09-24 · 詞綴圖標（32×32）。`stat_key` 取自 `data/affixes/*.json`（共 48 條）。
+## 缺檔回 `null`（安全降級）—— 呼叫方務必判空，別直接塞給 `TextureRect`。
+static func affix_icon(stat_key: String) -> Texture2D:
+	return texture("affix_%s" % stat_key)
+
+
+## 2026-09-24 · 元素屬性圖標（24×24）。
+## `key` ∈ `physical` / `fire` / `cold` / `lightning` / `poison` / `shadow`。
+static func element_icon(key: String) -> Texture2D:
+	return texture("elem_%s" % key)
+
+
+## 2026-09-24 · 元素抗性圖標（24×24）。
+## ⚠️ **物理沒有抗性圖標**（走護甲）⇒ 傳 `physical` 會回 `null`。
+static func resist_icon(key: String) -> Texture2D:
+	return texture("resist_%s" % key)
+
+
+## 2026-09-24 · 技能圖標（48×48）。`skill_id` 取自 `data/skills/skills.json`（第一批 36 個）。
+## ⚠️ 呼叫方通常**不該**直接用它 —— 應該走 `GameConstants.SKILL_ICON[skill_id]` 再 `texture()`，
+## 因為那張表是「技能 id → 圖標鍵」的唯一權威（角色選擇面板與局內技能欄同源）。
+static func skill_icon(skill_id: String) -> Texture2D:
+	return texture(str(GameConstants.SKILL_ICON.get(skill_id, "")))
+
+
+## 2026-09-24 · 符文圖標（32×32）。`rune_id` 形如 `rune_projectile`（會自動去掉冗餘前綴）。
+static func rune_icon(rune_id: String) -> Texture2D:
+	var short := rune_id.trim_prefix("rune_")
+	return texture("rune_icon_%s" % short)
+
+
+# ── 2026-09-28 · 元素系列便捷取用（皆為 `texture()` 的語意包裝）──────────────
+# 這些全是**安全降級**：缺檔回 `null`、不報錯 ⇒ 呼叫方一律要判空。
+
+## 異常狀態圖標（24×24）。`key` ∈ burn / chill / poison / shock / curse / sunder。
+static func ailment_icon(key: String) -> Texture2D:
+	return texture("ailment_%s" % key)
+
+
+## 單元素傷害圖標（24×24，元素符號 + 四向爆裂刺）。
+static func element_damage_icon(key: String) -> Texture2D:
+	return texture("elem_dmg_%s" % key)
+
+
+## 元素附著覆蓋層（32×32，虛線環 + 元素符號）。
+static func attach_layer(key: String) -> Texture2D:
+	return texture("attach_%s" % key)
+
+
+## 元素技能邊框（48×48，由 `slot_common_48` 重上色而來）。
+static func element_skill_frame(key: String) -> Texture2D:
+	return texture("skill_frame_%s" % key)
+
+
+## 元素專精詞綴角標（16×16）。⚠️ 只有 5 個（物理無專精）。
+static func element_badge(key: String) -> Texture2D:
+	return texture("elem_badge_%s" % key)
+
+
+## 臨時增益 · 增益球圖標（24×24）。
+## ⚠️ 該系統**代碼側尚未實現**（見 `TEX` 表同處註解）⇒ 現階段屬「素材先行」。
+static func temp_buff_orb(key: String) -> Texture2D:
+	return texture("temp_buff_orb_%s" % key)
+
+
+## 臨時增益 · 神龕圖標（32×32）。
+static func temp_buff_shrine(key: String) -> Texture2D:
+	return texture("temp_buff_shrine_%s" % key)
 
 
 ## 任務星級（難度）貼圖。`lit` = 是否點亮。

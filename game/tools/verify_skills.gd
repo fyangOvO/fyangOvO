@@ -63,11 +63,13 @@ func _setup_scene() -> void:
 func _test_skill_table() -> void:
 	print("--- A. 技能表 ---")
 	var ids := ConfigLoader.get_all_skill_ids()
-	_ok("技能表 = 12 条（3 老出战 + 9 备选池，步骤 3 职业专属）", ids.size() == 12)
-	_ok("技能 ID 稳定排序（字母序，含 12 个）",
+	_ok("技能表 = 14 条（3 老出战 + 11 备选池；含召唤形态 2 条，步骤 3 职业专属 + §12 召唤）",
+		ids.size() == 14)
+	_ok("技能 ID 稳定排序（字母序，含 14 个）",
 		ids == ["arrow_rain", "cleave", "dash_strike", "fireball", "frost_nova",
 			"lightning_chain", "piercing_shot", "poison_cloud", "power_strike",
-			"shadow_blink", "spin_slash", "venom_shot"])
+			"shadow_blink", "spin_slash", "summon_elemental", "summon_spirit_wolf",
+			"venom_shot"])
 	_ok("出战栏 1/2/3 = 裂斩/旋刃/突进（无存档回退战士默认栏）",
 		_skills.get_skill_id_at(0) == "cleave"
 		and _skills.get_skill_id_at(1) == "spin_slash"
@@ -111,7 +113,7 @@ func _test_skill_table() -> void:
 	var pierce := ConfigLoader.get_skill("piercing_shot")
 	var rain := ConfigLoader.get_skill("arrow_rain")
 	var venom := ConfigLoader.get_skill("venom_shot")
-	_ok("备选技能 9 个且 slot = 0（不占出战栏位）",
+	_ok("备选技能（slot = 0）就位：既有 9 个 + 召唤 2 个",
 		frost != null and fireball != null and chain != null and cloud != null and blink != null
 		and strike != null and pierce != null and rain != null and venom != null
 		and frost.slot == 0 and fireball.slot == 0 and chain.slot == 0
@@ -147,6 +149,21 @@ func _test_skill_table() -> void:
 		venom != null and venom.type == SkillData.SkillType.SINGLE
 		and is_equal_approx(venom.multiplier, 1.6) and is_equal_approx(venom.cooldown, 5.0)
 		and is_equal_approx(venom.mana_cost, 18.0) and venom.element == "poison")
+
+	# §12 召唤技能（純新增，不替換任何現有技能）
+	var wolf := ConfigLoader.get_skill("summon_spirit_wolf")
+	var elem := ConfigLoader.get_skill("summon_elemental")
+	_ok("靈狼：召唤形态 / 12s / 30 蓝 / slot 0（弓手）",
+		wolf != null and wolf.type == SkillData.SkillType.SUMMON
+		and is_equal_approx(wolf.cooldown, 12.0) and is_equal_approx(wolf.mana_cost, 30.0)
+		and wolf.slot == 0)
+	_ok("元素僕從：召唤形态 / 14s / 40 蓝 / slot 0（法师）",
+		elem != null and elem.type == SkillData.SkillType.SUMMON
+		and is_equal_approx(elem.cooldown, 14.0) and is_equal_approx(elem.mana_cost, 40.0)
+		and elem.slot == 0)
+	_ok("召唤技能 id == 召唤物 id（素材目录 / spawn / 图标映射同一字符串）",
+		Summon.DEFS.has("summon_spirit_wolf") and Summon.DEFS.has("summon_elemental")
+		and wolf.id == "summon_spirit_wolf" and elem.id == "summon_elemental")
 
 
 # =============================================================================

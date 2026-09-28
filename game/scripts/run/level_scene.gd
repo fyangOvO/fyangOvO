@@ -142,6 +142,8 @@ var _rare_drops: int = 0
 var _skill_bar: SkillBarUI = null
 ## 拾取提示流（步骤 6 · 右上角逐条）
 var _pickup_toasts: PickupToastHUD = null
+## 召喚物 HUD（規格 §12.4#6 · 技能欄旁小圖標 + 倒數環）
+var _summon_bar: SummonBarUI = null
 
 ## 8C BOSS 觉醒卡：BOSS 远端沉睡，玩家接近 AWAKEN_TRIGGER_DIST 触发觉醒立绘卡，
 ## 卡结束后解除冻结正式开战（DNF 觉醒立绘风格，步骤 8C）。
@@ -414,6 +416,7 @@ func _build() -> void:
 	_build_difficulty_stars()
 	_build_skill_bar()
 	_build_quick_slot()
+	_build_summon_bar()
 	print("[Level] 进入「%s」Lv.%d · 难度 %d · 敌人 %d（精英 %d / BOSS %d）· 目标：%s"
 		% [_level_def.display_name, _level_def.level, difficulty_tier,
 			_alive.size(), _elite_total, _boss_total, _objective_desc])
@@ -1119,6 +1122,9 @@ const SKILL_BAR_ORIGIN: Vector2 = Vector2(472.0, 296.0)
 ## 消耗品快捷栏原点（步骤 8A）：2 槽 × 48 + 1 间隙 × 4 = 100，
 ## 左对齐技能栏并留 4px ⇒ x = 472 - 4 - 100 = 368；y 与技能栏同行 296。
 const QUICK_SLOT_ORIGIN: Vector2 = Vector2(368.0, 296.0)
+## 召喚物 HUD 原點（規格 §12.4#6）：技能欄（472,296，48px）**正上方**，
+## 2 槽 × 24px = 52 寬。刻意小巧，不與技能欄 / 消耗品欄重疊（640×360 已滿）。
+const SUMMON_BAR_ORIGIN: Vector2 = Vector2(472.0, 268.0)
 ## 槽邊長（px）。與 `skill_slot_48.png` / `skill_icon_*_48.png` 原生尺寸一致 ⇒ **1× 整數**。
 const SKILL_SLOT_PX: float = 48.0
 ## 槽間距（px）。
@@ -1157,6 +1163,17 @@ func _build_quick_slot() -> void:
 	slot.setup(_player)
 	$HUD.add_child(slot)
 	print("[Level] 消耗品快捷栏：QuickSlotUI %d 槽" % QuickSlotUI.SLOT_COUNT)
+
+
+## 召喚物 HUD（規格 §12.4#6）：技能欄上方的小圖標 + 剩餘時間倒數環。
+## 數據源為場上 `summons` 組節點（`SummonBarUI` 每幀自行查詢，無需注入控制器）。
+## 必須與 `_build_skill_bar` 一樣在 `_player` 建好之後呼叫。
+func _build_summon_bar() -> void:
+	var bar := SummonBarUI.new()
+	bar.name = "SummonBar"
+	bar.position = SUMMON_BAR_ORIGIN
+	$HUD.add_child(bar)
+	_summon_bar = bar
 
 
 ## 章節/關卡名橫幅文字（底板貼圖見 `_apply_hud_skin`）。`_build()` 取得關卡定義後呼叫。

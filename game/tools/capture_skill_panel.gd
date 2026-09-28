@@ -101,7 +101,7 @@ func _run() -> void:
 	await get_tree().create_timer(0.6).timeout
 	_ok("弓箭手技能面板已打开", hub2.is_panel_visible("skills"))
 	var sp2 := hub2.get_panel("skills") as SkillPanel
-	_ok("弓箭手池含新图标技能", sp2 != null and sp2._pool_grid.get_child_count() == 4)
+	_ok("弓箭手池含新图标技能", sp2 != null and sp2._pool_grid.get_child_count() == 5)
 	await _capture(OUT_DIR + "/技能面板_弓箭手_2026-09-22.png")
 	hub2.queue_free()
 

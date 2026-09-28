@@ -16,10 +16,12 @@ enum SkillType {
 	SINGLE = 0, ## 单体：朝向前方 range 内最近的 1 个目标
 	AOE = 1,    ## 范围：以玩家为中心 radius 内全部目标（AoE 设计基准 2.0 的主力）
 	DASH = 2,   ## 位移：沿朝向冲刺并击退撞到的目标
+	SUMMON = 3, ## 召唤：在玩家脚下生成友方召唤物（技能体系 §12；无直接伤害，故无几何字段要求）
 }
 
-const TYPE_NAMES: Array[String] = ["单体", "范围", "位移"]
-const TYPE_KEYS: Array[String] = ["single", "aoe", "dash"]
+## ⚠️ 顺序即 `config_loader._to_skill_type()` 的 index ⇒ **只能在尾部追加**，不可重排。
+const TYPE_NAMES: Array[String] = ["单体", "范围", "位移", "召唤"]
+const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "summon"]
 
 ## 唯一标识（如 "cleave"）
 @export var id: String = ""
@@ -77,7 +79,7 @@ func validate() -> Array[String]:
 		errors.append("技能 '%s' 缺少 display_name" % id)
 	if slot < 0 or slot > 3:
 		errors.append("技能 '%s' 的 slot 非法：%d（须 0–3，0 = 备选）" % [id, slot])
-	if type < 0 or type > SkillType.DASH:
+	if type < 0 or type > SkillType.SUMMON:
 		errors.append("技能 '%s' 的 type 非法：%d" % [id, type])
 	if multiplier <= 0.0:
 		errors.append("技能 '%s' 的 multiplier 必须 > 0" % id)
@@ -97,4 +99,7 @@ func validate() -> Array[String]:
 		SkillType.DASH:
 			if dash_distance <= 0.0:
 				errors.append("位移技能 '%s' 的 dash_distance 必须 > 0" % id)
+		SkillType.SUMMON:
+			# 召唤技能不产生直接命中几何（伤害/存活/比例由召唤物自身定义）⇒ 无额外要求。
+			pass
 	return errors

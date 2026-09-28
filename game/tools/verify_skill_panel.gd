@@ -63,7 +63,7 @@ func _test_class_data() -> void:
 			ok_defaults = false
 			_info("%s 默认栏 = %s（期望 %s）" % [cid, str(bar), str(expect[cid])])
 		var pool := ConfigLoader.class_skill_ids(cid)
-		if pool.size() < 3 or pool.size() > 5:
+		if pool.size() < 3 or pool.size() > 6:
 			ok_pools = false
 			_info("%s 池数异常：%d" % [cid, pool.size()])
 		for sid in bar:
@@ -72,11 +72,11 @@ func _test_class_data() -> void:
 				_info("%s 默认栏技能 %s 不在池" % [cid, sid])
 	_ok("三职业默认出战栏 = 战(裂斩/旋刃/突进) 弓(穿透箭/箭雨/淬毒箭) 法(火球/冰环/雷链)",
 		ok_defaults)
-	_ok("技能池：战士 5 / 弓箭手 4 / 法师 5（专属，默认栏均在池内）",
+	_ok("技能池：战士 5 / 弓箭手 5 / 法师 6（专属 + §12 召唤技，默认栏均在池内）",
 		ok_pools
 		and ConfigLoader.class_skill_ids("warrior").size() == 5
-		and ConfigLoader.class_skill_ids("archer").size() == 4
-		and ConfigLoader.class_skill_ids("mage").size() == 5)
+		and ConfigLoader.class_skill_ids("archer").size() == 5
+		and ConfigLoader.class_skill_ids("mage").size() == 6)
 
 
 # =============================================================================

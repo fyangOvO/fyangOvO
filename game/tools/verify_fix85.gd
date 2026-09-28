@@ -11,7 +11,7 @@
 ##   C. 对象池无泄漏（历史：Node.visible 误用 / 循环变量作用域）
 ##   D. 地图批处理（历史：cells 是 Dictionary / player_spawn 是 Vector2i / 障碍格）
 ##   E. 平衡口径（历史：TTK 94s 海绵化 → 复合成长 1.30）
-##   F. 数据完整性锚点（BOSS 2 / 怪物 16 / 技能 8 / 装备 62）
+##   F. 数据完整性锚点（怪物 ≥ 16 / BOSS 2 / 技能 14 / 装备 62 / 关卡 20）
 extends Node2D
 
 var _fail: int = 0
@@ -76,10 +76,11 @@ func _run() -> void:
 	_ok("平衡红线：20 关 TTK=%.1fs（不海绵化，原 1.10 为 94s）" % t20,
 		t20 >= 1.0 and t20 <= 8.0 and t20 <= t1 * 2.0)
 
-	# F. 数据完整性锚点
-	_ok("数据表锚点：怪物 16 / BOSS 2 / 技能 8 / 装备 62 / 关卡 20",
-		ConfigLoader.monsters.size() == 16 and ConfigLoader.bosses.size() == 2
-		and ConfigLoader.skills.size() == 8 and ConfigLoader.equipment_templates.size() == 62
+	# F. 数据完整性锚点（怪物 ≥ 16 容許擴容；其他表屬穩態）
+	_ok("数据表锚点：怪物 ≥ 16（%d） / BOSS 2 / 技能 14 / 装备 62 / 关卡 20"
+			% ConfigLoader.monsters.size(),
+		ConfigLoader.monsters.size() >= 16 and ConfigLoader.bosses.size() == 2
+		and ConfigLoader.skills.size() == 14 and ConfigLoader.equipment_templates.size() == 62
 		and ConfigLoader.levels.size() == 20)
 
 

@@ -30,7 +30,7 @@
       "move_speed": 4.2,
       "crit_chance": 0.20
     },
-    "skills": ["piercing_shot", "arrow_rain", "venom_shot", "shadow_blink"],
+    "skills": ["piercing_shot", "arrow_rain", "venom_shot", "shadow_blink", "summon_spirit_wolf"],
     "default_skill_bar": ["piercing_shot", "arrow_rain", "venom_shot"],
     "portrait": "portrait_archer",
     "color": "8FBF5F"
@@ -48,7 +48,7 @@
       "move_speed": 3.6,
       "crit_chance": 0.08
     },
-    "skills": ["fireball", "frost_nova", "lightning_chain", "poison_cloud", "shadow_blink"],
+    "skills": ["fireball", "frost_nova", "lightning_chain", "poison_cloud", "shadow_blink", "summon_elemental"],
     "default_skill_bar": ["fireball", "frost_nova", "lightning_chain"],
     "portrait": "portrait_mage",
     "color": "7FA8E8"

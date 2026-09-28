@@ -100,6 +100,44 @@ const TIER_KEYS: Array[String] = ["normal", "elite", "boss"]
 ## 元素类型（决定攻击伤害类型与抗性穿透，阶段 2 使用）
 @export var element: String = "physical"
 
+# -----------------------------------------------------------------------------
+# AI 行为微调字段（任务 W5-2 · 落地于 2026-09-29）
+# 6 种 ai_id 在 enemy_base.gd 各有 ≥ 1 处 match 分支；这 9 个字段给不同行为
+# 提供「距离 / 时长 / 速度」等微调手段，缺省值对所有老怪透明（melee_chaser
+# 完全不读它们）。
+# 兼容性：现有 16 只怪全走缺省 ⇒ 行为与改动前逐位一致；只有 8 只新怪
+# 以及未来要扩展的怪会写真值。
+# -----------------------------------------------------------------------------
+
+## 期望保持的距离（像素，0 = 不启用）。`ranged_kiter` / `lobber` 专用：
+## 太近则后退、太远则进、中间横移。
+@export var preferred_range: float = 0.0
+
+## 冲锋速度倍率（×）。`melee_charger` 专用：进入蓄力后移速乘本值。
+@export var charge_speed_mult: float = 2.2
+
+## 触发冲锋的距离（像素）。`melee_charger` 专用：目标距离 ≤ 此值进入蓄力。
+@export var charge_range: float = 180.0
+
+## 冲锋蓄力时长（秒）。`melee_charger` 专用：必须可被玩家反应。
+@export var charge_windup: float = 0.45
+
+## 飘忽摆动幅度（像素）。`erratic_chaser` 专用：追击方向加正弦扰动。
+@export var erratic_amplitude: float = 26.0
+
+## 飘忽摆动频率（Hz）。`erratic_chaser` 专用：扰动的振荡频率。
+@export var erratic_frequency: float = 2.4
+
+## 投射物飞行速度（像素/秒）。`ranged_kiter` 专用：发出去的子弹速度。
+@export var projectile_speed: float = 180.0
+
+## 抛物落点半径（像素）。`lobber` 专用：落地 AoE 的伤害半径。
+@export var lob_radius: float = 52.0
+
+## 抛物蓄力时长（秒）。`lobber` 专用：沿用现有 AOE_TELEGRAPH_TIME 口径，
+## 但允许每只怪单独调（让手感更尖的精英可拉到 0.65 / 更柔的怪可降到 0.5）。
+@export var lob_windup: float = 0.6
+
 
 # =============================================================================
 # 数值计算

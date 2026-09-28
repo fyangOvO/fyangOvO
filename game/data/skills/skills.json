@@ -143,6 +143,30 @@
   "description": "旋转挥击，对周围 1.5 格内的所有敌人造成 140% 攻击力伤害并小幅击退。"
  },
  {
+  "id": "summon_elemental",
+  "display_name": "元素僕從",
+  "slot": 0,
+  "type": "summon",
+  "multiplier": 1.0,
+  "element": "fire",
+  "cooldown": 14.0,
+  "mana_cost": 40.0,
+  "knockback": 0.0,
+  "description": "在腳下召喚元素僕從（存活 15 秒）：於遠處投擲火球攻擊敵人，命中帶小範圍濺射；生命 / 攻擊 / 移速隨施法者成長。"
+ },
+ {
+  "id": "summon_spirit_wolf",
+  "display_name": "靈狼",
+  "slot": 0,
+  "type": "summon",
+  "multiplier": 1.0,
+  "element": "physical",
+  "cooldown": 12.0,
+  "mana_cost": 30.0,
+  "knockback": 0.0,
+  "description": "在腳下召喚靈狼（存活 15 秒）：近戰突進撕咬敵人，首次接敵時衝鋒；生命 / 攻擊 / 移速隨施法者成長。"
+ },
+ {
   "id": "venom_shot",
   "display_name": "淬毒箭",
   "slot": 0,

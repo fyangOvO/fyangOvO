@@ -157,13 +157,40 @@ def resolve_real_appdata(env: dict) -> tuple:
 def _result_line(out: str) -> str:
     """从输出里找「结果行」，找不到返回 `NO-RESULT`。
 
-    前缀不统一，所以按**内容**找而不是按固定前缀切分：
-        `===== 结果：0 项失败 =====`
-        `===== 端到端结果：0 项失败 =====`
-        `[Main] 结果：全部通过（111 项）。骨架就绪，可以进入阶段 2。`
+    实测发现 verify_*.gd / capture_*.gd 里结果行写法不统一（同一项目内
+    繁简 + 带/不带括号混用），下面**逐个**说明：
+
+        `===== 结果：0 项失败 =====`              ← 简体（「项失败」）
+        `===== 結果：0 項失敗 =====`              ← 繁体（「項失敗」）
+        `===== 结果：27 通过 / 0 失败 =====`      ← 简体拆字（「失败」「通过」无「项」）
+        `===== 装备系统页实测 结束：全部通过 =====`  ← 「全部通过」无左括号
+        `===== 角色选择面板實測 結束：全部通過 =====`  ← 繁体同样无左括号
+        `[Main] 结果：全部通过（111 项）。骨架就绪…` ← self_check 带括号 + 续句
+
+    因此 substring 匹配要认「全部六个变体」+「全部三个结尾关键词」。「全部通过」
+    必须再后面紧接「（」或「结束」之类的关键字作为收口，避免吞掉非结果行的正文。
     """
     for line in out.splitlines():
-        if "项失败" in line or "全部通过（" in line or "项未通过" in line:
+        # 三种“失败”类型关键词：项失败 / 項失敗 / 失败（拆字）
+        has_fail_kw = (
+            "项失败" in line
+            or "項失敗" in line
+            or "项未通过" in line
+            or "項未通過" in line
+        )
+        # 「X 通过 / Y 失败」拆字格式：consumable 等用整条结果行
+        has_split_pair = (
+            re.search(r"\d+\s*通过\s*/\s*\d+\s*失败", line) is not None
+            or re.search(r"\d+\s*通過\s*/\s*\d+\s*失敗", line) is not None
+        )
+        # 「全部通过」两种 + 必须后接「（」/「结束」/「結束」/「=====」收口，
+        # 避免误吞正文里的「全部通过」字样。实测「全部通过 =====」中间是空格，
+        # 所以分隔符前容许多个空白（`\s*`）。
+        has_all_pass = bool(re.search(
+            r"全部?通[过過](?=\s*[（\(]|\s*={3,}|\s*结束|\s*結束|\s*$|\s*；)",
+            line))
+
+        if has_fail_kw or has_split_pair or has_all_pass:
             txt = line.strip().strip("=").strip()
             for pref in ("[Main] ", "[Verify] "):
                 if txt.startswith(pref):

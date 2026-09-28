@@ -129,9 +129,11 @@ class Runner extends Node:
 					ok_stats = false
 					_info("%s 缺屬性 %s" % [cid, key])
 			var sids: Array = cls.get("skills", [])
-			if sids.size() < 3 or sids.size() > 5:
+			# 上限放寬到策劃目標態 12（技能體系 §4.4：每職技能池 → 12）；
+			# 下限 3 = 出戰欄槽數（1/2/3）—— 池必須塞得下一個完整默認欄。
+			if sids.size() < 3 or sids.size() > 12:
 				ok_skills = false
-				_info("%s 技能池數不在 3–5（%d）" % [cid, sids.size()])
+				_info("%s 技能池數不在 3–12（%d）" % [cid, sids.size()])
 			var dbar: Array = cls.get("default_skill_bar", [])
 			if dbar.size() != 3:
 				ok_skills = false
@@ -154,7 +156,7 @@ class Runner extends Node:
 				ok_portrait = false
 				_info("%s 立繪缺失：%s" % [cid, pkey])
 		_ok("3 職業的數值預覽鍵（max_hp/attack/armor/move_speed/crit_chance）齊全", ok_stats)
-		_ok("3 職業技能池（3–5）全可解析 + 默認欄（3）在池內 + 圖標齊全", ok_skills)
+		_ok("3 職業技能池（3–12）全可解析 + 默認欄（3）在池內 + 圖標齊全", ok_skills)
 		_ok("3 職業立繪貼圖全部載得進（portrait_*）", ok_portrait)
 
 		var w: Dictionary = ConfigLoader.classes["warrior"]["stats"]
@@ -198,8 +200,11 @@ class Runner extends Node:
 		_ok("數值預覽 GridContainer 已渲染 2×5=10 個 Label",
 			sp._stat_grid != null and lbl_count == 10)
 
-		_ok("技能展示卡已建 5 張（職業池上限，技能描述行有內容）",
-			sp._skill_cards.size() == 5 and not sp._skill_desc_label.text.is_empty())
+		# 技能卡數量隨職業池動態決定（不再固定 5）——斷言對齊「當前職業池大小」而非魔數。
+		var pool_n := ConfigLoader.class_skill_ids(sp.current_class_id).size()
+		_ok("技能展示卡數 = 當前職業池大小（默認 %s：%d 張，動態建卡）"
+			% [sp.current_class_id, pool_n],
+			sp._skill_cards.size() == pool_n and not sp._skill_desc_label.text.is_empty())
 
 		var visible_cards := 0
 		var ok_icons := true
@@ -210,7 +215,8 @@ class Runner extends Node:
 			var icon := (entry["icon"] as TextureRect).texture
 			if icon == null or icon == UISkin.texture("skill_slot"):
 				ok_icons = false
-		_ok("可見技能卡 = 職業池數（默認戰士 5）", visible_cards == 5)
+		_ok("可見技能卡 = 職業池數（%s：%d 張）" % [sp.current_class_id, pool_n],
+			visible_cards == pool_n)
 		_ok("可見技能卡圖標全部非空（不佔位）", ok_icons)
 
 		_ok("底部「确认选择」「返回」按鈕存在",
@@ -256,6 +262,16 @@ class Runner extends Node:
 				and sp._portrait.texture == UISkin.texture("portrait_mage")
 				and _count_labels_containing(sp._stat_grid, str(int(m.attack))) > 0
 				and sp._skill_desc_label.text.contains("火"))
+
+		# 法師池 6 張 → 動態建卡；單排不得溢出視口右緣（舊硬編碼 5 欄 + 48px 卡會讓第 6 張右緣到 664）。
+		var mage_pool_n := ConfigLoader.class_skill_ids("mage").size()
+		var max_right := 0.0
+		for entry in sp._skill_cards:
+			var c := entry["card"] as Control
+			max_right = maxf(max_right, c.position.x + c.size.x)
+		_ok("法師 %d 張技能卡皆落在視口右緣內（右緣 %.0f ≤ 640）"
+			% [mage_pool_n, max_right],
+			sp._skill_cards.size() == mage_pool_n and max_right <= 640.0)
 
 		_got_confirm = ""
 		sp.on_confirm = _on_test_confirm

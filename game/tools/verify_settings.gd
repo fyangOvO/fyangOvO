@@ -1,7 +1,7 @@
 ## 工具：verify_settings.gd（步骤 7 · 设置/音效收尾验证；headless）
 ##
 ## 用法：godot --headless --path "D:/七傳說/game" res://tools/verify_settings.tscn
-## 覆盖：A SettingsStore 持久化往返 / B SettingsPanel 适配 360 视口 / C 音效注册表 8 项全加载 /
+## 覆盖：A SettingsStore 持久化往返 / B SettingsPanel 适配 360 视口 / C 音效注册表 10 项全加载 /
 ##       D ui_click 钩子可挂 / E 按键动作清单全部存在于 InputMap。
 extends Node
 
@@ -43,9 +43,9 @@ func _run() -> void:
 	_ok("SettingsPanel 含全屏开关", _find_button(sp, "全屏") != null)
 	_ok("SettingsPanel 含音量滑杆", host.find_children("*", "HSlider", true, false).size() >= 1)
 
-	# C. 音效注册表：8 项全部可加载
+	# C. 音效注册表：10 项全部可加载（实际 SFX_REGISTRY.size() = 10，与 audio_manager.gd:10 对齐）
 	var ids: Array[String] = AudioManager.ids()
-	_ok("AudioManager 注册 9 项", ids.size() == 9)
+	_ok("AudioManager 注册 10 项", ids.size() == 10)
 	var all_ok: bool = true
 	for id in ids:
 		var meta: Dictionary = AudioManager.SFX_REGISTRY[id]
@@ -53,7 +53,7 @@ func _run() -> void:
 		if not ResourceLoader.exists(f):
 			all_ok = false
 			print("      [缺失] %s → %s" % [id, f])
-	_ok("音效文件全部存在（8/8）", all_ok)
+	_ok("音效文件全部存在（10/10）", all_ok)
 
 	# D. ui_click 钩子可挂不崩溃
 	var probe := Button.new()

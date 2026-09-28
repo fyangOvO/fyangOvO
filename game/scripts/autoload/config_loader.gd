@@ -292,6 +292,16 @@ func _load_monster_dir(dir_path: String) -> void:
 			res.base_xp = float(raw.get("base_xp", 10.0))
 			res.gold_range = _to_vector2i(raw.get("gold_range", [5, 15]))
 			res.element = String(raw.get("element", "physical"))
+			# 9 个 AI 微调字段（任务 W5-2）：缺省值对老怪透明
+			res.preferred_range = float(raw.get("preferred_range", 0.0))
+			res.charge_speed_mult = float(raw.get("charge_speed_mult", 2.2))
+			res.charge_range = float(raw.get("charge_range", 180.0))
+			res.charge_windup = float(raw.get("charge_windup", 0.45))
+			res.erratic_amplitude = float(raw.get("erratic_amplitude", 26.0))
+			res.erratic_frequency = float(raw.get("erratic_frequency", 2.4))
+			res.projectile_speed = float(raw.get("projectile_speed", 180.0))
+			res.lob_radius = float(raw.get("lob_radius", 52.0))
+			res.lob_windup = float(raw.get("lob_windup", 0.6))
 			_register(monsters, res.id, res, entry)
 			_validate(res, entry)
 
@@ -1056,7 +1066,7 @@ func _to_monster_tier(value: Variant) -> int:
 
 func _to_skill_type(value: Variant) -> int:
 	if value is int or value is float:
-		return clampi(int(value), 0, SkillData.SkillType.DASH)
+		return clampi(int(value), 0, SkillData.SkillType.SUMMON)
 	var idx := SkillData.TYPE_KEYS.find(String(value).to_lower())
 	if idx < 0:
 		load_errors.append("未知技能形态 '%s'，回退为 single" % str(value))

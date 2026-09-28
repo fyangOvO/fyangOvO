@@ -1271,19 +1271,53 @@ const CLASS_DEFAULT: String = "warrior"
 ## 技能 id → 图标逻辑名（UISkin.texture 用）。以 data/skills/skills.json 的真实 id 为准。
 ## 原定义在 level_scene.gd，2026-09-22 上移共享：角色选择面板（技能展示）与局内技能栏同源，
 ## 避免两处映射漂移。
+## 2026-09-24：第一步技能体系（策划案 01-技能体系.md）定为**每职 12 技能共 36 个**，
+##   且每个技能做**独立图标**（附錄A §A.8「一技能一图标，玩家辨识成本 > 制作成本」）。
+##   旧表是「12 技能共用 4 张通用图标」（cleave/spin_slash/power_strike 共用 slash 等），
+##   已由 `deliverables/gstack/素材開發/gen_icons_p1.py` 产出的 36 张专属图标取代。
+##   ⚠️ 新增技能时**必须同时**：① 在本表登记 ② 在 `ui_skin.gd` 的 TEX 表登记
+##      `"skill_icon_<id>": "skill_icon_<id>_48.png"`。缺任一处 → `texture()` 回 null（静默降级）。
 const SKILL_ICON: Dictionary = {
-	"cleave": "skill_icon_slash",
-	"spin_slash": "skill_icon_slash",
-	"dash_strike": "skill_icon_shadowdash",
-	"fireball": "skill_icon_fireburst",
-	"frost_nova": "skill_icon_frostnova",
-	"lightning_chain": "skill_icon_lightning_chain",
-	"poison_cloud": "skill_icon_poison_cloud",
-	"shadow_blink": "skill_icon_shadowdash",
-	"power_strike": "skill_icon_slash",
+	# 战士
+	"cleave": "skill_icon_cleave",
+	"spin_slash": "skill_icon_spin_slash",
+	"dash_strike": "skill_icon_dash_strike",
+	"power_strike": "skill_icon_power_strike",
+	"shadow_blink": "skill_icon_shadow_blink",
+	"whirlwind": "skill_icon_whirlwind",
+	"shield_bash": "skill_icon_shield_bash",
+	"warcry": "skill_icon_warcry",
+	"ground_slam": "skill_icon_ground_slam",
+	"blade_toss": "skill_icon_blade_toss",
+	"blood_rage": "skill_icon_blood_rage",
+	"iron_bulwark": "skill_icon_iron_bulwark",
+	# 弓手
 	"piercing_shot": "skill_icon_piercing_shot",
 	"arrow_rain": "skill_icon_arrow_rain",
-	"venom_shot": "skill_icon_poison_cloud",
+	"venom_shot": "skill_icon_venom_shot",
+	"multishot": "skill_icon_multishot",
+	"explosive_arrow": "skill_icon_explosive_arrow",
+	"trap_spike": "skill_icon_trap_spike",
+	"hawk_eye": "skill_icon_hawk_eye",
+	"wind_walk": "skill_icon_wind_walk",
+	"poison_field": "skill_icon_poison_field",
+	"spirit_wolf": "skill_icon_spirit_wolf",
+	"summon_spirit_wolf": "skill_icon_spirit_wolf",
+	"shadow_volley": "skill_icon_shadow_volley",
+	"hunters_mark": "skill_icon_hunters_mark",
+	# 法师
+	"fireball": "skill_icon_fireball",
+	"frost_nova": "skill_icon_frost_nova",
+	"lightning_chain": "skill_icon_lightning_chain",
+	"poison_cloud": "skill_icon_poison_cloud",
+	"frost_bolt": "skill_icon_frost_bolt",
+	"meteor": "skill_icon_meteor",
+	"arcane_shield": "skill_icon_arcane_shield",
+	"blink": "skill_icon_blink",
+	"summon_elemental": "skill_icon_summon_elemental",
+	"thunder_storm": "skill_icon_thunder_storm",
+	"mana_surge": "skill_icon_mana_surge",
+	"void_rift": "skill_icon_void_rift",
 }
 
 const SAVE_VERSION: int = 4

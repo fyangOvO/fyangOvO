@@ -19,6 +19,11 @@
 class_name EnemyBase
 extends CharacterBody2D
 
+## W5-1 · ranged_kiter 投射物（W5-1 inline 最小可行版本）
+## 用 preload 而不是 class_name 引用：`class_name` 全域註冊在 headless 解析
+## 時序上不穩，曾踩過「Identifier not declared」 ⇒ 統一走 preload 最保險。
+const EnemyProjectile = preload("res://scripts/enemies/enemy_projectile.gd")
+
 # =============================================================================
 # 一、状态机
 # =============================================================================
@@ -51,6 +56,17 @@ var state: AIState = AIState.PATROL
 ## 由关卡刷怪 / 外部在生成后注入；空 = 普通怪行为。
 var affixes: Array[String] = []
 
+## AI **搜尋目標**用的群組（規格 §12.4#1）。
+##   敵方單位（本類既有用途）= "player"（預設，行為與接入前逐位一致）；
+##   友方召喚物（`scripts/combat/summon.gd`）= "enemies"（打怪）。
+@export var target_group: String = "player"
+
+## 是否為**友方召喚物**（規格 §12.4#3/#4/#5）。
+##   true  ⇒ 加入 `summons` 組（**不進** `enemies`）、死亡不掉落、不觸發玩家死亡邏輯；
+##   false ⇒ 加入 `enemies` 組，行為與接入前逐位一致。
+## ⚠️ 必須在 `add_child()` **之前**設定 —— `_ready()` 就用它決定群組歸屬。
+@export var is_summon: bool = false
+
 ## 词缀移速乘法（由词缀注入）
 var _move_mult := 1.0
 
@@ -64,6 +80,15 @@ var _boss_skills: Array[String] = []
 var _boss_interval_mult := 1.0
 var _boss_dmg_mult := 1.0
 var _summon_timer := 0.0
+
+## W5-1 · erratic_chaser 擾動累計時間（CHASE 方向加正弦擾動用）
+var _erratic_phase: float = 0.0
+
+## W5-1 · melee_charger 蓄力倒計時（> 0 = 蓄力中，動畫定格）
+var _charge_windup_t: float = 0.0
+
+## W5-1 · melee_charger 是否已蓄完、正在衝刺
+var _charging: bool = false
 
 # =============================================================================
 # 三、运行时状态
@@ -231,9 +256,17 @@ static var _dnf_cache: Dictionary = {}
 func _ready() -> void:
 	# 俯视 ARPG：FLOATING 模式，避免被 default_gravity 往下拽
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
-	add_to_group(&"enemies")
+	# 群組歸屬（規格 §12.4#5）：召喚物進 `summons`（**不進** `enemies`，故玩家技能
+	# 天然打不到它）；其餘單位照舊進 `enemies`。HitQuery 另有一道 `summons` 過濾作縱深防禦。
+	if is_summon:
+		add_to_group(&"summons")
+	else:
+		add_to_group(&"enemies")
 	_spawn_point = global_position
-	data = ConfigLoader.get_monster(monster_id)
+	# 允許呼叫方**預先注入** `data`（召喚物在 `Summon._ready()` 合成 MonsterData 後傳入）；
+	# 未注入才走怪物表查詢 —— 既有敵人行為不變。
+	if data == null:
+		data = ConfigLoader.get_monster(monster_id)
 	# 生命组件初始化：敌人 max_hp 用怪物表公式（覆盖玩家裸装公式）
 	if health != null:
 		health.max_hp_override = data.get_hp(level, difficulty_tier)
@@ -254,7 +287,8 @@ func _ready() -> void:
 		_move_mult = float(AffixController.get_multipliers(affixes)["move"])
 		_phase_timer = float(AffixController.AFFIXES.get("phasing", {}).get("interval", 6.0))
 	# BOSS 阶段初始化（6.3：加载阶段配置，阶段 1 技能集 / 数值乘区）
-	if data != null and data.tier == MonsterData.Tier.BOSS:
+	# 召喚物不走 BOSS 路徑（`is_summon` 短路，避免合成的 data 意外帶 BOSS 檔位時誤啟）。
+	if not is_summon and data != null and data.tier == MonsterData.Tier.BOSS:
 		boss_config = ConfigLoader.get_boss(monster_id)
 		_apply_boss_phase(1)
 
@@ -493,7 +527,10 @@ static func dnf_load_user_dir(id: String) -> Dictionary:
 ## 素材包幀集的三段命名約定：`char_<id>_<action>_<dir>_<NN>.png`。
 ## 2026-09-23 全量掃描 `assets/pack/creatures/*` 實測：所有檔名 100% 符合此約定
 ## （動作 6 種 / 方向 8 種 / 幀號 1–6）。
-const PACK_ACTIONS: Array[String] = ["idle", "walk", "attack", "hurt", "death", "die"]
+## 2026-09-24 新增 `cast`（策劃案 01-技能体系.md 附錄A §A.9#3 的 1 行改動）：
+##   原本沒有 cast ⇒ 法師/弓手施法會回退去播 attack 的劈砍動作，與技能語義不符。
+##   `cast` 排在 `attack` 後、`hurt` 前，順序不影響探測結果（只是遍歷順序）。
+const PACK_ACTIONS: Array[String] = ["idle", "walk", "attack", "cast", "hurt", "death", "die"]
 const PACK_DIRS: Array[String] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
 const PACK_MAX_FRAMES: int = 8
 
@@ -778,9 +815,59 @@ func _physics_process(delta: float) -> void:
 	velocity = move_velocity
 
 
-## 每帧刷新玩家引用（get_first_node_in_group 成本低，敌人数量少）
+## 每帧刷新目标引用。
+## ⚠️ `_player` 這個變數名在本類語義是「當前目標」（歷史命名）；召喚物語境下
+##    它指向怪物，而非玩家 —— 由 `target_group` 決定，讀者請以此為準。
+##
+## 候選策略（2026-09-28 修，召喚系統 B1 收尾）：
+##   * **怪物**（`target_group = "player"`，預設）：候選 = `player` 組 ∪ `summons` 組，
+##     兩組裡**離自己最近**的節點。這是灵狼 / 元素僕從能「拉得住仇恨」的關鍵 —— 玩家
+##     跑遠、召喚物擋在中間時，怪物會自動切打召喚物；玩家貼近時又會切回玩家。
+##   * **玩家召喚物 / BOSS minions**（`target_group = "enemies"`）：候選固定為
+##     `enemies` 組（找最近怪物）。由 `target_group` 控分流，兩個語義天然不混。
+##
+## 註：BOSS 召喚的 minions 用 `target_group = "enemies"`，不會被本邏輯誤打到自己人；
+##     玩家召喚物（`is_summon = true` ⇒ `summons` 組）才進入候選 —— 兩個分流天然不混。
 func _refresh_player() -> void:
-	_player = get_tree().get_first_node_in_group(&"player")
+	# 取指定群組（敵人的特例加進 `summons` ⇒ 灵狼能拉仇恨），逐一比距離，取最近者。
+	# get_nodes_in_group 在本項目單位數量級（個位數到十幾隻）下成本低。
+	var tree := get_tree()
+	if tree == null:
+		_player = null
+		return
+	var primary := StringName(target_group)
+	var candidate_groups: Array = [primary]
+	if primary == &"player":
+		candidate_groups.append(&"summons")
+	var best: Node2D = null
+	var best_d2 := INF
+	for grp_name in candidate_groups:
+		for node in tree.get_nodes_in_group(grp_name):
+			if not (node is Node2D) or not is_instance_valid(node):
+				continue
+			var n2d := node as Node2D
+			var d2 := n2d.global_position.distance_squared_to(global_position)
+			if d2 < best_d2:
+				best_d2 = d2
+				best = n2d
+	_player = best
+
+
+## 移動速度（px/s）。預設 = 怪物表 `move_speed` × 詞綴移速乘區。
+## 友方召喚物覆寫本方法以**每幀動態跟隨玩家**（見 `scripts/combat/summon.gd`）。
+func _move_speed() -> float:
+	return data.move_speed * _move_mult
+
+
+## 索敵半徑（px）：目標入此範圍才由巡邏轉為追擊。預設沿用全域常量。
+## 召喚物覆寫以符合規格 §12.2 的「靈狼 6 格 / 元素僕從 5 格」。
+func _aggro_range() -> float:
+	return GameConstants.ENEMY_AGGRO_RANGE
+
+
+## 脫戰半徑（px）：目標超出此距離則回巡邏。預設沿用全域常量。召喚物覆寫。
+func _lose_range() -> float:
+	return GameConstants.ENEMY_LOSE_RANGE
 
 
 ## 状态分派
@@ -798,7 +885,7 @@ func _tick_state(delta: float) -> void:
 	match state:
 		AIState.PATROL:
 			_tick_patrol(delta)
-			if _player != null and dist <= GameConstants.ENEMY_AGGRO_RANGE:
+			if _player != null and dist <= _aggro_range():
 				_set_state(AIState.CHASE)
 		AIState.CHASE:
 			_tick_chase(delta, dist)
@@ -818,13 +905,15 @@ func _tick_patrol(delta: float) -> void:
 			GameConstants.ENEMY_PATROL_WAIT_MIN, GameConstants.ENEMY_PATROL_WAIT_MAX)
 		_patrol_target = _random_patrol_point()
 		return
-	velocity = global_position.direction_to(_patrol_target) * data.move_speed * _move_mult
+	velocity = global_position.direction_to(_patrol_target) * _move_speed()
 	facing = velocity.normalized()
 
 
 ## 追击：朝玩家直线移动；距离恢复前不换向（俯视 ARPG 无寻路，直线最贴近直觉）
-func _tick_chase(_delta: float, dist: float) -> void:
-	if _player == null or dist > GameConstants.ENEMY_LOSE_RANGE:
+## 6 种 ai_id 的 CHASE 行为在 `_chase_kite / _chase_erratic / _chase_lobber /
+## _chase_charger` 内分派（任务 W5-1）；melee_chaser / boss_phased 保持默认直冲。
+func _tick_chase(delta: float, dist: float) -> void:
+	if _player == null or dist > _lose_range():
 		velocity = Vector2.ZERO
 		_set_state(AIState.PATROL)
 		return
@@ -834,14 +923,29 @@ func _tick_chase(_delta: float, dist: float) -> void:
 		facing = global_position.direction_to(_player.global_position).normalized()
 		_set_state(AIState.ATTACK)
 		return
-	velocity = global_position.direction_to(_player.global_position) * data.move_speed * _move_mult
+	var dir := global_position.direction_to(_player.global_position)
+	match data.ai_id:
+		"ranged_kiter":
+			_chase_kite(delta, dist, dir)
+		"erratic_chaser":
+			_chase_erratic(delta, dist, dir)
+		"lobber":
+			_chase_lobber(delta, dist, dir)
+		"melee_charger":
+			_chase_charger(delta, dist, dir)
+		_:
+			# melee_chaser / boss_phased：默认直冲（BOSS 行为由阶段系统接管）
+			velocity = dir * _move_speed()
 	facing = velocity.normalized()
 
 
 ## 攻击：停在 attack_range 内，按 attack_interval 输出伤害事件
+## 6 种 ai_id 的 ATTACK 行为在 `_attack_kiter / _attack_lob` 内分派（任务 W5-1）；
+## 其余（melee_chaser / erratic_chaser / melee_charger / boss_phased）走默认
+## `_attack_player`（近战弧）。
 func _tick_attack(delta: float, dist: float) -> void:
 	velocity = Vector2.ZERO
-	if _player == null or dist > GameConstants.ENEMY_LOSE_RANGE:
+	if _player == null or dist > _lose_range():
 		_set_state(AIState.PATROL)
 		return
 	if dist > data.attack_range:
@@ -850,7 +954,164 @@ func _tick_attack(delta: float, dist: float) -> void:
 	_attack_timer -= delta
 	if _attack_timer <= 0.0:
 		_attack_timer = data.attack_interval * _boss_interval_mult
-		_attack_player()
+		match data.ai_id:
+			"ranged_kiter":
+				_attack_kiter()
+			"lobber":
+				_attack_lob()
+			_:
+				# melee_chaser / erratic_chaser / melee_charger / boss_phased
+				_attack_player()
+
+
+# =============================================================================
+# 四·五、AI 行为分派（W5-1 · 6 种 ai_id 的行为微调）
+# =============================================================================
+#
+# 设计要点：
+#   * 不重写状态机骨架（仍保持 PATROL→CHASE→ATTACK）。
+#   * 不引入寻路 / NavigationAgent2D（全部行为在 move_and_slide 基础上做）。
+#   * 不动 `_aoe_strike` 内部（BOSS 阶段技能已经依赖它）⇒ lobber 走
+#     `_attack_lob` + `_lob_impact` 的 inline 新版 AoE，参数化半径 / 蓄力。
+#   * 投射物 inline 在 `scripts/enemies/enemy_projectile.gd`，不新建 .tscn。
+#
+# 行为 → ai_id 映射：
+#   ranged_kiter    CHASE 保持 preferred_range，ATTACK 发投射物
+#   erratic_chaser  CHASE 方向加正弦扰动，ATTACK 同近前
+#   lobber          CHASE 半速 + 保持距离，ATTACK 落点 AoE
+#   melee_charger   CHASE 蓄力→冲刺，ATTACK 同近前（撞人由冲刺速度完成命中）
+#   melee_chaser    默认直冲 / 近战（不显式分支，落到 _tick_* 的 `_:` 分支）
+#   boss_phased     默认直冲 / 近战（BOSS 走阶段系统 `_check_boss_phase` /
+#                   `_cast_boss_skill`；ai_id 仅作标签）
+
+
+## W5-1 · ranged_kiter 追擊：保持 `data.preferred_range`
+##   太近 → 後退；太遠 → 進；中間 → 垂直橫移（半速）。
+##   `preferred_range <= 0`（缺省）→ 回退到普通直沖，向後相容老怪。
+const _KITE_RANGE_TOL: float = 10.0
+func _chase_kite(_delta: float, dist: float, dir: Vector2) -> void:
+	var pref := data.preferred_range
+	if pref <= 0.0:
+		velocity = dir * _move_speed()
+		return
+	if dist < pref - _KITE_RANGE_TOL:
+		velocity = -dir * _move_speed()
+	elif dist > pref + _KITE_RANGE_TOL:
+		velocity = dir * _move_speed()
+	else:
+		# 垂直方向（左手）橫移，保持「對玩家視線切向」
+		var perp := Vector2(-dir.y, dir.x)
+		velocity = perp * _move_speed() * 0.5
+
+
+## W5-1 · erratic_chaser 追擊：方向加正弦擾動（幅度 / 頻率由 data 決定）。
+##   offset 直接加到 base velocity 上；move_and_slide 會用地形裁掉穿牆分量。
+func _chase_erratic(delta: float, _dist: float, dir: Vector2) -> void:
+	_erratic_phase += delta
+	var perp := Vector2(-dir.y, dir.x)
+	var offset := perp * data.erratic_amplitude * sin(_erratic_phase * TAU * data.erratic_frequency)
+	velocity = dir * _move_speed() + offset
+
+
+## W5-1 · lobber 追擊：半速移動 + 保持 `data.preferred_range`。
+##   `preferred_range <= 0`（缺省）→ 一律半速直沖（向後相容 slime_acid /
+##   mushroom_spore 兩隻老 lobber）。
+func _chase_lobber(_delta: float, dist: float, dir: Vector2) -> void:
+	var half := _move_speed() * 0.5
+	var pref := data.preferred_range
+	if pref <= 0.0:
+		velocity = dir * half
+		return
+	if dist < pref - _KITE_RANGE_TOL:
+		velocity = -dir * half
+	elif dist > pref + _KITE_RANGE_TOL:
+		velocity = dir * half
+	else:
+		velocity = Vector2.ZERO
+
+
+## W5-1 · melee_charger 追擊：進入 `charge_range` 先蓄力（停下）`charge_windup`
+## 秒，再以 `charge_speed_mult × move_speed` 直線衝刺玩家；玩家跑出
+## `charge_range × 2.0` 視為衝刺失敗、退回普通直沖。
+func _chase_charger(delta: float, dist: float, dir: Vector2) -> void:
+	if dist > data.charge_range:
+		# 玩家在 charge_range 外 → 重置蓄力 / 衝刺旗標，回普通直沖
+		_charge_windup_t = 0.0
+		_charging = false
+		velocity = dir * _move_speed()
+		return
+	if _charge_windup_t > 0.0:
+		# 蓄力中
+		_charge_windup_t -= delta
+		velocity = Vector2.ZERO
+		if _charge_windup_t <= 0.0:
+			_charging = true
+		return
+	if not _charging:
+		# 首次進入 charge_range：點火蓄力
+		_charge_windup_t = data.charge_windup
+		velocity = Vector2.ZERO
+		return
+	# 衝刺中：玩家跑太遠就退回普通直沖
+	if dist > data.charge_range * 2.0:
+		_charging = false
+		velocity = dir * _move_speed()
+		return
+	velocity = dir * _move_speed() * data.charge_speed_mult
+
+
+## W5-1 · ranged_kiter 攻擊：發射投射物（inline EnemyProjectile，朝玩家位置直飛）。
+## 不觸發近戰命中判定 / 不施加元素異常（讓遠程怪的毒 / 感電必須走近戰管線），
+## 否則遠程怪會把異常做成「穩定上毒」。
+func _attack_kiter() -> void:
+	if _player == null:
+		return
+	_play_anim_oneshot(ANIM_ATTACK, minf(data.attack_interval, ATTACK_ANIM_MAX))
+	var host := get_parent()
+	if host == null:
+		return
+	var proj := EnemyProjectile.new()
+	var dir := global_position.direction_to(_player.global_position)
+	var dmg := data.get_damage(level, difficulty_tier) * _boss_dmg_mult
+	# 壽命：飛越 attack_range × 2 的時間，下限 1.5s（防 0）
+	var life := maxf(data.attack_range * 2.0 / maxf(data.projectile_speed, 1.0), 1.5)
+	proj.setup(dir, data.projectile_speed, dmg, data.element, self, life)
+	proj.global_position = global_position
+	host.add_child(proj)
+
+
+## W5-1 · lobber 攻擊：inline 新版 AoE（**不**��� `_aoe_strike` 內部）。
+##   警示圈 → 延遲命中，半徑 = `data.lob_radius`、蓄力 = `data.lob_windup`、
+##   傷害 × 0.9（與 BOSS 的 `_aoe_strike` 同口徑）。
+func _attack_lob() -> void:
+	if _player == null:
+		return
+	_play_anim_oneshot(ANIM_ATTACK, minf(data.attack_interval, ATTACK_ANIM_MAX))
+	var host := get_parent()
+	if host == null:
+		return
+	var radius := data.lob_radius
+	var windup := data.lob_windup
+	var dmg := data.get_damage(level, difficulty_tier) * _boss_dmg_mult * 0.9
+	var tel := AoETelegraph.new()
+	tel.position = global_position
+	host.add_child(tel)
+	tel.setup(radius, windup)
+	var t := get_tree().create_timer(windup)
+	t.timeout.connect(func() -> void: _lob_impact(dmg, radius))
+
+
+## W5-1 · lobber AoE 命中結算（`_aoe_impact` 的 lobber 對應版本）。
+##   與 BOSS 的 `_aoe_impact` 同形不同半徑：玩家在 `radius` 內則結算。
+func _lob_impact(dmg: float, radius: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	if global_position.distance_to(_player.global_position) > radius:
+		return
+	if _player.has_method("take_damage"):
+		_player.take_damage(dmg, self)
+	EventBus.damage_dealt.emit(_player, dmg, false, data.element)
+	print("[Lobber] %s 抛擲命中玩家 -%.1f" % [data.display_name, dmg])
 
 
 ## 输出一次攻击：命中判定（朝玩家 120° 扇区 + 玩家无敌尊重）通过才发事件。
@@ -1056,10 +1317,13 @@ func _on_unit_died(unit: Node, killer: Node) -> void:
 	_knockback_velocity = Vector2.ZERO
 	# 6.6 音效：怪物死亡 → 下降扫频
 	AudioManager.play("enemy_die")
-	# 6.2 词缀：爆炸（死亡时对周围 40px 造成 80% 攻击伤害）
-	if AffixController.has(affixes, "explosive"):
-		_explode()
-	_drop_loot(killer)
+	# 召喚物**不參與掉落**（規格 §12.4#3）：否則反覆召喚即是刷寶漏洞。
+	# 詞綴爆炸一併短路（召喚物本無詞綴，這裡是防未來誤配的守門）。
+	if not is_summon:
+		# 6.2 词缀：爆炸（死亡时对周围 40px 造成 80% 攻击伤害）
+		if AffixController.has(affixes, "explosive"):
+			_explode()
+		_drop_loot(killer)
 	# 死亡动画：播在脫離本體的臨時精靈上（本體仍在本幀移除，時序不變）
 	_spawn_death_anim()
 	queue_free()

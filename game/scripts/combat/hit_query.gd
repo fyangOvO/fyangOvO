@@ -12,6 +12,10 @@
 ##
 ## ⚠️ 不做：伤害结算（DamageCalc）、目标筛选策略（调用方传入 targets）、
 ##    物理碰撞（突进撞击仍走 move_and_collide，属 PlayerController）。
+##
+## 友方召唤物豁免（规格 §12.4#2）：所有命中形状一律**跳过 `summons` 组的节点**。
+##   召唤物虽已不进 `enemies` 组（见 `enemy_base.gd` 的 `is_summon`），但这里再设一道
+##   纵深防线 —— 只要 `summons` 成员被塞进任何一张 targets 列表，都不会被命中。
 class_name HitQuery
 extends RefCounted
 
@@ -28,6 +32,9 @@ static func circle(
 	for target in targets:
 		var node := target as Node2D
 		if node == null or not is_instance_valid(node):
+			continue
+		# 友方召喚物豁免（§12.4#2）：不被任何命中形狀誤傷
+		if node.is_in_group(&"summons"):
 			continue
 		var dist := node.global_position.distance_to(origin)
 		if dist <= 0.001:
@@ -60,6 +67,9 @@ static func arc(
 	for target in targets:
 		var node := target as Node2D
 		if node == null or not is_instance_valid(node):
+			continue
+		# 友方召喚物豁免（§12.4#2）
+		if node.is_in_group(&"summons"):
 			continue
 		var to_target := node.global_position - origin
 		var dist := to_target.length()
@@ -96,6 +106,9 @@ static func rect(
 	for target in targets:
 		var node := target as Node2D
 		if node == null or not is_instance_valid(node):
+			continue
+		# 友方召喚物豁免（§12.4#2）
+		if node.is_in_group(&"summons"):
 			continue
 		var offset := node.global_position - origin
 		if offset.length_squared() <= 0.000001:

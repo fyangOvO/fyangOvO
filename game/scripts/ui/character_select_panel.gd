@@ -51,9 +51,14 @@ const INFO_RECT: Rect2 = Rect2(368, 46, 256, 254)
 const STAT_GRID_RECT: Rect2 = Rect2(356, 152, 260, 84)
 ## 技能展示
 const SKILL_LABEL_RECT: Rect2 = Rect2(356, 232, 260, 16)
+## 技能卡區塊：單排時高 46；卡數超過一排時自動向下折行（見 _rebuild_skill_cards）。
 const SKILL_CARDS_RECT: Rect2 = Rect2(356, 250, 260, 46)
-const SKILL_CARD_SIZE: Vector2 = Vector2(48, 46)
+## 技能卡標稱尺寸。x 僅作「期望欄寬」：實際欄寬 = 區寬均分（見 _skill_card_width）。
+## 40×46：24px 圖標（48px 原生 0.5×，像素鐵律）+ 12px 名。6 欄 × 40 + 5 × 4 間隙 = 260 剛好填滿。
+const SKILL_CARD_SIZE: Vector2 = Vector2(40, 46)
 const SKILL_CARD_GAP: float = 4.0
+## 圖標顯示邊長（原生 48px 的 1/2 整數縮放）
+const SKILL_ICON_PX: float = 24.0
 ## 底部按钮
 const BOTTOM_RECT: Rect2 = Rect2(0, 306, 640, 36)
 const BTN_CONFIRM_SIZE: Vector2 = Vector2(160, 36)
@@ -214,7 +219,7 @@ func _build_info() -> void:
 	skill_title.size = SKILL_LABEL_RECT.size
 	add_child(skill_title)
 
-	_build_skill_cards()
+	# 技能卡改為「依職業池數量」於 _render_skills 動態建立（不再固定 5 張）。
 
 	_skill_desc_label = Label.new()
 	_skill_desc_label.name = "SkillDesc"
@@ -227,16 +232,42 @@ func _build_info() -> void:
 	add_child(_skill_desc_label)
 
 
-## 技能卡片：图标（48×48 贴图 0.5× ⇒ 24×24 整数）+ 名称；悬停更新下方描述行。
-## ⚠️ 图标显示 24px = 原生 48px 的 1/2 整数缩放（像素铁律），不引入非整数滤波。
-## 技能卡片：最多 5 张（职业池上限），池外卡片在 render 时隐藏。
-func _build_skill_cards() -> void:
-	for i in 5:
+## 技能卡欄數：由區寬 / 標稱卡寬算出（現 260 / (40+4) = 6 欄）。
+## 目的：池數量改變時不必改排版代碼；未來池擴到 12 自動折成 2 排。
+func _skill_columns() -> int:
+	var denom := SKILL_CARD_SIZE.x + SKILL_CARD_GAP
+	return maxi(1, int(floor((SKILL_CARDS_RECT.size.x + SKILL_CARD_GAP) / denom)))
+
+
+## 實際欄寬：把區寬在 columns 欄之間均分（補掉標稱寬除不盡的餘數，保證右緣對齊）。
+func _skill_card_width() -> float:
+	var cols := _skill_columns()
+	return (SKILL_CARDS_RECT.size.x - float(cols - 1) * SKILL_CARD_GAP) / float(cols)
+
+
+## 依技能列表**數量**動態建卡（含自動換行）：
+##   · 每張卡 = 24px 圖標（48px 原生 0.5× ⇒ 整數縮放，像素鐵律）+ 12px 名稱
+##   · 超過一排欄數即折行，行高 = 卡高 + 間隙
+## 切換職業時整批重建（先釋放舊卡），故 `_skill_cards.size()` 永遠 == 當前職業池大小。
+## ⚠️ 2 排以上時卡片區塊會向下延伸，越過 _skill_desc_label（298）—— 現池上限 6 ⇒ 單排不受影響。
+func _rebuild_skill_cards(skill_ids: Array[String]) -> void:
+	for entry in _skill_cards:
+		var old := entry["card"] as Control
+		if old != null and is_instance_valid(old):
+			old.queue_free()
+	_skill_cards.clear()
+
+	var cols := _skill_columns()
+	var cw := _skill_card_width()
+	var icon_x := (cw - SKILL_ICON_PX) * 0.5
+	for i in skill_ids.size():
+		var id := skill_ids[i]
 		var card := Control.new()
 		card.name = "SkillCard%d" % i
 		card.position = SKILL_CARDS_RECT.position + Vector2(
-			float(i) * (SKILL_CARD_SIZE.x + SKILL_CARD_GAP), 0.0)
-		card.size = SKILL_CARD_SIZE
+			float(i % cols) * (cw + SKILL_CARD_GAP),
+			float(i / cols) * (SKILL_CARD_SIZE.y + SKILL_CARD_GAP))
+		card.size = Vector2(cw, SKILL_CARD_SIZE.y)
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		add_child(card)
 
@@ -248,8 +279,8 @@ func _build_skill_cards() -> void:
 			slot_bg0.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			slot_bg0.stretch_mode = TextureRect.STRETCH_SCALE
 			slot_bg0.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			slot_bg0.position = Vector2((SKILL_CARD_SIZE.x - 24.0) * 0.5, 2.0)
-			slot_bg0.size = Vector2(24, 24)
+			slot_bg0.position = Vector2(icon_x, 2.0)
+			slot_bg0.size = Vector2(SKILL_ICON_PX, SKILL_ICON_PX)
 			card.add_child(slot_bg0)
 
 		var icon := TextureRect.new()
@@ -258,8 +289,8 @@ func _build_skill_cards() -> void:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_SCALE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.position = Vector2((SKILL_CARD_SIZE.x - 24.0) * 0.5, 2.0)
-		icon.size = Vector2(24, 24)
+		icon.position = Vector2(icon_x, 2.0)
+		icon.size = Vector2(SKILL_ICON_PX, SKILL_ICON_PX)
 		card.add_child(icon)
 
 		var name_l := Label.new()
@@ -269,14 +300,14 @@ func _build_skill_cards() -> void:
 		name_l.add_theme_color_override("font_color", GameConstants.PALETTE_NEUTRAL[9])
 		name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_l.position = Vector2(0.0, 28.0)
-		name_l.size = Vector2(SKILL_CARD_SIZE.x, 16)
+		name_l.size = Vector2(cw, 16)
 		card.add_child(name_l)
 
 		# hover 只綁一次（bind 按值捕獲索引，避免循環 lambda 捕獲陷阱）；
 		# 事件時從 _skill_cards[i].id 現查數據（切職業不需重連）。
 		card.mouse_entered.connect(_on_skill_card_hover.bind(i))
 		card.mouse_exited.connect(_on_skill_card_exit.bind(i))
-		_skill_cards.append({"card": card, "icon": icon, "name": name_l, "id": ""})
+		_skill_cards.append({"card": card, "icon": icon, "name": name_l, "id": id})
 
 
 func _on_skill_card_hover(i: int) -> void:
@@ -398,17 +429,11 @@ func _fmt_stat(key: String, val: float) -> String:
 
 
 func _render_skills(skill_ids: Array[String]) -> void:
+	_rebuild_skill_cards(skill_ids)
 	for i in _skill_cards.size():
-		var entry: Dictionary = _skill_cards[i]
-		var id := skill_ids[i] if i < skill_ids.size() else ""
-		entry["id"] = id
-		entry["card"].visible = i < skill_ids.size()
-		var icon := entry["icon"] as TextureRect
-		var name_l := entry["name"] as Label
-		if id.is_empty():
-			icon.texture = UISkin.texture("skill_slot")
-			name_l.text = ""
-			continue
+		var id := str(_skill_cards[i]["id"])
+		var icon := _skill_cards[i]["icon"] as TextureRect
+		var name_l := _skill_cards[i]["name"] as Label
 		var sd: SkillData = ConfigLoader.get_skill(id)
 		var icon_name := str(GameConstants.SKILL_ICON.get(id, ""))
 		var tex := UISkin.texture(icon_name) if not icon_name.is_empty() else null

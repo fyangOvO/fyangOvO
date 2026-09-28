@@ -162,6 +162,8 @@ const PLAYER_ART_ID: String = "player"
 ## 2026-09-23：三職業各有獨立美術（`assets/characters/` → 歸集為
 ## `assets/pack/creatures/{warrior,archer,mage}/`），故改為**由職業驅動**：
 ## `level_scene` 依存檔 `class_id` 注入，選什麼職業就長什麼樣。
+## 2026-09-24：舊目錄 `assets/characters/` 已實測為上述目錄的**位元組級重複**且不在任何
+## 載入鏈上，已移入 `deliverables/_quarantine_2026-09-24/`（移動非刪除，可回復）。
 ## ⚠️ **必須在 `add_child()` 之前設定** —— `_ready()` 就用它解析美術。
 ## 未注入（空串）時回退 `PLAYER_ART_ID`，兼容既有呼叫方與舊存檔。
 var art_id: String = PLAYER_ART_ID
@@ -747,7 +749,10 @@ func perform_skill_dash(data: SkillData) -> void:
 	var collision := move_and_collide(dir * data.dash_distance)
 	if collision:
 		var target := collision.get_collider()
-		if target is Node and target.is_in_group(&"enemies"):
+		# 友方召喚物豁免（規格 §12.4#2）：召喚物已不進 `enemies` 組，這裡再與
+		# `HitQuery` 的 `summons` 過濾保持同一道防線，杜絕突進誤傷。
+		if target is Node and target.is_in_group(&"enemies") \
+				and not target.is_in_group(&"summons"):
 			skill_controller.on_dash_hit(target, data)
 
 

@@ -2,7 +2,7 @@
 ##
 ## 监听总线事件，把「伤害结算」翻译成「打击感表现」，全程不碰结算逻辑：
 ##   - `EventBus.damage_dealt(target, amount, is_crit, element)` →
-##       目标头顶飘字 + 命中火花（贴图）/ 暴击斩弧（贴图）+ 目标闪白 + 震屏 + 暴击顿帧
+##       目标头顶飘字 + **元素命中**（贴图，见下）/ 暴击斩弧（贴图）+ 目标闪白 + 震屏 + 暴击顿帧
 ##   - `EventBus.unit_died(unit, killer)` → 死亡烟尘（贴图）
 ##   - `EventBus.run_level_up(...)`       → 升级爆光（贴图）
 ##   - `EventBus.damage_taken(src, ...)`  → 焰术信徒施法特效（贴图）
@@ -32,6 +32,18 @@ const FX_DEATH_PUFF := "death_puff"
 const FX_EMBER_LORD_AURA := "ember_lord_aura"
 const FX_PYROMANCER_CAST := "pyromancer_cast"
 
+## 元素 → 命中特效 id（2026-09-28 接入；素材见 01-技能体系.md 附錄 A §A.7 C1 批次）。
+## 键必须是 `GameConstants.ELEMENTS` 的**真实值**（lowercase）；这里写字面量是为了
+## 避免 const 表达式跨类引用（`GameConstants.ELEMENT_*`）带来的解析顺序风险。
+## ⚠️ **物理刻意不进表**：§A.7 明讲「物理可复用既有 `hit_spark`」⇒ 走兜底路径即可。
+const ELEMENT_HIT_FX: Dictionary = {
+	"fire": "elem_hit_fire",
+	"cold": "elem_hit_frost",
+	"lightning": "elem_hit_thunder",
+	"poison": "elem_hit_poison",
+	"shadow": "elem_hit_shadow",
+}
+
 ## 特效与怪物的对应（`monsters.json` 的真实 id）
 const MONSTER_EMBER_LORD := "boss_ember_lord"
 const MONSTER_PYROMANCER := "pyromancer_cultist"
@@ -58,7 +70,7 @@ func _ready() -> void:
 # 命中反馈
 # =============================================================================
 
-func _on_damage_dealt(target: Node, amount: float, is_crit: bool, _element: String) -> void:
+func _on_damage_dealt(target: Node, amount: float, is_crit: bool, element: String) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	# 6.6 音效：暴击 → 暴击音；普通命中 → 打击音（覆盖玩家受击与敌人受击；
@@ -69,8 +81,8 @@ func _on_damage_dealt(target: Node, amount: float, is_crit: bool, _element: Stri
 		AudioManager.play("hit_melee")
 	# 飘字是**文本**反馈，贴图替代不了 ⇒ 恒走代码绘制
 	_spawn_damage_number(target, amount, is_crit)
-	# 命中火花 / 暴击斩弧：贴图优先（无贴图 = 无此效果，与引入贴图层之前的手感一致）
-	_spawn_hit_fx(target.global_position, is_crit)
+	# 命中特效：元素命中 / 暴击斩弧 / 通用火花，三者按优先级取（无贴图 = 无此效果）
+	_spawn_hit_fx(target.global_position, is_crit, element)
 	if target.has_method("flash"):
 		target.flash()
 	shake(GameConstants.SHAKE_CRIT_STRENGTH if is_crit else GameConstants.SHAKE_HIT_STRENGTH)
@@ -78,10 +90,17 @@ func _on_damage_dealt(target: Node, amount: float, is_crit: bool, _element: Stri
 		hit_stop(GameConstants.HIT_STOP_DURATION)
 
 
-## 命中特效：暴击用斩弧（更大、更醒目），普通命中用火花。
-## 暴击斩弧缺失时退回火花 —— 保证「暴击一定比普通更醒目」这条既有手感不被贴图层破坏。
-func _spawn_hit_fx(pos: Vector2, is_crit: bool) -> void:
+## 命中特效，优先级：暴击斩弧 ＞ 元素命中 ＞ 通用火花。
+##
+## · 暴击优先保「斩弧」是有意为之：它是既有手感里「暴击更醒目」的视觉锚点，
+##   不能被元素特效顶掉（否则暴击反而不如普通命中显眼）。
+## · `element` 为空（物件伤害 / 未标元素的伤害）或不在表内（物理）→ 一路退到火花，
+##   与引入元素贴图层之前的表现完全一致 ⇒ **换图不会变成负优化**。
+func _spawn_hit_fx(pos: Vector2, is_crit: bool, element: String = "") -> void:
 	if is_crit and FxTable.spawn(FX_SLASH_ARC, pos) != null:
+		return
+	var elem_id: String = str(ELEMENT_HIT_FX.get(element, ""))
+	if not elem_id.is_empty() and FxTable.spawn(elem_id, pos) != null:
 		return
 	FxTable.spawn(FX_HIT_SPARK, pos)
 

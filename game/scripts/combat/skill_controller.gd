@@ -128,6 +128,8 @@ func try_cast(id: String) -> bool:
 			_execute_aoe(data)
 		SkillData.SkillType.DASH:
 			_player.perform_skill_dash(data)
+		SkillData.SkillType.SUMMON:
+			_execute_summon(data)
 	CombatMetrics.end_cast()
 	return true
 
@@ -152,6 +154,27 @@ func on_dash_hit(target: Node, data: SkillData) -> void:
 	if target == null:
 		return
 	_hit(target, data, data.knockback)
+
+
+## 召唤（技能体系 §12）：在玩家脚下生成**友方召唤物**。
+##
+## 召唤物 id == 技能 id（数据已对齐：`summon_spirit_wolf` / `summon_elemental`），
+## 故直接以 `data.id` 交给 `Summon.spawn()` —— 该函数内部会播 `summon_circle`
+## 脚下法阵（FX 单一来源，此处不重复播，避免出现双法阵）。
+##
+## 同一 id 上限 1 只（裁定）：已有同名召唤物时**取代**（旧的解召 → 新的生成）。
+## 理由：冷却（12s / 14s）短于存活（15s），不设上限会自然叠出第 2 只；
+## 取代＝不叠加、也不浪费这次冷却。被取代者走 `queue_free()`（解召，非死亡，
+## 不触发 `unit_died`）。
+func _execute_summon(data: SkillData) -> void:
+	var host: Node = _player.get_parent()
+	if host == null:
+		return
+	for n in get_tree().get_nodes_in_group(&"summons"):
+		if n != null and is_instance_valid(n) and n.has_method("get_summon_id") \
+				and str(n.call("get_summon_id")) == data.id:
+			n.queue_free()
+	Summon.spawn(host, _player, data.id, _player.global_position)
 
 
 ## 统一命中结算：伤害（2.3 完整管线）+ 击退 + 事件

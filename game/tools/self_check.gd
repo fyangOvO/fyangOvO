@@ -199,14 +199,14 @@ func _run_self_check() -> void:
 		equip_chapters_ok and ConfigLoader.get_equipment_template("bow_spirit") != null
 		and ConfigLoader.get_equipment_template("helm_crown_titan") != null)
 
-	# 任务 6.6：音效/音乐（8 条合成占位音效 + 播放管线）
-	var audio_ok := AudioManager.ids().size() == 9
+	# 任务 6.6：音效/音乐（10 条合成占位音效 + 播放管线；详见 verify_audio8e）
+	var audio_ok := AudioManager.ids().size() == 10
 	var audio_files_ok := true
 	for aid in AudioManager.ids():
 		var ameta: Dictionary = AudioManager.SFX_REGISTRY[aid]
 		if not ResourceLoader.exists("res://data/audio/%s" % ameta.get("file", "")):
 			audio_files_ok = false
-	_add_check("音效注册表 9 条（打击/暴击/死亡/金币/装备/升级/BOSS/点击/药水）", audio_ok)
+	_add_check("音效注册表 10 条（打击/暴击/死亡/金币/装备/升级/BOSS/点击/药水/boss_roar）", audio_ok)
 	_add_check("音效文件全部可加载（data/audio/*.wav）",
 		audio_files_ok and AudioManager.has("boss_phase")
 		and AudioManager.has("ui_click"))
@@ -284,10 +284,18 @@ func _run_self_check() -> void:
 	_add_check("平衡仿真：梦魇 III–V 承伤 < 10s（可被秒，实测 %.1f）" % bal_surv_hi, bal_surv_hi < 10.0)
 
 	# 任务 8.5：Bug 修复与回归红线（历史修复点不回退）
-	var fix_data_ok := ConfigLoader.monsters.size() == 16 \
-		and ConfigLoader.bosses.size() == 2 and ConfigLoader.skills.size() == 12 \
-		and ConfigLoader.equipment_templates.size() == 62 and ConfigLoader.levels.size() == 20
-	_add_check("回归红线：数据表锚点（怪物 16 / BOSS 2 / 技能 12 / 装备 62 / 关卡 20）", fix_data_ok)
+	# 数据表锚点：拆成 5 条独立断言以便精準定位是哪個錨點被破壞。
+	# 怪物表隨版本迭代可能擴容（已 16→24），故採下限；其他表屬穩態，採恆等。
+	_add_check("回归红线：怪物 ≥ 16 条（当前 %d）" % ConfigLoader.monsters.size(),
+		ConfigLoader.monsters.size() >= 16)
+	_add_check("回归红线：BOSS == 2 个（当前 %d）" % ConfigLoader.bosses.size(),
+		ConfigLoader.bosses.size() == 2)
+	_add_check("回归红线：技能 == 14 条（当前 %d）" % ConfigLoader.skills.size(),
+		ConfigLoader.skills.size() == 14)
+	_add_check("回归红线：装备 == 62 件（当前 %d）" % ConfigLoader.equipment_templates.size(),
+		ConfigLoader.equipment_templates.size() == 62)
+	_add_check("回归红线：关卡 == 20 关（当前 %d）" % ConfigLoader.levels.size(),
+		ConfigLoader.levels.size() == 20)
 	var fix_slot_ok := GameConstants.SAVE_MAX_SLOTS >= 8
 	_add_check("回归红线：存档槽位边界（SAVE_MAX_SLOTS=%d）" % GameConstants.SAVE_MAX_SLOTS, fix_slot_ok)
 
@@ -635,7 +643,7 @@ func _run_self_check() -> void:
 		boss_table != null and is_equal_approx(boss_table.drop_chance, 1.0)
 		and boss_table.drop_count_range == Vector2i(2, 4))
 
-	# 任务 6.4 + 步骤 3：技能库（3 → 12：职业专属池，覆盖三形态 + 多元素）
+	# 任务 6.4 + 步骤 3 + §12：技能库（3 → 14：职业专属池，覆盖四形态 + 多元素 + 召唤）
 	var skill_total := ConfigLoader.get_all_skill_ids().size()
 	var slot_ids: Array[String] = []
 	for sid in ConfigLoader.get_all_skill_ids():
@@ -647,8 +655,8 @@ func _run_self_check() -> void:
 	var class_bar_ok := ConfigLoader.class_default_skill_bar("warrior").size() == 3 \
 		and ConfigLoader.class_default_skill_bar("archer").size() == 3 \
 		and ConfigLoader.class_default_skill_bar("mage").size() == 3
-	_add_check("技能库 12 个（3 老出战 + 9 备选池，三职业默认栏各 3）",
-		skill_total == 12 and slot_ids.size() == 3 and has_frost and class_bar_ok)
+	_add_check("技能库 14 个（3 老出战 + 11 备选池；三职业默认栏各 3 不变）",
+		skill_total == 14 and slot_ids.size() == 3 and has_frost and class_bar_ok)
 	_add_check("备选技能覆盖三形态 + 暗影元素入元素表",
 		has_shadow
 		and ConfigLoader.get_skill("lightning_chain") != null
@@ -677,7 +685,7 @@ func _run_self_check() -> void:
 				continue
 			type_mask |= 1 << sd.type
 		_add_check("技能表可解析：%d 条，全部数据合法" % skill_ids.size(), skill_valid)
-		_add_check("技能形态覆盖单/范围/位移三类", type_mask == 0b111)
+		_add_check("技能形态覆盖单/范围/位移/召唤四类", type_mask == 0b1111)
 
 	# 任务 2.3：伤害计算管线锚点（暴击 / 元素 / 减伤，用户拍板口径）
 	var crit_ok := (
