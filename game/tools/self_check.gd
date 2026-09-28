@@ -554,10 +554,12 @@ func _run_self_check() -> void:
 	_add_check("本局结算（扣 50% / 入包保留 / 评分评级）", result_ok)
 
 	# 任务 5.1：账号等级（180×L^1.6，GDD 5.1 节点）
+	# ⚠️ 上限**引用常量**：路线 A（4-W10）把 60 改成 20，写死 60 会在每次调上限时漏改。
+	var acc_max := AccountLevel.MAX_ACCOUNT_LEVEL
 	var acc_ok := absf(AccountLevel.xp_to_next(10) - 7166.0) < 10.0 \
-		and absf(AccountLevel.xp_to_next(60) - 125984.0) < 50.0 \
-		and AccountLevel.MAX_ACCOUNT_LEVEL == 60
-	_add_check("账号等级（180×L^1.6：L10≈7166 / L60≈125984，上限 60）", acc_ok)
+		and absf(AccountLevel.xp_to_next(acc_max) - 21723.0) < 10.0 \
+		and acc_max == 20
+	_add_check("账号等级（180×L^1.6：L10≈7166 / 满级 L%d≈21723，上限 20）" % acc_max, acc_ok)
 
 	# 任务 5.2：天赋树（3 分支 × 20 节点，满级 30 点）
 	var tree_ok := TalentTree.BRANCHES.size() == 3 \

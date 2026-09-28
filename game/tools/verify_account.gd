@@ -5,7 +5,7 @@
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
 ## 覆盖范围（9 个测试段）：
-##   A. 账号等级：公式节点（GDD 5.1 表）、连升、60 满级、天赋点
+##   A. 账号等级：公式节点（GDD 5.1 表）、连升、满级（MAX_ACCOUNT_LEVEL）、天赋点
 ##   B. 天赋树：3 分支 / 20 节点 / 分支解锁（L1/L15/L30）/ 点数上限
 ##   C. 天赋加成：小 +2% / 大 +8% / 机制列表
 ##   D. 解锁系统：关卡顺序 / 梦魇递进 / 仓库页
@@ -59,9 +59,12 @@ func _test_account() -> void:
 	var up_events: Array[int] = []
 	acc._on_level_up = func(lv: int, _g: int) -> void: up_events.append(lv)
 	acc.add_xp(99999999.0)
-	_ok("大量经验升到 60 级", acc.level == 60)
-	_ok("60 级 30 天赋点（每 2 级 +1）", acc.talent_points == 30)
-	_ok("升级事件已触发（59 次）", up_events.size() == 59)
+	# ⚠️ 上限**引用常量**而不是写死数字：路线 A（4-W10）把 60 改成 20，
+	#    写死 60 会让这条断言在每次调上限时都要回来改（且改错也不会有人发现）。
+	var max_lv := AccountLevel.MAX_ACCOUNT_LEVEL
+	_ok("大量经验升到上限 %d 级（路线 A：60→20）" % max_lv, acc.level == max_lv)
+	_ok("满级天赋点 = 每 2 级 1 点（%d 点）" % (max_lv / 2), acc.talent_points == max_lv / 2)
+	_ok("升级事件已触发（%d 次）" % (max_lv - 1), up_events.size() == max_lv - 1)
 
 
 # =============================================================================

@@ -9,7 +9,7 @@
 ##   B. roll 基础：BOSS 表（drop_chance 1.0）必掉 2–4 件
 ##   C. 稀有度分布：普通怪权重 20k 次抽样白 > 蓝 > 黄、橙极低
 ##   D. 难度修正：NM1 红装清零 / NM2+ 开放 / 越级惩罚紫橙 ×0.5
-##   E. 底材过滤：iLvl 区间 / 套装稀有度只出 set_id 底材
+##   E. 底材过滤：iLvl 区间 / 套装稀有度只出 set_id 底材 / iLvl clamp+三角抖动（4-W3·T10）
 ##   F. 敌人死亡掉落 + 拾取：BOSS 秒杀掉 2–4 件 LootDrop，玩家走近自动入账
 ##   G. 收编回归：敌人受击转发生命组件（无双重减伤）
 extends Node
@@ -173,17 +173,45 @@ func _test_template_filter() -> void:
 		if d["type"] != "equipment":
 			continue
 		eq_count += 1
+		# ⚠️ 判定用**实际 roll 出的 iLvl**，不写死 5 —— 4-W3 后 iLvl 是
+		#    「怪等级 ± 三角抖动」的结果（此处 怪L5 / 玩家L1 ⇒ iLvl ∈ [3,5]），
+		#    写死 5 会把合法的 iLvl=3/4 底材误判成越界。
+		var ilvl := int(d["item_level"])
 		var t: EquipmentData = ConfigLoader.equipment_templates.get(d["item_id"])
 		if t == null or int(d["rarity"]) < t.rarity_min or int(d["rarity"]) > t.rarity_max \
-				or 5 < t.item_level_min or 5 > t.item_level_max:
+				or ilvl < t.item_level_min or ilvl > t.item_level_max:
 			bad += 1
-	_ok("装备底材按稀有度区间 / 等级区间过滤（200 次 roll 无越界）",
+	_ok("装备底材按稀有度区间 / iLvl 区间过滤（200 次 roll 无越界）",
 		eq_count >= 60 and bad == 0)
-	_info("      200 次中装备 %d 件（装备占比 55% ≈ %d）" % [eq_count, int(200 * 0.55)])
+	_info("      200 次中装备 %d 件（装备占比 55%% ≈ %d）" % [eq_count, int(200 * 0.55)])
 	# 套装稀有度只出 set_id 底材
 	var t_set := LootRoller._pick_template(GameConstants.Rarity.SET, 5)
 	_ok("套装稀有度只出带 set_id 的底材",
 		t_set == null or not t_set.set_id.is_empty())
+	# ---- 4-W3 / 4-T10：iLvl = clamp(怪等级 ± 三角抖动, 下限 怪-2, 上限 max(怪, 玩家)) ----
+	seed(20260928)
+	var seen := {}
+	var in_range := true
+	for i in 3000:
+		var lv := LootRoller._roll_item_level(18, 20)
+		seen[lv] = int(seen.get(lv, 0)) + 1
+		if lv < 16 or lv > 20:
+			in_range = false
+	_ok("T10：玩家 L20 打 L18 怪 ⇒ iLvl ∈ [16,20] 且两端都**可达**（账号上限天然封顶在 20）",
+		in_range and seen.has(16) and seen.has(20))
+	_info("      抽样分布（L18 怪 / L20 玩家）：%s" % str(seen))
+	# 越级：玩家等级 < 怪等级 ⇒ 上限被压回怪等级
+	var no_over := true
+	for i in 800:
+		if LootRoller._roll_item_level(20, 1) > 20:
+			no_over = false
+	_ok("玩家 L1 打 L20 怪 ⇒ iLvl 仍 ≤ 20（上限 = max(怪等级, 玩家等级)）", no_over)
+	# 下限保护：L1 怪不会掉出 iLvl ≤ 0（iLvl 参与 item_stat_ilvl_scale / required_level_for）
+	var floor_ok := true
+	for i in 500:
+		if LootRoller._roll_item_level(1, 1) < 1:
+			floor_ok = false
+	_ok("L1 怪 iLvl ≥ 1（下限取 max(1, 怪等级-2)）", floor_ok)
 
 
 # =============================================================================

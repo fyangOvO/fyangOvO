@@ -465,11 +465,11 @@ def group_repo(D):
         return m.group(1) if m else None
 
     if os.path.isfile(gc):
-        # W1 未落地：仍為 1.22 / 1.16
+        # W1 已落地（B1 · 2026-09-28）：1.22 / 1.16 → 1.12 / 1.12
         v = const_of(gc, "MONSTER_HP_GROWTH")
-        ck(v == "1.22", f"R3 MONSTER_HP_GROWTH 仍為 1.22（實 {v or 'N/A'}）")
+        ck(v == "1.12", f"R3 MONSTER_HP_GROWTH = 1.12（B1 已落地；實 {v or 'N/A'}）")
         v = const_of(gc, "MONSTER_DMG_GROWTH")
-        ck(v == "1.16", f"R4 MONSTER_DMG_GROWTH 仍為 1.16（實 {v or 'N/A'}）")
+        ck(v == "1.12", f"R4 MONSTER_DMG_GROWTH = 1.12（B1 已落地；實 {v or 'N/A'}）")
         # S12 未落地：稀有度仍 8 檔
         v = const_of(gc, "RARITY_COUNT")
         ck(v == "8", f"R5 RARITY_COUNT 仍為 8（實 {v or 'N/A'}）")
@@ -481,8 +481,9 @@ def group_repo(D):
     al = os.path.join(REPO, "game", "scripts", "account", "account_level.gd")
     ck(os.path.isfile(al), "R8 account_level.gd 存在")
     if os.path.isfile(al):
+        # W10 已落地（B1 · 2026-09-28）：60 → 20
         v = const_of(al, "MAX_ACCOUNT_LEVEL")
-        ck(v == "60", f"R9 MAX_ACCOUNT_LEVEL 仍為 60（實 {v or 'N/A'}）")
+        ck(v == "20", f"R9 MAX_ACCOUNT_LEVEL = 20（B1 已落地；實 {v or 'N/A'}）")
 
     sd = os.path.join(REPO, "game", "resources", "save_data.gd")
     ck(os.path.isfile(sd), "R10 save_data.gd 存在")

@@ -411,15 +411,17 @@ func _test_authored() -> void:
 	#    (20,25)），而敌人**没有寻路**（直线追 + 沿墙滑行）⇒ 玩家在它西/北/南时它两个轴的滑行
 	#    分量同时为 0，**一动不动**（704 个玩家位里只有 23% 能追到）。打通 (19,24) 后该处变成
 	#    普通 L 型转角，死端消失。**改图必须同 commit 改这张表**，否则下面这条断言会红。
+	# ⚠️ 2026-09-28（B1 · 5-W5-4）：4 关的 `m` 按目标表重画 —— 23→60 / 48→72 / 41→86 / 32→92。
+	#    `m` 是 TILE_GROUND ⇒ 只动 `m` 列，ground/wall/obstacle 三列不变（已核对）。
 	var expect := {
 		"ch1_l01": {"w": 40, "h": 30, "ground": 705, "wall": 483, "obstacle": 12,
-			"m": 23, "e": 2, "p": 3, "boss": false},
+			"m": 60, "e": 2, "p": 3, "boss": false},
 		"ch1_l02": {"w": 40, "h": 30, "ground": 626, "wall": 549, "obstacle": 25,
-			"m": 48, "e": 2, "p": 3, "boss": false},
+			"m": 72, "e": 2, "p": 3, "boss": false},
 		"ch1_l05": {"w": 26, "h": 44, "ground": 769, "wall": 357, "obstacle": 18,
-			"m": 41, "e": 3, "p": 3, "boss": false},
+			"m": 86, "e": 3, "p": 3, "boss": false},
 		"ch1_l06": {"w": 48, "h": 36, "ground": 960, "wall": 748, "obstacle": 20,
-			"m": 32, "e": 4, "p": 3, "boss": true},
+			"m": 92, "e": 4, "p": 3, "boss": true},
 	}
 	var stat_bad: Array[String] = []
 	var stat_line: Array[String] = []
@@ -553,7 +555,13 @@ func _test_authored() -> void:
 		print("[SKIP] ch1_l06 尚未手绘化 ⇒ 'B' 标记仍无真实数据在用（待补）")
 
 	var ms: Array = layout["monster_spawns"]
-	_ok("杂兵锚点 = 手绘 'm' 的 48 个位置", ms.size() == 48)
+	# 设计意图：手绘关的怪物锚点数 == 地图上 'm' 的个数（'m' 是**唯一**来源，
+	# 见 `_generate_authored()` 第 9 步）。期望值**从手绘图本身数出来**，
+	# 不写死数字 —— 旧版写死 48 是 B1 前的快照，5-W5-4 把 m 提到 72 后即失效。
+	var m_in_map := 0
+	for row in (lv.layout.get("cells", []) as Array):
+		m_in_map += (row as String).count("m")
+	_ok("杂兵锚点 = 手绘 'm' 的 %d 个位置" % m_in_map, ms.size() == m_in_map)
 	var on_ground := true
 	var far_enough := true
 	var ids_known := true
