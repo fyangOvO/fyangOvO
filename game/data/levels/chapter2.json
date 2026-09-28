@@ -8,11 +8,11 @@
 		"objective_type": "clear_all",
 		"objective_value": 0,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 18, "count_max": 27, "weight": 100.0, "spawn_group": "ambient" },
-			{ "monster_id": "wraith_frost", "count_min": 5, "count_max": 9, "weight": 50.0, "spawn_group": "ambient" },
-			{ "monster_id": "slime_acid", "count_min": 9, "count_max": 14, "weight": 40.0, "spawn_group": "pack" }
+			{ "monster_id": "skeleton_warrior", "count_min": 85, "count_max": 125, "weight": 100.0, "spawn_group": "ambient" },
+			{ "monster_id": "wraith_frost", "count_min": 23, "count_max": 41, "weight": 50.0, "spawn_group": "ambient" },
+			{ "monster_id": "slime_acid", "count_min": 42, "count_max": 64, "weight": 40.0, "spawn_group": "pack" }
 		],
-		"total_monster_budget": 54,
+		"total_monster_budget": 230,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.05,
 		"elite_count": 2,
@@ -29,15 +29,15 @@
 		"display_name": "灰烬堡 · 焦骨市场",
 		"chapter": 2,
 		"level": 8,
-		"recommended_player_level": 12,
+		"recommended_player_level": 11,
 		"objective_type": "kill_elite",
 		"objective_value": 3,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 20, "count_max": 29, "weight": 100.0, "spawn_group": "ambient" },
-			{ "monster_id": "bat_swarm", "count_min": 11, "count_max": 18, "weight": 60.0, "spawn_group": "pack" },
-			{ "monster_id": "brute_butcher", "count_min": 2, "count_max": 3, "weight": 8.0, "spawn_group": "guard" }
+			{ "monster_id": "skeleton_warrior", "count_min": 99, "count_max": 145, "weight": 100.0, "spawn_group": "ambient" },
+			{ "monster_id": "bat_swarm", "count_min": 54, "count_max": 90, "weight": 60.0, "spawn_group": "pack" },
+			{ "monster_id": "brute_butcher", "count_min": 10, "count_max": 15, "weight": 8.0, "spawn_group": "guard" }
 		],
-		"total_monster_budget": 56,
+		"total_monster_budget": 250,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.06,
 		"elite_count": 3,
@@ -54,15 +54,15 @@
 		"display_name": "灰烬堡 · 熔炉回廊",
 		"chapter": 2,
 		"level": 9,
-		"recommended_player_level": 14,
+		"recommended_player_level": 12,
 		"objective_type": "clear_all",
 		"objective_value": 0,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 16, "count_max": 22, "weight": 80.0, "spawn_group": "ambient" },
-			{ "monster_id": "wraith_frost", "count_min": 8, "count_max": 12, "weight": 60.0, "spawn_group": "ambient" },
-			{ "monster_id": "slime_acid", "count_min": 10, "count_max": 16, "weight": 40.0, "spawn_group": "pack" }
+			{ "monster_id": "skeleton_warrior", "count_min": 81, "count_max": 116, "weight": 80.0, "spawn_group": "ambient" },
+			{ "monster_id": "wraith_frost", "count_min": 40, "count_max": 64, "weight": 60.0, "spawn_group": "ambient" },
+			{ "monster_id": "slime_acid", "count_min": 51, "count_max": 85, "weight": 40.0, "spawn_group": "pack" }
 		],
-		"total_monster_budget": 58,
+		"total_monster_budget": 265,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.06,
 		"elite_count": 3,
@@ -79,15 +79,15 @@
 		"display_name": "灰烬堡 · 黑铁广场",
 		"chapter": 2,
 		"level": 10,
-		"recommended_player_level": 16,
+		"recommended_player_level": 13,
 		"objective_type": "kill_elite",
 		"objective_value": 4,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 26, "count_max": 36, "weight": 100.0, "spawn_group": "ambient" },
-			{ "monster_id": "brute_butcher", "count_min": 2, "count_max": 6, "weight": 10.0, "spawn_group": "guard" },
-			{ "monster_id": "wraith_frost", "count_min": 6, "count_max": 10, "weight": 50.0, "spawn_group": "ambient" }
+			{ "monster_id": "skeleton_warrior", "count_min": 139, "count_max": 194, "weight": 100.0, "spawn_group": "ambient" },
+			{ "monster_id": "brute_butcher", "count_min": 11, "count_max": 32, "weight": 10.0, "spawn_group": "guard" },
+			{ "monster_id": "wraith_frost", "count_min": 32, "count_max": 54, "weight": 50.0, "spawn_group": "ambient" }
 		],
-		"total_monster_budget": 60,
+		"total_monster_budget": 280,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.07,
 		"elite_count": 4,
@@ -104,15 +104,15 @@
 		"display_name": "灰烬堡 · 火蜥巢穴",
 		"chapter": 2,
 		"level": 11,
-		"recommended_player_level": 18,
+		"recommended_player_level": 13,
 		"objective_type": "clear_all",
 		"objective_value": 0,
 		"monster_entries": [
-			{ "monster_id": "slime_acid", "count_min": 17, "count_max": 24, "weight": 70.0, "spawn_group": "ambient" },
-			{ "monster_id": "wraith_frost", "count_min": 9, "count_max": 13, "weight": 60.0, "spawn_group": "ambient" },
-			{ "monster_id": "skeleton_warrior", "count_min": 19, "count_max": 28, "weight": 90.0, "spawn_group": "ambient" }
+			{ "monster_id": "slime_acid", "count_min": 73, "count_max": 109, "weight": 70.0, "spawn_group": "ambient" },
+			{ "monster_id": "wraith_frost", "count_min": 38, "count_max": 59, "weight": 60.0, "spawn_group": "ambient" },
+			{ "monster_id": "skeleton_warrior", "count_min": 81, "count_max": 127, "weight": 90.0, "spawn_group": "ambient" }
 		],
-		"total_monster_budget": 62,
+		"total_monster_budget": 295,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.07,
 		"elite_count": 4,
@@ -129,15 +129,15 @@
 		"display_name": "灰烬堡 · 焦核回廊",
 		"chapter": 2,
 		"level": 12,
-		"recommended_player_level": 20,
+		"recommended_player_level": 14,
 		"objective_type": "kill_elite",
 		"objective_value": 5,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 25, "count_max": 35, "weight": 100.0, "spawn_group": "ambient" },
-			{ "monster_id": "brute_butcher", "count_min": 3, "count_max": 7, "weight": 12.0, "spawn_group": "guard" },
-			{ "monster_id": "wraith_frost", "count_min": 9, "count_max": 13, "weight": 60.0, "spawn_group": "ambient" }
+			{ "monster_id": "skeleton_warrior", "count_min": 137, "count_max": 198, "weight": 100.0, "spawn_group": "ambient" },
+			{ "monster_id": "brute_butcher", "count_min": 16, "count_max": 39, "weight": 12.0, "spawn_group": "guard" },
+			{ "monster_id": "wraith_frost", "count_min": 49, "count_max": 73, "weight": 60.0, "spawn_group": "ambient" }
 		],
-		"total_monster_budget": 64,
+		"total_monster_budget": 310,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.08,
 		"elite_count": 5,
@@ -154,15 +154,15 @@
 		"display_name": "灰烬堡 · 烬王大殿",
 		"chapter": 2,
 		"level": 13,
-		"recommended_player_level": 22,
+		"recommended_player_level": 15,
 		"objective_type": "kill_boss",
 		"objective_value": 1,
 		"monster_entries": [
-			{ "monster_id": "skeleton_warrior", "count_min": 26, "count_max": 38, "weight": 80.0, "spawn_group": "ambient" },
-			{ "monster_id": "wraith_frost", "count_min": 12, "count_max": 17, "weight": 60.0, "spawn_group": "ambient" },
-			{ "monster_id": "brute_butcher", "count_min": 4, "count_max": 8, "weight": 12.0, "spawn_group": "guard" }
+			{ "monster_id": "skeleton_warrior", "count_min": 131, "count_max": 196, "weight": 80.0, "spawn_group": "ambient" },
+			{ "monster_id": "wraith_frost", "count_min": 60, "count_max": 88, "weight": 60.0, "spawn_group": "ambient" },
+			{ "monster_id": "brute_butcher", "count_min": 20, "count_max": 41, "weight": 12.0, "spawn_group": "guard" }
 		],
-		"total_monster_budget": 66,
+		"total_monster_budget": 325,
 		"elite_spawn_enabled": true,
 		"elite_ratio": 0.05,
 		"elite_count": 3,

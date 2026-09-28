@@ -8,12 +8,17 @@
 ##     "amount": int,                    # 金币 / 材料数量（装备为 1）
 ##     "item_id": String,                # 装备底材 ID（非装备为空）
 ##     "rarity": int,                    # GameConstants.Rarity（装备有效；金币/材料 -1）
-##     "item_level": int }               # 物品等级 = 怪物等级
+##     "item_level": int }               # 物品等级 = clamp(怪物等级 ± 三角抖动, 下限 怪-2,
+##                                       #                     上限 max(怪等级, 玩家等级))（4-W3）
 ##
 ## ⚠️ 随机性：roll 用全局 randf（Godot 伪随机）。验证脚本用 seed() 固定。
 ## ⚠️ 保底 pity：数据字段保留（elite 有 pity_*），机制阶段 3「掉落手感调优」接入
 ##    （需会话级幸运状态，本类保持无状态）。
 class_name LootRoller
+
+
+## 掉落 iLvl 的三角抖动跨度（±N）。口径见 `_roll_item_level()`（GDD 04 §3.3 / 工单 4-W3）。
+const ITEM_LEVEL_JITTER: int = 2
 
 
 ## 保底装备：直接 roll **一件装备**，**不经过** `drop_chance` 触发判定。
@@ -33,7 +38,8 @@ static func roll_guaranteed_equipment(level: int, difficulty: int,
 	return _roll_equipment(table, level, difficulty, player_level, magic_find_pct)
 
 
-## 对一只怪物 roll 掉落（怪物等级 = 掉落物等级；player_level ≤ 0 时不启用越级惩罚）。
+## 对一只怪物 roll 掉落（`monster_level` = 怪物等级，是 iLvl 的**基准**而非等值；
+## iLvl 口径见 `_roll_item_level()`；`player_level ≤ 0` 时不启用越级惩罚）。
 ## `magic_find_pct`：局内「幸运」稀有度权重加成（默认 0 = 不变）。
 ## 返回掉落条目数组（未触发返回空数组）。
 static func roll_loot(monster: MonsterData, monster_level: int,
@@ -112,21 +118,57 @@ static func _roll_material(level: int) -> Dictionary:
 	return { "type": "material", "amount": amount, "item_id": "", "rarity": -1, "item_level": level }
 
 
-## 装备：稀有度（难度修正 + 越级惩罚）→ 底材（drop_weight 加权，稀有度/等级过滤）
-## → 词缀（AffixRoller，任务 3.2）：掉落即定型，拾取直接入包。
+## 装备：稀有度（难度修正 + 越级惩罚）→ iLvl（三角抖动 + clamp）→ 底材（drop_weight 加权，
+## 稀有度 / iLvl 过滤）→ 词缀（AffixRoller，任务 3.2）：掉落即定型，拾取直接入包。
 static func _roll_equipment(table: LootTable, level: int, difficulty: int,
 		player_level: int, magic_find_pct: float = 0.0) -> Dictionary:
+	# 稀有度与 iLvl 是**两次独立 roll**：
+	#   · 稀有度的越级惩罚看的是「怪物等级 vs 玩家等级」（口径不变）；
+	#   · iLvl 看的是「怪物等级 ± 抖动，上限 max(怪物等级, 玩家等级)」（4-W3）。
 	var rarity := _roll_rarity(table.rarity_weights, difficulty, player_level, level, magic_find_pct)
-	var template := _pick_template(rarity, level)
+	var ilvl := _roll_item_level(level, player_level)
+	var template := _pick_template(rarity, ilvl)
 	if template == null:
-		# 装备池在该稀有度/等级下无可用底材（正常不会发生）——回退金币，避免空掉落
+		# 装备池在该稀有度/iLvl 下无可用底材（正常不会发生）——回退金币，避免空掉落
 		return _roll_gold(level)
-	var item := AffixRoller.roll_full_equipment(template, level, rarity)
+	var item := AffixRoller.roll_full_equipment(template, ilvl, rarity)
 	return {
 		"type": "equipment", "amount": 1,
-		"item_id": template.id, "rarity": rarity, "item_level": level,
+		"item_id": template.id, "rarity": rarity, "item_level": ilvl,
 		"instance": item.to_dict(),
 	}
+
+
+## 掉落物等级（iLvl）—— GDD 04 §3.3「修复三：iLvl 上限释放」（工单 4-W3）。
+##
+##   item_level = clamp(怪物等级 + 三角抖动(±2),
+##                      下限 = max(1, 怪物等级 - 2),
+##                      上限 = max(怪物等级, 玩家等级))
+##
+## 设计意图：
+##   · 「打高等级怪掉好装备」的直觉保留 —— 基准仍是**怪物等级**；
+##   · 玩家等级 ≥ 怪等级时上限抬到玩家等级 ⇒ 清低关的掉落能跟上玩家
+##     （但抖动跨度只有 ±2，所以实际最高到 怪物等级 + 2）；
+##   · 玩家等级 < 怪等级时上限被压回怪物等级 ⇒ 低级玩家越级刷怪**拿不到**超模装备；
+##   · 路线 A（4-W10）下账号上限 20 ⇒ 该上限天然被账号等级封顶在 20，
+##     **不需要再加硬编码上限**（GDD 04 §3.3 路线 A 补充：公式保持原样即可）；
+##   · 下限用 `max(1, ...)` 而不是裸的 `怪物等级 - 2`：iLvl 会参与
+##     `item_stat_ilvl_scale()` / `affix_ilvl_scale()` / `required_level_for()`，
+##     0 或负数会算错（L1 怪是唯一触发点）。
+static func _roll_item_level(monster_level: int, player_level: int) -> int:
+	var lo := maxi(1, monster_level - ITEM_LEVEL_JITTER)
+	var hi := maxi(monster_level, maxi(player_level, 1))
+	return clampi(monster_level + _triangular_jitter(ITEM_LEVEL_JITTER), lo, hi)
+
+
+## 三角分布抖动：返回 `[-span, span]`，**中心 0 权重最高**（GDD 02 掉落 iLvl 三角分布）。
+##
+## 两个独立 `[0, span]` 均匀分布之和 - span ⇒ 三角分布（权重 span+1 : span : … : 1）。
+## 用全局 `randi_range`（与其它 roll 同一套 RNG）⇒ `seed()` 能固定整条链路。
+static func _triangular_jitter(span: int) -> int:
+	if span <= 0:
+		return 0
+	return randi_range(0, span) + randi_range(0, span) - span
 
 
 ## 稀有度 roll：权重数组（难度修正后）归一化加权抽样。
