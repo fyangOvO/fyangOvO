@@ -386,6 +386,32 @@ GDScript 的 `%` 是格式化運算符 ⇒ `"20% 減傷（%.2f）" % [x]` 直接
 ⇒ 用 `%%` 轉義（本批圖鑑進度字串）。
 （同型：**JSON 數字解析為 float** ⇒ `Array ==` 逐元素比較不可靠，測試斷言改**逐元素 `int()` 比**。）
 
+### 🆕 2026-09-29（B4-5）新踩兩坑
+
+**㉚ 「新增狀態效果（異常）前，必須先 grep 既有素材鍵 / 屬性鍵，再定 id」**
+想做「雷 / 暗異常」，若直接自創 `weaken` 之類的 id，會與既有資產**對不上**：
+- `ui_skin.gd` 的 `ailment_icon` 鍵集早已是 `burn / chill / poison / shock / curse / sunder`；
+- `STAT_SHOCK_DAMAGE`（**对感电目标增伤**）/ `STAT_CURSE_DAMAGE`（**对诅咒目标增伤**）也已存在。
+
+⇒ 新 id 必須取 **`shock`（感電）/ `curse`（詛咒）**，否則「屬性鍵 / 圖標 / 異常 id」三者無法互認。
+**通則：新增任何「有名字的機制」前，先 grep 三處取交集** ——
+`ui_skin.gd`（素材鍵）、`game_constants.gd` 的 `STAT_*`（屬性鍵）、`data/`（策劃數據）。
+（同批還發現既有 `AILMENT_SLOW = "slow"` 與素材鍵 `chill` 不一致 —— **既有漂移，記錄但別順手改**。）
+
+**㉛ 「`self_check` 的『某元素無異常』是硬編碼斷言 ⇒ 加異常必轉紅」**
+`self_check.gd` 原本寫死：
+```gdscript
+and GameConstants.ailment_from_element(GameConstants.ELEMENT_LIGHTNING).is_empty()
+```
+⇒ 一旦 `AILMENT_ELEMENT_MAP` 補上 lightning，這條就紅。
+**加異常 / 加映射後，必須同步 `self_check` 的映射斷言 + 補新時長斷言**；
+同型要 grep `AILMENTS.size() == 3` 這類**硬編碼計數**（本專案 `AILMENTS` 只被定義、無消費點 ⇒ 擴充安全，但計數斷言仍要查）。
+
+**（本批口徑備註）易傷落 `take_damage`、降攻折進 `get_attack_damage`** ——
+前者覆蓋「敵人→玩家」的 6+ 個傷害點，後者是玩家/敵人**一切輸出攻擊力的唯一出口**；
+兩者都保證「無異常 = ×1.0」⇒ 既有傷害斷言逐位不變（零回歸）。易傷刻意**只作用於直接受擊**，
+DoT 不走 `take_damage` ⇒ 不會出現「感電 + 中毒」乘法雪球。
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】

@@ -12,7 +12,25 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益 ✅** + **B4-2 套裝機制特效 ✅** + **B4-3 BOSS 技能 + 關卡目標 ✅** + **B4-4 技能擴展 UI ✅**（`1-L8`~`1-L14`）⇒ 下一步 **B4-5 元素深化（`3-E7`/`3-E8`）** |
+| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 ✅** + **B4-2 ✅** + **B4-3 ✅** + **B4-4 技能擴展 UI ✅**（`1-L8`~`1-L14`）+ **B4-5 元素深化 ✅**（`3-E7`/`3-E8`）⇒ 下一步 **B4-6 校驗補齊（`1-V7`~`1-V9`）** |
+
+⇒ **B4-5 已落地**（2 工單，**元素深化閉環**）：
+**`3-E7` 元素飄字配色**：`DamageNumber.setup(amount, is_crit, element)` + `static normal_color_for(element)`
+（有元素 ⇒ `ELEMENT_COLORS` 單一來源；空串/未知 ⇒ 普通色）；**暴擊優先**（暴擊用暴擊色，非暴擊才按元素上色）；
+`JuiceFX._spawn_damage_number` 透傳 element ⇒ 6 元素各一色（白/橙/冰藍/黃/綠/紫）
+｜**`3-E8` 雷/暗異常**：新增 `AILMENT_SHOCK`（**感電**，受到的直接傷害 ×1.20，落 `HealthComponent.take_damage`）
++ `AILMENT_CURSE`（**詛咒**，造成的傷害 ×0.80，折進 `PlayerController/EnemyBase.get_attack_damage` —— 唯一輸出出口）
+｜`AILMENTS` 3→**5**；`AILMENT_ELEMENT_MAP` 補 lightning→shock / shadow→curse
+｜乘區單一來源：`shock_damage_taken_multiplier()` / `curse_damage_dealt_multiplier()`
+⚠️ **命名口徑（重要）**：新異常 id **必須**取 `shock`/`curse` —— 對齊既有素材鍵（`ui_skin.ailment_icon` = burn/chill/poison/shock/curse/sunder）
+與既有屬性鍵（`STAT_SHOCK_DAMAGE` 对感电目标增伤 / `STAT_CURSE_DAMAGE` 对诅咒目标增伤）；**勿自創 `weaken`**
+⚠️ **本批新踩兩坑**（詳見 `IRON-RULES.md` ㉚㉛）：㉚**新增狀態效果前先 grep 素材鍵/屬性鍵再定 id**
+㉛**`self_check` 的「某元素無異常」是硬編碼斷言 ⇒ 加映射必轉紅**（須同步 + 查 `AILMENTS.size()` 類計數）
+⚠️ **遺留**：①**玩家→怪物施加異常未接通**（本批拍板不做）⇒ 新異常目前**只能由 2 隻雷怪 / 2 隻暗怪打玩家觸發**
+②**無異常 HUD**（`status_shock`/`status_curse` 素材已存在但無消費點）③既有命名漂移 `AILMENT_SLOW="slow"` vs 素材鍵 `chill`
+④`STAT_SHOCK_DAMAGE`/`STAT_CURSE_DAMAGE` 仍是死鉤子（屬詞綴管線）⑤策劃 gaps 建議雷=「麻痺」，實現採「感電」（已記 `resolution`）
+**⇒ 驗收**：`verify_element_ext`（新建，**9 段 / 41 斷言全綠**）；全量回歸 **76 腳本（+1）/ 198.2s 零新增失敗**（殘餘 3 檔 4 項，與 B4-4 逐條一致）；
+策劃 `06 --repo` **202/0** · `07 --repo` **212/0**；`b45_shot/` 1 張目視確認。
 
 ⇒ **B4-4 已落地**（7 工單，**技能擴展 UI 全線閉環**）：`SAVE_VERSION 4 → 5`（新增 `skill_runes`/`skill_branches`/`unlocked_runes` 三欄位 + migrate 顯式 `4:` 分支）
 ｜**技能等級**（每級 +8% 傷害係數，`1-L8`）修 flat/pct 桶錯位（`run_buff_system` 走 **flat 桶**）
@@ -193,7 +211,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1/B4-2/B4-3/B4-4 各另起 commit（**最新 `606ebb4`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1/B4-2/B4-3/B4-4/B4-5 各另起 commit（**最新 `459fcb3`**）。
 
 ---
 
