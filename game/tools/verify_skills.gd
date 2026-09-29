@@ -9,6 +9,7 @@
 ##      （设计意图见 deliverables/gstack/策划案/01-技能体系.md §4–§5）
 ##   B. 法力池：初始满 / 消耗 / 不足失败 / 自然回复 / 封顶 / 减耗折扣 / 信号
 ##   C. 冷却：施放后进入冷却 / 冷却中拒绝 / 计时递减 / 到期可再施放
+##   C2. 冷却 / 减耗硬顶（2-V11）：+70% 与 +200% 等价（乘区封顶，防零冷却 / 负耗蓝）
 ##   D. 普攻假连段：按住连续挥击（间隔 = 1/攻速）/ 松开停止 / 攻击不打断移动 /
 ##      闪避打断 / 命中回蓝 / 朝向扇区判定
 ##   E. 技能效果：裂斩单体 / 旋刃范围+击退 / 突进位移+撞击 / 法力与冷却联动
@@ -88,6 +89,7 @@ func _ready() -> void:
 	await _test_skill_table()
 	await _test_mana_pool()
 	await _test_cooldowns()
+	await _test_reduction_caps()
 	await _test_attack_combo()
 	await _test_skill_effects()
 	await _test_regression()
@@ -308,6 +310,55 @@ func _test_cooldowns() -> void:
 	_ok("冷却到期 = 0", is_equal_approx(_skills.get_cooldown_remaining("spin_slash"), 0.0))
 	_ok("到期后可再次施放", _skills.try_cast("spin_slash"))
 	_skills.tick_cooldowns(5.0) # 清冷却，避免影响后续
+	_mana.set_current(100.0)
+
+
+# =============================================================================
+# C2. 冷却 / 减耗硬顶（2-V11 / 2-L5 / 2-L6 / 3-X3 / 3-X4 · 死钩子④ 的验收）
+# =============================================================================
+# 两值都是**乘区**（冷却时间 × (1-cdr) / 耗蓝 × (1-cost_red)），无上限 ⇒ 100% 减
+# ⇒ 技能无 CD / 负耗蓝回蓝 ⇒ 体系崩塌（02-装备属性.md §7.4 / §8.3 V11）。故硬顶 70%。
+
+func _test_reduction_caps() -> void:
+	print("--- C2. 冷却 / 减耗硬顶（2-V11）---")
+	# ---- 常量契约（设计意图，非当前快照）----
+	_ok("冷却缩减硬顶 = 70%、减耗硬顶 = 70%（§7.4 / §8.3 V11）",
+		is_equal_approx(GameConstants.COOLDOWN_REDUCTION_CAP_PCT, 70.0)
+		and is_equal_approx(GameConstants.SKILL_COST_REDUCTION_CAP_PCT, 70.0))
+	_ok("最短冷却兜底 = 0.2s（防零冷却；现有技能基础冷却 ≥ 3s ⇒ 无缩减时不触发）",
+		is_equal_approx(GameConstants.SKILL_MIN_COOLDOWN_SEC, 0.2))
+
+	# ---- 减耗：裂斩 30 蓝 ----
+	_skills.tick_cooldowns(99.0)
+	_player.apply_combat_stats({"skill_cost_reduction": 70.0}, 1)
+	_mana.set_current(100.0)
+	_ok("+70% 减耗：裂斩 30 → 扣 9（100 → 91）",
+		_skills.try_cast("cleave") and is_equal_approx(_mana.current, 91.0))
+	# 超硬顶：+200% 与 +70% 等价（仍扣 9，不会负消耗 / 回蓝）
+	_skills.tick_cooldowns(99.0)
+	_player.apply_combat_stats({"skill_cost_reduction": 200.0}, 1)
+	_mana.set_current(100.0)
+	_ok("+200% 减耗被硬顶到 70%：仍扣 9（100 → 91，不回蓝）",
+		_skills.try_cast("cleave") and is_equal_approx(_mana.current, 91.0))
+
+	# ---- 冷却缩减：旋刃 3.0s ----
+	_skills.tick_cooldowns(99.0)
+	_player.apply_combat_stats({"cooldown_reduction": 70.0}, 1)
+	_mana.set_current(100.0)
+	_ok("+70% 冷却缩减：旋刃 3.0s → 0.9s",
+		_skills.try_cast("spin_slash")
+		and is_equal_approx(_skills.get_cooldown_remaining("spin_slash"), 0.9))
+	# 超硬顶：+200% 与 +70% 等价（仍 0.9s，不会零冷却）
+	_skills.tick_cooldowns(99.0)
+	_player.apply_combat_stats({"cooldown_reduction": 200.0}, 1)
+	_mana.set_current(100.0)
+	_ok("+200% 冷却缩减被硬顶到 70%：仍 0.9s（不零冷却）",
+		_skills.try_cast("spin_slash")
+		and is_equal_approx(_skills.get_cooldown_remaining("spin_slash"), 0.9))
+
+	# ---- 复位（避免污染 D 段普攻与后续段落）----
+	_player.clear_combat_stats()
+	_skills.tick_cooldowns(99.0)
 	_mana.set_current(100.0)
 
 

@@ -13,6 +13,7 @@
 ##      技能元素改写后走对应抗性 / 回蓝与事件不受影响
 ##   F. GDD 锚点：6.6 期望公式 / DR 公式数值 / EHP 演示
 ##   G. 第三步（B3-2）：抗性穿透 2-L10 / 物理相乘 2-L11 / 6 系抗性映射 2-V14
+##      G3（B3-3）：元素伤害接线 2-V10（取键口径 + 端到端 damage > 未接线）
 extends Node
 
 var _fail: int = 0
@@ -44,6 +45,7 @@ func _ready() -> void:
 	await _test_integration()
 	await _test_penetration_and_phys()
 	await _test_resist_mapping()
+	await _test_element_wiring()
 	await _test_gdd_anchors()
 	_finish()
 
@@ -314,6 +316,61 @@ func _test_resist_mapping() -> void:
 	for s in still_zero:
 		_info("恒 0 系: %s" % s)
 	_player.clear_combat_stats()
+
+
+# =============================================================================
+# G3. 元素伤害接线（2-V10 / 2-L7 / 2-L8 / 3-X1 · 死钩子① 的验收）
+# =============================================================================
+
+func _test_element_wiring() -> void:
+	print("--- G3. 元素伤害接线（2-V10）---")
+	# ---- 取键口径（§4.2.3；用户裁定 B：物理一律 0）----
+	_ok("physical 元素加成恒 0（裁定 B：物理两者都不吃）",
+		is_equal_approx(_player.get_element_damage_bonus("physical"), 0.0))
+	_player.apply_combat_stats({
+		"elemental_damage": 20.0, "elemental_damage_fire": 30.0, "all_element_damage": 10.0,
+	}, 1)
+	_ok("火 = 专精 30 + 通用 20 + 全元素 10 = 60",
+		is_equal_approx(_player.get_element_damage_bonus("fire"), 60.0))
+	_ok("冰 = 通用 20 + 全元素 10 = 30（无专精子键）",
+		is_equal_approx(_player.get_element_damage_bonus("cold"), 30.0))
+	_ok("physical 不受任何元素键影响（含 all_element_damage）",
+		is_equal_approx(_player.get_element_damage_bonus("physical"), 0.0))
+	_player.clear_combat_stats()
+
+	# ---- 端到端：接线后 damage > 未接线 ----
+	# 注入 `crit_chance = -基准` 强制不暴击 ⇒ 数值确定，可做精确比值断言
+	var sd := _skills.get_skill_data("cleave")
+	var saved_elem := sd.element
+	sd.element = "fire"
+	_skills.tick_cooldowns(99.0)
+	_reset_positions()
+	_player.get_mana_pool().set_current(100.0)
+	_player.apply_combat_stats({"crit_chance": -GameConstants.CRIT_CHANCE_BASE}, 1)
+	_ok("火裂斩（未接元素）施放成功", _skills.try_cast("cleave"))
+	var before := _dummy.total_damage_taken
+	_reset_positions()
+	_player.get_mana_pool().set_current(100.0)
+	_skills.tick_cooldowns(99.0)
+	_player.apply_combat_stats({
+		"crit_chance": -GameConstants.CRIT_CHANCE_BASE, "elemental_damage": 100.0,
+	}, 1)
+	_ok("火裂斩（+100% 元素）施放成功", _skills.try_cast("cleave"))
+	var after := _dummy.total_damage_taken
+	_ok("元素伤害接线后 damage > 未接线（%.1f → %.1f）" % [before, after], after > before)
+	_ok("+100%% 元素伤害 ⇒ 伤害翻倍（%.1f → %.1f）" % [before, after],
+		is_equal_approx(after, before * 2.0))
+	# 普攻恒物理 ⇒ 不吃元素（裁定 B）
+	_reset_positions()
+	_player.apply_combat_stats({
+		"crit_chance": -GameConstants.CRIT_CHANCE_BASE, "elemental_damage": 100.0,
+	}, 1)
+	_player.try_attack()
+	_ok("普攻（物理）不吃元素伤害（裸装 12.0，裁定 B）",
+		is_equal_approx(_dummy.total_damage_taken, 12.0))
+	_player.clear_combat_stats()
+	sd.element = saved_elem
+	_reset_positions()
 
 
 func _finish() -> void:

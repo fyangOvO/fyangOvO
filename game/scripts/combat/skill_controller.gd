@@ -173,11 +173,25 @@ func try_cast(id: String) -> bool:
 	# 未装配符文时返回原对象（零开销、零行为变化）。
 	var effective := _apply_rune_modifiers(data, get_equipped_runes(id))
 
+	# 冷却缩减 / 技能减耗（第二步 2-L5/L6 · 第三步 X3/X4；`02-装备属性.md` §7.4 给了精确码）：
+	#   两者都是**乘区**，**硬顶 70%**（`COOLDOWN_REDUCTION_CAP_PCT` / `SKILL_COST_REDUCTION_CAP_PCT`）
+	#   —— 无上限会导致 100% 减免 ⇒ 技能无 CD / 负耗蓝回蓝，游戏性崩塌。
+	#   ⚠️ 作用在 `effective`（已过符文修饰）之上，**不丢符文**的 `cooldown_pct` / `mana_cost_pct`。
+	#   ⚠️ 未注入属性时两值均为 0 ⇒ 与接线前**逐位一致**（向后兼容）。
+	var cdr := clampf(_player.get_combat_stat("cooldown_reduction"), 0.0,
+		GameConstants.COOLDOWN_REDUCTION_CAP_PCT)
+	var cost_red := clampf(_player.get_combat_stat("skill_cost_reduction"), 0.0,
+		GameConstants.SKILL_COST_REDUCTION_CAP_PCT)
+
 	var mana: ManaPool = _player.get_mana_pool()
-	if mana == null or not mana.try_spend(effective.mana_cost):
+	# X4：减耗 clamp ≥ 0 —— 负数耗蓝会变成**回蓝**（§4.4 明令禁止）
+	var real_cost := maxf(effective.mana_cost * (1.0 - cost_red / 100.0), 0.0)
+	if mana == null or not mana.try_spend(real_cost):
 		return false
 
-	_cooldowns[id] = effective.cooldown
+	# X3：冷却 clamp ≥ `SKILL_MIN_COOLDOWN_SEC`（0.2s）—— 防零冷却兜底
+	_cooldowns[id] = maxf(effective.cooldown * (1.0 - cdr / 100.0),
+		GameConstants.SKILL_MIN_COOLDOWN_SEC)
 
 	# 任务 11.9 埋点：一次施放的命中数 = 这段时间里 `_hit()` 被调了几次。
 	# 七个分支**全部同步**（`perform_skill_dash` 内部直接 `move_and_collide` +
@@ -415,7 +429,11 @@ func _hit(target: Node, data: SkillData, knockback_px: float) -> void:
 		_player.get_crit_chance(),
 		_player.get_crit_damage(),
 		data.element,
-		0.0,
+		# 元素伤害加成（第二步 2-L7 / 第三步 3-X1；死钩子① 的复活点）：
+		#   由恒传 `0.0` 改为按**技能元素**取「专精子键 + 通用总键 + 全元素键」
+		#   （`PlayerController.get_element_damage_bonus`，口径 §4.2.3）。
+		#   `physical` ⇒ 0.0（物理不吃元素乘区，走 `pct_attack`）。
+		_player.get_element_damage_bonus(data.element),
 		# 破甲：先按玩家 armor_pierce% 削目标护甲（默认 0 ⇒ 与修复前一致）
 		DamageCalc.pierced_armor(
 			DamageCalc.target_armor(target), _player.get_combat_stat("armor_pierce")),

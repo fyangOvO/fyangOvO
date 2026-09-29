@@ -879,6 +879,17 @@ const MANA_BASE_MAX: float = 100.0
 const MANA_REGEN_PER_SEC: float = 4.0
 const MANA_ON_HIT: float = 2.0
 
+## ── 技能冷却 / 减耗 接线硬顶（第二步 2-L5/L6 · 第三步 X3/X4）────────────
+## 依据 `02-装备属性.md` §7.4 / §8.3 V11：两值都是**乘区**，无上限会导致
+## 100% 冷却减免（技能无 CD）⇒ 游戏性崩塌。参照同类 ARPG 取 **70% 硬顶**
+## （剩余 30% 保留核心节奏）。`03-装备特色玩法.md` §4.4 的「建议上限 60%」是**设计红线**，
+## 本常量是**防崩坏的硬保险**（不可省）。
+const COOLDOWN_REDUCTION_CAP_PCT: float = 70.0
+const SKILL_COST_REDUCTION_CAP_PCT: float = 70.0
+## 最短冷却（秒）：防零冷却兜底（§4.4 / X3）。当前 36 技能基础冷却均 ≥ 3.0s，
+## 故该下限在**无缩减时不影响任何现有技能**（向后兼容）。
+const SKILL_MIN_COOLDOWN_SEC: float = 0.2
+
 ## 普攻：基础攻速（次/秒）与基础倍率（100% AD）。
 ## 假连段约定：按住攻击键 → 按此间隔连续挥击（同一段 8 帧动画循环，视觉像连击）；
 ## 美术规范只有 4 方向 × 8 帧攻击动画，**无连段动画**，故不设连段状态机。
@@ -1372,6 +1383,9 @@ const STAT_ELEMENTAL_DAMAGE_COLD: String = "elemental_damage_cold"           ## 
 const STAT_ELEMENTAL_DAMAGE_LIGHTNING: String = "elemental_damage_lightning" ## 闪电伤害 %
 const STAT_ELEMENTAL_DAMAGE_POISON: String = "elemental_damage_poison"       ## 毒素伤害 %
 const STAT_ELEMENTAL_DAMAGE_SHADOW: String = "elemental_damage_shadow"       ## 暗影伤害 %
+## 元素伤害子键前缀：拼 `STAT_ELEMENTAL_DAMAGE_PREFIX + element` 即得子键。
+## 唯一消费点：`PlayerController.get_element_damage_bonus()`。
+const STAT_ELEMENTAL_DAMAGE_PREFIX: String = "elemental_damage_"
 
 ## ── 技能等级（第一步 B0 · 机制 A）───────────────────────────────
 ## 全局等级（非单技能），1–10。生效公式见 `01-技能体系.md` §2.1：

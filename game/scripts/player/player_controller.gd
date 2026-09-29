@@ -265,6 +265,16 @@ func apply_combat_stats(stats: Dictionary, account_level: int = 0) -> void:
 	_attack_speed_multiplier = 1.0 + float(_combat_stats.get("attack_speed", 0.0)) / 100.0
 	# 移速乘区：`move_speed` 是百分比增量（+12 → ×1.12）。三选一「迅捷」等的消费入口。
 	_move_speed_multiplier = 1.0 + float(_combat_stats.get("move_speed", 0.0)) / 100.0
+	# 资源乘区（第三步 B3-3）：`ManaPool.apply_stats()` 此前**生产代码零调用** ⇒
+	# `add_max_resource`（权重 100）/ `add_resource_regen` 两条词缀是死钩子。
+	# 口径：`max_resource` = 固定值加成（词缀 15–25）；`resource_regen` = 百分数。
+	# ⚠️ `cost_reduction_pct` **刻意传 0**：减耗由 `SkillController.try_cast` 统一处理
+	# （`02-装备属性.md` §7.4 的落点），两边同时生效会**双重减免**。
+	if mana_pool != null:
+		mana_pool.apply_stats(
+			float(_combat_stats.get("max_resource", 0.0)),
+			float(_combat_stats.get("resource_regen", 0.0)) / 100.0,
+			0.0)
 
 
 ## 清除注入，回到占位基线（攻击=裸装、暴击=基准、抗性=0 …）
@@ -273,6 +283,8 @@ func clear_combat_stats() -> void:
 	_injected_level = 0
 	_attack_speed_multiplier = 1.0
 	_move_speed_multiplier = 1.0
+	if mana_pool != null:
+		mana_pool.apply_stats(0.0, 0.0, 0.0)
 
 
 ## 是否已注入战斗属性
@@ -317,6 +329,12 @@ func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
 	_tick_flash(delta)
 	_tick_attack(delta)
+	# 自然回蓝（第三步 B3-3）：`ManaPool.tick_regen()` 此前**生产代码零调用**（仅
+	# `verify_skills` 直接测过）⇒ `resource_regen` 词缀只写了 `regen_multiplier` 却
+	# 无人读它算回复，仍是死钩子。放在死亡早退之后（死亡不回蓝），与
+	# `health_component.gd` 的生命自然回复同构。
+	if mana_pool != null:
+		mana_pool.tick_regen(delta)
 	var input_dir := _read_move_input()
 
 	# 通道 1：输入 / 闪避速度。算进局部变量 move_velocity，**不直接写 velocity** ——
@@ -489,6 +507,24 @@ func get_skill_level() -> int:
 ## 技能等级系数（`1 + 0.08 × (level - 1)`）：L1 = 1.00 / L4 = 1.24 / L7 = 1.48 / L10 = 1.72。
 func get_skill_level_multiplier() -> float:
 	return 1.0 + GameConstants.SKILL_LEVEL_COEF_PER_LEVEL * float(get_skill_level() - 1)
+
+
+## 元素伤害加成（%）：按**本次伤害的元素**取「专精子键 + 通用总键 + 全元素键」。
+##
+## 取键口径（`03-装备特色玩法.md` §4.2.3「防口径分裂」）：
+##   - `physical` ⇒ **0.0**（物理不吃元素子键，走 `pct_attack` 体系）
+##   - 其余 5 系 ⇒ `elemental_damage_<元素>`（专精）+ `elemental_damage`（通用总键）
+##     + `all_element_damage`（全元素键，**累加非取代**）
+## 三者是**独立词缀**（`02-affixes.json`：`add_all_element_damage` 与 `add_elemental_damage`
+## 互斥组独立）⇒ 必须全部计入，否则 `all_element_damage` 落地即死钩子。
+## 唯一消费点：`SkillController._hit` / `PlayerController._perform_attack` 的
+## `DamageCalc.compute_hit` 第 5 形参（此前恒传 0.0 = 死钩子①）。
+func get_element_damage_bonus(element: String) -> float:
+	if element == GameConstants.ELEMENT_PHYSICAL:
+		return 0.0
+	return get_combat_stat(GameConstants.STAT_ELEMENTAL_DAMAGE_PREFIX + element) \
+		+ get_combat_stat(GameConstants.STAT_ELEMENTAL_DAMAGE) \
+		+ get_combat_stat(GameConstants.STAT_ALL_ELEMENT_DAMAGE)
 
 
 ## 攻速乘区。注入时 = 1 + attack_speed%/100（`apply_combat_stats` 里算好）；未注入 = 1.0。
@@ -975,7 +1011,10 @@ func _perform_attack() -> void:
 		get_crit_chance(),
 		get_crit_damage(),
 		GameConstants.ELEMENT_PHYSICAL,
-		0.0,
+		# 元素伤害加成（第三步 2-L8）：普攻恒物理 ⇒ 按 §4.2.3 口径返回 **0.0**
+		# （物理不吃元素子键/总键/全元素键，走 `pct_attack`）。保留取键调用以固定口径，
+		# 避免日后有人「顺手补一个 0.0 → elemental_damage」把物理也吃上元素乘区。
+		get_element_damage_bonus(GameConstants.ELEMENT_PHYSICAL),
 		DamageCalc.pierced_armor(DamageCalc.target_armor(target), get_combat_stat("armor_pierce")),
 		DamageCalc.target_resist(target, GameConstants.ELEMENT_PHYSICAL),
 		DamageCalc.target_level(target),
