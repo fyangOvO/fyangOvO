@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B3-6 套裝徽記 UI 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-7 校驗補齊（11 工單 `2-V1/V2/V3/V4/V5/V6/V7/V7b/V10/V11/V14`）** |
+| **工程落地** | 🟢 **B3 死鉤子接線 全批收線**（7 小批 B3-1~B3-7 全 ✅）⇒ 下一步 **B4 玩法擴展（27 工單：`1-L5`~`1-L15` / `1-V7`~`1-V9` / `3-B1`~`3-B4` / `3-S1`~`3-S4` / `3-E6`~`3-E8` / `5-W5-5`~`5-W5-7`，🟠 中）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -87,7 +87,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 （延遲釋放會讓下一用例誤計殘留實體）
 ⚠️ **遺留（非本批）**：①`explosive_arrow` 的**命中爆炸**（`radius` 對投射物無法區分「顯式聲明」與「默認 48」）
 ②`poison_cloud`/`void_rift` 的「使其中毒」/「拉向中心」等附加效果 ③`rune_echo`（`echo_count`）未承載
-⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → B3-5 ✅ → B3-6 ✅ → **B3-7 校驗**
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → B3-5 ✅ → B3-6 ✅ → **B3-7 ✅（B3 全批收線）**
 
 ⇒ **B3-6 套裝徽記 UI 已落地**（1 工單 `2-L15` / 4 檔）：`set_system.gd` 的 `_set_info()` + `get_progress()`
 透出 **`emblem_path`**（此前只到 `SetData`/`ConfigLoader` 就斷鏈）｜ `set_panel.gd` 的 `_make_set_row()`
@@ -101,13 +101,27 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 驗收看**末端渲染**；且**改 UI 子節點結構前必先 grep verify 的「按子節點序號取值」硬斷言**
 ⚠️ **遺留**：本批完整閉環、無新遺留
 
+⇒ **B3-7 校驗補齊 已落地**（B3 收尾批 / 4 檔）：官方列 11 條 `2-V*`，但 **`2-V6/V10/V11/V14` 已於 B3-2/B3-3 落地**
+⇒ **本批實際補 7 條**：`verify_equipment.gd` +**V1**（詞綴 == 48）+ **H 段 V7b**（底材 `base_stats` 白名單 + 禁 legacy 鍵，146 鍵）
+｜ **新建 `verify_affix_pool.gd` + `.tscn`**：**V2** 孤兒 0 / **V3** 死池 0 / **V4** 通用池無 `min_rarity≥3`（**WARN 級**）
+/ **V5** 新增 15 條每條 ≥2 池 ｜ `verify_affix_roller.gd` +**H 段 V7**（`armor_pierce` + legacy 殘留 0）
+⚠️ **本批新踩 2 坑**（詳見 `IRON-RULES.md` ⑬⑭）：⑬**工單 `title` 與 `verify` 欄位可能不一致 ⇒ 以 `title` 為準**
+（`2-V5` title「每條 ≥2 池」vs verify 欄「02-check A3」語義完全不同，Python 側無對應檢查）
+⑭**WARN 級斷言須另立 `_warn()`**（`_ok()` 只計 `_fail`，回歸只數 `[FAIL]` ⇒ WARN 不污染判定）
+**成果**：全量回歸 **70 腳本（+1 新腳本）/ 零新增失敗**；策劃 7 校驗器與 B3-6 基線一致
+⚠️ **遺留**：**無** —— **B3 7 小批全數收線**
+
+⇒ **下一步 B4 玩法擴展**（27 工單 / 🟠 中）：`1-L5`~`1-L15`（BuffComponent / 召喚 / 位移 / 異常…）+ `3-B1`~`3-B4`
++ `3-S1`~`3-S4` + `3-E6`~`3-E8` + `5-W5-5`~`5-W5-7`。**B3-4 遺留的 16 條特效（`buff_stat`×10 / `ms_boost`×3 /
+`damage_reduction`×1 / `summon`×2）正落在 B4**（`3-B1` BuffComponent 等）⇒ 接上即可通電。
+
 （明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
 
 ⚠️ **留給各自批次的預存回歸紅**（用戶已裁定本輪不動）：4 條**無工單**（`verify_choice_panel` 裸 Color
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3/B3-4/B3-5/B3-6 各另起 commit（**最新 `8e7b0e8`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7 各另起 commit（**最新 `8c763c0`**）。
 
 ---
 

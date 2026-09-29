@@ -264,6 +264,20 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 ⇒ 素材路線提醒：套裝徽記在 `res://assets/sprites/items/`，**不屬** `ContentPaths.CLASS_UI`（`=assets/ui/quest`）
 ⇒ 只能走 **`ContentLoader.load_icon`（路線 B）**，誤走 `UISkin.texture()` 會靜默回 `null`。
 
+### 🆕 2026-09-29（B3-7）新踩兩坑
+
+**⑬ 「工單 `title` 與 `verify` 欄位不一致」—— 以 `title` 為準，勿用 `verify` 欄反推斷言內容**
+`07-dev-tasks.json` 裡 `2-V5` 的 `title` = 「新增 15 條每條 ≥2 池」，但 `verify` 欄寫「02-check A3」——
+而 A3 實為「**池內 `affix_id` 存在**」，語義完全不同。且 Python 側**根本沒有**「每條 ≥2 池」的檢查
+⇒ GDScript 側是**唯一實現**。**斷言內容看 `title`，`verify` 欄只當「哪裡還有旁證」的提示。**
+（同源坑：規劃文檔的「編號 → 落點」映射長期不維護 ⇒ 動手前先看 `title` 原文，再看 `files`。）
+
+**⑭ 「WARN 級斷言要另立 `_warn()`」—— `_ok()` 只計 `_fail`，而回歸只數 `[FAIL]`**
+專案裡「軟建議 / 警告級」斷言（如 §1.5 裁定的 C3）**不得計入失敗**，否則會把「已裁定保留」的
+已知偏差變成常駐紅。本專案 `run_regression.py` 的判定是 `out.count("[FAIL]")` + exit code
+⇒ 只要走 `_warn()`（print `[WARN]`、**不** `_fail += 1`），既保留可見性又不污染回歸。
+（體例：`02-check_affix_pool.py` 的 `warn()` ↔ GDScript `_warn()`，兩側對稱。）
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
