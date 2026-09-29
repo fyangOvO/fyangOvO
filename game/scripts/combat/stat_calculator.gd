@@ -10,10 +10,10 @@
 ##   - Buff 接口（4.3 正式接入）：buffs = {key: {"flat": {...}, "pct": {...}}}
 ##
 ## 输出键（最终属性字典，3.10 套装 / 4.x 战斗消费）：
-##   max_hp / attack / armor / crit_chance / crit_damage / attack_speed / life_regen /
-##   fire_resist / cold_resist / poison_resist / lightning_resist / max_resource /
-##   resource_regen / skill_cost_reduction / cooldown_reduction / pickup_radius /
-##   move_speed / magic_find / xp_gain / gold_gain / thorns / life_on_hit / kill_heal
+##   **唯一权威 = 下方 `FINAL_KEYS`**（输出字典的键集与它**严格相等**，
+##   由 `tools/verify_hub.gd` 断言 `stats.size() == FINAL_KEYS.size()`）。
+##   分四段：① 主属性三件套（flat × pct 乘算）② 通用直接累加键
+##   ③ 第三步元素专精 / 抗性 3 系 / 穿透 / 异常增伤 ④ 局内（阶段 4）附加键。
 class_name StatCalculator
 extends RefCounted
 
@@ -31,10 +31,21 @@ const MYTHIC_SCALED_KEYS: Array[String] = ["max_hp", "attack", "armor"]
 const FINAL_KEYS: Array[String] = [
 	"max_hp", "attack", "armor", "crit_chance", "crit_damage", "attack_speed",
 	"elemental_damage", "dodge", "block_chance", "life_regen", "fire_resist",
-	"cold_resist", "poison_resist", "lightning_resist", "max_resource",
+	"cold_resist", "poison_resist", "lightning_resist",
+	# 第三步补齐的抗性 3 系（3-E5 / 2-L3）：暗影 / 物理 / 全抗
+	"shadow_resist", "physical_resist", "all_resist",
+	"max_resource",
 	"resource_regen", "skill_cost_reduction", "cooldown_reduction",
 	"pickup_radius", "move_speed", "magic_find", "xp_gain", "gold_gain",
 	"thorns", "life_on_hit", "kill_heal", "skill_level",
+	# 第三步元素专精（3-E1 / 3-E2）：5 个非物理子键 + 全元素伤害 + 对异常增伤 + 穿透
+	"elemental_damage_fire", "elemental_damage_cold", "elemental_damage_lightning",
+	"elemental_damage_poison", "elemental_damage_shadow",
+	"all_element_damage", "damage_vs_ailment",
+	"elemental_penetration", "resist_penetration",
+	# 第三步异常状态增伤（3.3；待 AilmentSystem 实装后接线）
+	"burn_damage", "chill_damage", "poison_damage", "shock_damage", "curse_damage",
+	"ailment_duration", "ailment_chance", "ailment_effect",
 	# 局内（阶段 4）：三选一 / 祭坛 / 连杀附加键
 	"armor_pierce", "life_steal", "damage_taken", "regen_pct_hp", "shield_pct_hp",
 ]
@@ -88,16 +99,22 @@ static func calculate(level: int, equipped: Array[EquipmentInstance], buffs: Dic
 				flat[key] = float(flat.get(key, 0.0)) + float(b["flat"][key])
 
 	# ---- pct 汇总（% 词缀为数值即百分数：0.05 = 5%）----
+	# 判定：前缀 `pct_`/`ailment_` + 后缀 `_resist`/`_damage`/`_penetration` + 显式列表。
+	# 后缀规则覆盖第三步新增（元素子键 `elemental_damage_*` / 穿透 `*_penetration` /
+	# 异常增伤 `*_damage` / 异常 `ailment_*`），避免逐个硬编码遗漏（死钩子）。
 	var pct := {}
 	for key in gear:
-		if (key.begins_with("pct_") or key in [
-				"crit_chance", "crit_damage", "attack_speed", "elemental_damage",
+		if (key.begins_with("pct_") or key.begins_with("ailment_")
+				or key.begins_with("elemental_damage")
+				or key.ends_with("_resist") or key.ends_with("_damage")
+				or key.ends_with("_penetration")
+				or key in [
+				"crit_chance", "attack_speed",
 				"dodge", "block_chance", "magic_find", "xp_gain", "gold_gain",
 				"life_on_hit", "thorns", "skill_cost_reduction", "cooldown_reduction",
 				"resource_regen", "move_speed", "all_attributes",
 				"armor_pierce", "life_steal", "damage_taken", "regen_pct_hp",
-				"shield_pct_hp"]
-				or key.ends_with("_resist")):
+				"shield_pct_hp", "damage_vs_ailment", "all_element_damage"]):
 			pct[key] = float(pct.get(key, 0.0)) + float(gear[key])
 	# Buff pct（嵌套：buffs = {buff_id: {"pct": {...}}}）
 	for bkey in buffs:
@@ -131,6 +148,10 @@ static func calculate(level: int, equipped: Array[EquipmentInstance], buffs: Dic
 		"cold_resist": pct.get("cold_resist", 0.0),
 		"poison_resist": pct.get("poison_resist", 0.0),
 		"lightning_resist": pct.get("lightning_resist", 0.0),
+		# 第三步补齐抗性 3 系（3-E5 / 2-L3）：暗影 / 物理 / 全抗
+		"shadow_resist": pct.get("shadow_resist", 0.0),
+		"physical_resist": pct.get("physical_resist", 0.0),
+		"all_resist": pct.get("all_resist", 0.0),
 		"max_resource": flat.get("max_resource", 0.0),
 		"resource_regen": pct.get("resource_regen", 0.0),
 		"skill_cost_reduction": pct.get("skill_cost_reduction", 0.0),
@@ -146,6 +167,26 @@ static func calculate(level: int, equipped: Array[EquipmentInstance], buffs: Dic
 		# 技能等级（第一步 B0）：**固定值累加**（非百分数）—— 词缀 add_skill_level
 		# 与底材 base_stats 的 skill_level 都走这里；漏掉这一行 ⇒ 词缀持有但玩家读不到（死钩子）
 		"skill_level": flat.get("skill_level", 0.0),
+		# 元素专精（第三步 3-E2 / 2-L3）：5 个非物理子键 + 全元素伤害 + 对异常增伤 + 穿透。
+		# 子键命名与 `GameConstants.STAT_ELEMENTAL_DAMAGE_*` 一致；取键口径见 §4.2.3。
+		"elemental_damage_fire": pct.get("elemental_damage_fire", 0.0),
+		"elemental_damage_cold": pct.get("elemental_damage_cold", 0.0),
+		"elemental_damage_lightning": pct.get("elemental_damage_lightning", 0.0),
+		"elemental_damage_poison": pct.get("elemental_damage_poison", 0.0),
+		"elemental_damage_shadow": pct.get("elemental_damage_shadow", 0.0),
+		"all_element_damage": pct.get("all_element_damage", 0.0),
+		"damage_vs_ailment": pct.get("damage_vs_ailment", 0.0),
+		"elemental_penetration": pct.get("elemental_penetration", 0.0),
+		"resist_penetration": pct.get("resist_penetration", 0.0),
+		# 异常状态增伤（第三步 3.3）：**只落键**，待 AilmentSystem 实装后接线
+		"burn_damage": pct.get("burn_damage", 0.0),
+		"chill_damage": pct.get("chill_damage", 0.0),
+		"poison_damage": pct.get("poison_damage", 0.0),
+		"shock_damage": pct.get("shock_damage", 0.0),
+		"curse_damage": pct.get("curse_damage", 0.0),
+		"ailment_duration": pct.get("ailment_duration", 0.0),
+		"ailment_chance": pct.get("ailment_chance", 0.0),
+		"ailment_effect": pct.get("ailment_effect", 0.0),
 		# 局内（阶段 4）：三选一 / 祭坛 / 连杀
 		"armor_pierce": pct.get("armor_pierce", 0.0),
 		"life_steal": pct.get("life_steal", 0.0),
@@ -167,10 +208,15 @@ static func to_text(stats: Dictionary) -> String:
 		var v: float = float(stats[key])
 		var label := EquipmentCompare._label_for(key)
 		var pct := ""
-		if key in ["crit_chance", "crit_damage", "attack_speed", "fire_resist",
-				"cold_resist", "poison_resist", "lightning_resist", "resource_regen",
-				"skill_cost_reduction", "cooldown_reduction", "move_speed", "magic_find",
-				"xp_gain", "gold_gain", "thorns", "life_on_hit"]:
+		if (key.begins_with("pct_") or key.begins_with("ailment_")
+				or key.begins_with("elemental_damage")
+				or key.ends_with("_resist") or key.ends_with("_damage")
+				or key.ends_with("_penetration")
+				or key in ["crit_chance", "attack_speed", "resource_regen",
+					"skill_cost_reduction", "cooldown_reduction", "move_speed", "magic_find",
+					"xp_gain", "gold_gain", "thorns", "life_on_hit", "dodge", "block_chance",
+					"damage_vs_ailment", "all_element_damage", "armor_pierce",
+					"life_steal", "damage_taken", "regen_pct_hp", "shield_pct_hp"]):
 			pct = "%"
 		lines.append("%s：%s%s" % [label, ("%.1f" % v).rstrip("0").rstrip(".") if absf(v - roundf(v)) > 0.01 else str(int(roundf(v))), pct])
 	return "\n".join(lines)

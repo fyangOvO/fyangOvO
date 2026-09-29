@@ -6,7 +6,7 @@
 ##
 ## 覆盖范围（7 段 × 每面板若干断言）：
 ##   A. 7.1 主菜单：标题 + 开始/设置/退出 3 按钮 + 账号概览
-##   B. 7.2 角色属性面板：32 行 = StatCalculator.FINAL_KEYS + LABELS 全覆盖 + 真实结算非 0
+##   B. 7.2 角色属性面板：行数 = StatCalculator.FINAL_KEYS + LABELS 全覆盖 + 真实结算非 0
 ##   C. 7.3 背包装备界面：10 槽渲染 + 选中详情 + 穿/脱回调
 ##   D. 7.4 天赋界面：3 分支卡片 + 节点状态 + 点数
 ##   E. 7.5 锻造界面：费用显示 + 材料不足禁用 + 回调
@@ -118,7 +118,8 @@ func _test_stat() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	_ok("31 行 = FINAL_KEYS 长度", sp.row_count() == StatCalculator.FINAL_KEYS.size())
+	_ok("%d 行 = FINAL_KEYS 长度" % StatCalculator.FINAL_KEYS.size(),
+		sp.row_count() == StatCalculator.FINAL_KEYS.size())
 	var missing := 0
 	for k in StatCalculator.FINAL_KEYS:
 		if not StatPanel.LABELS.has(k):

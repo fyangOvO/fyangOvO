@@ -11,9 +11,19 @@
 ##   D. 词缀条数表：GDD 3.2.3 权威不变式 前缀上限+后缀上限=条数上限（8 档）
 ##   E. 实例化：create_from_template → 字段正确、to_dict/from_dict 往返一致、iLvl 缩放正确
 ##   F. 池查询：get_affixes_in_pool 部位过滤、get_affixes_for_slot 部位合法
+##   G. stat_key 白名单（第三步 2-V6）：每条词缀的 stat_key ∈ 已知键
 extends Node
 
 var _fail: int = 0
+
+## 合法 `stat_key` 白名单的**补充**部分（`GameConstants.ALL_STAT_KEYS` 之外）：
+## 局内（阶段 4）附加键 + 特殊机制键。
+## ⚠️ 口径与 `策划案/02-check_affix_pool.py` 的 `KNOWN_STAT_KEYS` 一致（Python 侧先行拦截）。
+## 白名单是**规范**（spec），不是从被检查数据反推 —— 故不属自洽式伪校验。
+const EXTRA_STAT_KEYS: Array[String] = [
+	"life_steal", "damage_taken", "regen_pct_hp", "shield_pct_hp",  # 局内（阶段 4）
+	"echo_strike",                                                  # 特殊机制（不参与数值对比）
+]
 
 
 func _ok(label: String, cond: bool) -> void:
@@ -36,6 +46,7 @@ func _ready() -> void:
 	await _test_rarity_limits()
 	await _test_instance()
 	await _test_pool_query()
+	await _test_stat_key_whitelist()
 	_finish()
 
 
@@ -240,6 +251,37 @@ func _test_pool_query() -> void:
 	var mythic_affix: AffixData = ConfigLoader.get_affix("mythic_all_attributes")
 	_ok("神话词缀存在且 min_rarity=MYTHIC",
 		mythic_affix != null and mythic_affix.min_rarity == GameConstants.Rarity.MYTHIC)
+
+
+# =============================================================================
+# G. stat_key 白名单（第三步 2-V6）
+# =============================================================================
+
+func _test_stat_key_whitelist() -> void:
+	print("--- G. stat_key 白名单（2-V6）---")
+	var known := {}
+	for k in GameConstants.ALL_STAT_KEYS:
+		known[k] = true
+	for k in EXTRA_STAT_KEYS:
+		known[k] = true
+	# 正向断言：白名单规模非退化（防 ALL_STAT_KEYS 被清空导致「全通过」）
+	_ok("白名单规模 ≥ 40（实际 %d）" % known.size(), known.size() >= 40)
+	var bad: Array[String] = []
+	var empty_key: Array[String] = []
+	for key in ConfigLoader.affixes:
+		var affix: AffixData = ConfigLoader.affixes[key]
+		if affix == null:
+			continue
+		if affix.stat_key.is_empty():
+			empty_key.append(affix.id)
+		elif not known.has(affix.stat_key):
+			bad.append("%s -> %s" % [affix.id, affix.stat_key])
+	_ok("全部词缀 stat_key 非空（%d 条）" % ConfigLoader.affixes.size(), empty_key.is_empty())
+	_ok("全部词缀 stat_key ∈ 白名单（越界 %d 条）" % bad.size(), bad.is_empty())
+	for b in bad:
+		_info("越界: %s" % b)
+	for b in empty_key:
+		_info("空键: %s" % b)
 
 
 func _finish() -> void:

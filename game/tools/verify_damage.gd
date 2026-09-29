@@ -12,6 +12,7 @@
 ##   E. 接入回归：普攻与技能真实走管线（暴击集合断言）/ 目标护甲生效 /
 ##      技能元素改写后走对应抗性 / 回蓝与事件不受影响
 ##   F. GDD 锚点：6.6 期望公式 / DR 公式数值 / EHP 演示
+##   G. 第三步（B3-2）：抗性穿透 2-L10 / 物理相乘 2-L11 / 6 系抗性映射 2-V14
 extends Node
 
 var _fail: int = 0
@@ -41,6 +42,8 @@ func _ready() -> void:
 	await _test_element()
 	await _test_mitigation()
 	await _test_integration()
+	await _test_penetration_and_phys()
+	await _test_resist_mapping()
 	await _test_gdd_anchors()
 	_finish()
 
@@ -246,6 +249,71 @@ func _test_gdd_anchors() -> void:
 		is_equal_approx(GameConstants.CRIT_CHANCE_BASE, 5.0)
 		and is_equal_approx(GameConstants.CRIT_DAMAGE_BASE, 150.0)
 		and is_equal_approx(GameConstants.CRIT_CHANCE_CAP, 75.0))
+
+
+# =============================================================================
+# G. 第三步：抗性穿透 / 物理相乘 / 6 系抗性映射（B3-2）
+# =============================================================================
+
+func _test_penetration_and_phys() -> void:
+	print("--- G1. 抗性穿透 2-L10 / 物理相乘 2-L11 ---")
+	# 2-L11：物理减伤 = 护甲 DR × 物抗 DR（**相乘，不相加**；否则坦克流无敌）
+	# 护甲 50 @ L1 → DR 50%；物抗 50 @ L1 → DR 50% ⇒ 剩余 = 0.5 × 0.5 = 0.25
+	_ok("物理：护甲 50% × 物抗 50% 相乘 → 剩余 0.25",
+		is_equal_approx(DamageCalc.mitigation_factor(50.0, 50.0, 1, "physical"), 0.25))
+	_ok("物理相乘 ≠ 相加（剩余 > 0，不免疫）",
+		DamageCalc.mitigation_factor(50.0, 50.0, 1, "physical") > 0.0)
+	# 元素不吃护甲
+	_ok("元素不吃护甲（ARM 9999 对 fire 剩余 = 1）",
+		is_equal_approx(DamageCalc.mitigation_factor(9999.0, 0.0, 1, "fire"), 1.0))
+	# 2-L10：穿透削抗性，口径 = max(0, resist - penetration)
+	# 火抗 50 @ L1 → DR 50%；穿透 30 ⇒ 有效抗性 20 ⇒ 剩余 = 1 − 20/70
+	var with_pen := DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire", 30.0)
+	_ok("火抗 50 被穿透 30 → 有效抗性 20（剩余 = 1 − 20/70）",
+		is_equal_approx(with_pen, 1.0 - 20.0 / 70.0))
+	_ok("穿透后剩余 > 未穿透剩余（伤害真的变高）",
+		with_pen > DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire"))
+	_ok("穿透 999 超量 → 有效抗性 clamp 0（剩余 = 1，无负抗性增伤）",
+		is_equal_approx(DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire", 999.0), 1.0))
+	# 默认形参 0 ⇒ 与修复前逐位一致（向后兼容）
+	_ok("穿透默认 0 → 与旧签名逐位一致",
+		is_equal_approx(DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire", 0.0),
+			DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire")))
+	# compute_hit 透传穿透
+	var r := DamageCalc.compute_hit(100.0, 0.0, 150.0, "fire", 0.0, 0.0, 50.0, 1, 0.0, 30.0)
+	_ok("compute_hit 透传穿透 → final = 100 × (1 − 20/70)",
+		is_equal_approx(r.final_damage, 100.0 * (1.0 - 20.0 / 70.0)))
+	# 穿透只削抗性、不削护甲（物理侧须显式走 pierced_armor）
+	_ok("穿透不削护甲（物理侧 armor 分支不受 pen 影响）",
+		is_equal_approx(DamageCalc.mitigation_factor(50.0, 0.0, 1, "physical", 30.0),
+			DamageCalc.mitigation_factor(50.0, 0.0, 1, "physical")))
+
+
+func _test_resist_mapping() -> void:
+	print("--- G2. 6 系元素抗性键映射（2-V14）---")
+	_ok("元素系 = 6 类（ELEMENTS.size()）", GameConstants.ELEMENTS.size() == 6)
+	# 映射表存在且覆盖全部 6 系（直接断言设计意图，不看快照）
+	var mapping: Dictionary = PlayerController._RESIST_KEY_BY_ELEMENT
+	var unmapped: Array[String] = []
+	for el in GameConstants.ELEMENTS:
+		if not mapping.has(el) or String(mapping[el]).is_empty():
+			unmapped.append(el)
+	_ok("6 系全部有抗性键映射（未映射 %d 系）" % unmapped.size(), unmapped.is_empty())
+	for u in unmapped:
+		_info("未映射系: %s" % u)
+	# 行为断言：逐系注入非零抗性 ⇒ `get_resist` 必须读得到（此前 shadow 恒 0.0）
+	var inject := {}
+	for el in GameConstants.ELEMENTS:
+		inject[String(mapping.get(el, ""))] = 33.0
+	_player.apply_combat_stats(inject, 1)
+	var still_zero: Array[String] = []
+	for el in GameConstants.ELEMENTS:
+		if not is_equal_approx(_player.get_resist(el), 33.0):
+			still_zero.append(el)
+	_ok("6 系抗性全部可读（恒 0 系 %d）" % still_zero.size(), still_zero.is_empty())
+	for s in still_zero:
+		_info("恒 0 系: %s" % s)
+	_player.clear_combat_stats()
 
 
 func _finish() -> void:

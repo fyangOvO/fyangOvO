@@ -1,6 +1,6 @@
 ## 角色属性面板（任务 7.2 · class_name）
 ##
-## **键口径**：本面板**只认 `StatCalculator.FINAL_KEYS`（32 键）**，也就是
+## **键口径**：本面板**只认 `StatCalculator.FINAL_KEYS`（52 键）**，也就是
 ## `StatCalculator.calculate()` 的输出字典。渲染顺序直接跟随 `FINAL_KEYS`，
 ## 所以结算侧新增/改名键时面板会自动跟上 —— 不会再出现「面板读 flat_hp、
 ## 结算吐 max_hp，结果整页显示 0」这类静默漂移（集成层阶段 2 修的就是这个）。
@@ -26,6 +26,9 @@ const LABELS: Dictionary = {
 	"cold_resist": "冰霜抗性",
 	"poison_resist": "毒素抗性",
 	"lightning_resist": "闪电抗性",
+	"shadow_resist": "暗影抗性",
+	"physical_resist": "物理抗性",
+	"all_resist": "全抗性",
 	"max_resource": "最大资源",
 	"resource_regen": "资源回复",
 	"skill_cost_reduction": "技能减耗",
@@ -39,6 +42,24 @@ const LABELS: Dictionary = {
 	"life_on_hit": "生命偷取",
 	"kill_heal": "击杀回复",
 	"skill_level": "技能等级",
+	# 第三步：元素专精 / 穿透 / 异常增伤
+	"elemental_damage_fire": "火焰伤害",
+	"elemental_damage_cold": "冰霜伤害",
+	"elemental_damage_lightning": "闪电伤害",
+	"elemental_damage_poison": "毒素伤害",
+	"elemental_damage_shadow": "暗影伤害",
+	"all_element_damage": "全元素伤害",
+	"damage_vs_ailment": "对异常增伤",
+	"elemental_penetration": "元素穿透",
+	"resist_penetration": "抗性穿透",
+	"burn_damage": "燃烧增伤",
+	"chill_damage": "冰冻增伤",
+	"poison_damage": "中毒增伤",
+	"shock_damage": "感电增伤",
+	"curse_damage": "诅咒增伤",
+	"ailment_duration": "异常持续",
+	"ailment_chance": "异常触发",
+	"ailment_effect": "异常强度",
 	"armor_pierce": "护甲穿透",
 	"life_steal": "生命吸血",
 	"damage_taken": "受伤加成",
@@ -50,10 +71,18 @@ const LABELS: Dictionary = {
 const PCT_KEYS: Array[String] = [
 	"crit_chance", "crit_damage", "attack_speed", "elemental_damage",
 	"dodge", "block_chance", "fire_resist", "cold_resist", "poison_resist",
-	"lightning_resist", "resource_regen", "skill_cost_reduction",
+	"lightning_resist", "shadow_resist", "physical_resist", "all_resist",
+	"resource_regen", "skill_cost_reduction",
 	"cooldown_reduction", "move_speed", "magic_find", "xp_gain", "gold_gain",
 	"thorns", "life_on_hit", "armor_pierce", "life_steal", "damage_taken",
 	"regen_pct_hp", "shield_pct_hp",
+	# 第三步：元素子键 / 全元素 / 对异常 / 穿透 / 异常增伤
+	"elemental_damage_fire", "elemental_damage_cold", "elemental_damage_lightning",
+	"elemental_damage_poison", "elemental_damage_shadow",
+	"all_element_damage", "damage_vs_ailment",
+	"elemental_penetration", "resist_penetration",
+	"burn_damage", "chill_damage", "poison_damage", "shock_damage", "curse_damage",
+	"ailment_duration", "ailment_chance", "ailment_effect",
 ]
 
 var _rows: VBoxContainer = null
@@ -109,8 +138,9 @@ func _build_ui() -> void:
 
 
 ## 渲染属性总表。`stats` 必须是 `StatCalculator.calculate()` 的输出。
-## 布局（步骤 5 修视口裁切）：32 键 × **每行 3 项** = 11 行，640×360 视口全屏可见。
-## （原始 2 列布局会到 31 行，高度超视口、顶部几行被裁掉（实测裁到「暴击率」）⇒ 已改 3 列。）
+## 布局（步骤 5 修视口裁切）：**每行 4 项**，640×360 视口全屏可见。
+## （演进：2 列 → 31 行超视口被裁；3 列 → 32 键 11 行；第三步键数 32→52 ⇒ 改 **4 列 = 13 行**
+##   仍适配 360 高。**改 `FINAL_KEYS` 长度必须同步复核此处列数**，否则重演裁切。）
 ## `class_display`（2026-09-22）：职业显示名，非空时标题变为「职业 · 角色属性」。
 ## `class_id`（步骤 5）：标题配色跟随职业色。
 func show_stats(stats: Dictionary, class_display: String = "", class_id: String = "") -> void:
@@ -131,7 +161,7 @@ func show_stats(stats: Dictionary, class_display: String = "", class_id: String 
 	var row: HBoxContainer = null
 	var idx := 0
 	for key in StatCalculator.FINAL_KEYS:
-		if idx % 3 == 0:
+		if idx % 4 == 0:
 			row = HBoxContainer.new()
 			row.add_theme_constant_override("separation", 10)
 			_rows.add_child(row)

@@ -12,6 +12,7 @@
 ##   E. Buff 叠加：flat / pct 并入
 ##   F. 直接累加键：暴击 / 攻速 / 抗性 / 幸运等
 ##   G. 满装估算：L20 满强化 AD 相对裸装 ×6–8（GDD 6.2 口径）
+##   H. 第三步（B3-2）：20 个新键经装备路径注入（防 pct 白名单漏判死钩子）
 extends Node
 
 var _fail: int = 0
@@ -36,6 +37,7 @@ func _ready() -> void:
 	await _test_buff()
 	await _test_direct()
 	await _test_full_gear()
+	await _test_new_keys_injection()
 	_finish()
 
 
@@ -214,6 +216,57 @@ func _make_item(rarity: int, ilvl: int, template_id: String, affix_ids: Array[St
 		roll.value = aff.roll_base_value(_rng) * GameConstants.affix_ilvl_scale(ilvl)
 		roll.quality = 1
 		item.affixes.append(roll)
+	return item
+
+
+# =============================================================================
+# H. 第三步新键经**装备路径**注入（B3-2）
+# =============================================================================
+
+## 防「pct 白名单漏判 ⇒ 输出恒 0」死钩子：逐个新键造一件「合成词缀」装备，
+## 断言 `calculate()` 的输出真的带上该值。**必须走装备路径**——
+## buff 的 pct 直接并入、不过白名单，测不出漏判。
+func _test_new_keys_injection() -> void:
+	print("--- H. 第三步新键注入（装备路径）---")
+	var cases := {
+		"shadow_resist": 12.0, "physical_resist": 7.0, "all_resist": 9.0,
+		"elemental_damage_fire": 15.0, "elemental_damage_cold": 15.0,
+		"elemental_damage_lightning": 15.0, "elemental_damage_poison": 15.0,
+		"elemental_damage_shadow": 15.0,
+		"all_element_damage": 11.0, "damage_vs_ailment": 14.0,
+		"elemental_penetration": 6.0, "resist_penetration": 4.0,
+		"burn_damage": 10.0, "chill_damage": 10.0, "poison_damage": 10.0,
+		"shock_damage": 10.0, "curse_damage": 10.0,
+		"ailment_duration": 12.0, "ailment_chance": 8.0, "ailment_effect": 9.0,
+	}
+	var missing: Array[String] = []
+	for sk in cases:
+		var stats := StatCalculator.calculate(1, [_make_synthetic_item(sk, float(cases[sk]))])
+		if not is_equal_approx(float(stats.get(sk, -1.0)), float(cases[sk])):
+			missing.append("%s（得 %s）" % [sk, str(stats.get(sk, "缺"))])
+	_ok("20 个新键全部可经装备注入（漏 %d 个）" % missing.size(), missing.is_empty())
+	for m in missing:
+		print("       漏: %s" % m)
+
+
+## 造一件只含一条「合成词缀」的装备（stat_key 任意，value 固定）
+func _make_synthetic_item(stat_key: String, value: float) -> EquipmentInstance:
+	var aff := AffixData.new()
+	aff.id = "synthetic_%s" % stat_key
+	aff.stat_key = stat_key
+	aff.is_percentage = true
+	var roll := AffixRoll.new()
+	roll.affix_id = aff.id
+	roll.template = aff
+	roll.value = value
+	roll.quality = 1
+	var item := EquipmentInstance.new()
+	item.instance_id = "syn_%s" % stat_key
+	item.template_id = "sword_iron"
+	item.slot = GameConstants.EquipSlot.MAIN_HAND
+	item.item_level = 1
+	item.rarity = GameConstants.Rarity.RARE
+	item.affixes = [roll]
 	return item
 
 

@@ -239,12 +239,18 @@ var _combat_stats: Dictionary = {}
 ## 注入的账号等级（0 = 未注入 → 回退读 `SaveManager.current_data.account_level` → 再无则 1）
 var _injected_level: int = 0
 
-## 元素 → StatCalculator 抗性键（shadow 无抗性键，恒 0）
+## 元素 → StatCalculator 抗性键（**6 系全映射**）。
+## 第三步 3-E4 / 2-L9 补齐 `shadow` / `physical`：此前只映射 4 系 ⇒ `get_resist("shadow")`
+## 恒返回 0.0，暗影伤害对玩家**全额穿透**（既有平衡漏洞）。
+## ⚠️ `physical` 映射到 `physical_resist`（与护甲 DR **相乘**，不相加；见
+## `DamageCalc.mitigation_factor` / `02-装备属性.md` §3.1）。
 const _RESIST_KEY_BY_ELEMENT := {
-	GameConstants.ELEMENT_FIRE: "fire_resist",
-	GameConstants.ELEMENT_COLD: "cold_resist",
-	GameConstants.ELEMENT_LIGHTNING: "lightning_resist",
-	GameConstants.ELEMENT_POISON: "poison_resist",
+	GameConstants.ELEMENT_FIRE: GameConstants.STAT_FIRE_RESIST,
+	GameConstants.ELEMENT_COLD: GameConstants.STAT_COLD_RESIST,
+	GameConstants.ELEMENT_LIGHTNING: GameConstants.STAT_LIGHTNING_RESIST,
+	GameConstants.ELEMENT_POISON: GameConstants.STAT_POISON_RESIST,
+	GameConstants.ELEMENT_SHADOW: GameConstants.STAT_SHADOW_RESIST,
+	GameConstants.ELEMENT_PHYSICAL: GameConstants.STAT_PHYSICAL_RESIST,
 }
 
 
@@ -589,7 +595,7 @@ func get_armor() -> float:
 
 
 ## 元素抗性（%）。**注入优先**：读注入的 `<element>_resist`（增量）。
-## 未注入或未知元素（如 shadow）回退 0。
+## 6 系（physical/fire/cold/lightning/poison/shadow）全部有映射；未注入或未知元素回退 0。
 func get_resist(element: String) -> float:
 	var key: String = _RESIST_KEY_BY_ELEMENT.get(element, "")
 	if key.is_empty():

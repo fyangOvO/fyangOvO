@@ -74,12 +74,16 @@ static func compare(new_item: EquipmentInstance, old_item: EquipmentInstance) ->
 			"new_val": nv,
 			"diff": diff,
 			"delta_type": dtype,
-			"is_pct": key.begins_with("pct_") or key == "crit_chance" or key == "crit_damage"
-				or key == "attack_speed" or key == "armor_penetration" or key == "dodge"
-				or key == "block_chance" or key == "elemental_damage" or key == "magic_find"
+			# 百分数键：前缀 pct_ / ailment_ + 后缀 _resist / _damage / _penetration
+			# （第三步补齐：元素子键 elemental_damage_* / 穿透 / 异常增伤 均按 % 显示）
+			"is_pct": key.begins_with("pct_") or key.begins_with("ailment_")
+				or key.begins_with("elemental_damage")
+				or key.ends_with("_resist") or key.ends_with("_damage") or key.ends_with("_penetration")
+				or key == "crit_chance" or key == "attack_speed" or key == "armor_pierce"
+				or key == "dodge" or key == "block_chance" or key == "magic_find"
 				or key == "xp_gain" or key == "gold_gain" or key == "life_on_hit"
 				or key == "thorns" or key == "skill_cost_reduction" or key == "cooldown_reduction"
-				or key == "resource_regen" or key == "move_speed" or key.ends_with("_resist"),
+				or key == "resource_regen" or key == "move_speed" or key == "damage_vs_ailment",
 		})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if a["delta_type"] != b["delta_type"]:
@@ -94,6 +98,23 @@ static func _label_for(key: String) -> String:
 		"flat_attack": return "攻击力"
 		"pct_attack": return "攻击力 %"
 		"elemental_damage": return "元素伤害 %"
+		"elemental_damage_fire": return "火焰伤害 %"
+		"elemental_damage_cold": return "冰霜伤害 %"
+		"elemental_damage_lightning": return "闪电伤害 %"
+		"elemental_damage_poison": return "毒素伤害 %"
+		"elemental_damage_shadow": return "暗影伤害 %"
+		"all_element_damage": return "全元素伤害 %"
+		"damage_vs_ailment": return "对异常增伤 %"
+		"elemental_penetration": return "元素穿透 %"
+		"resist_penetration": return "抗性穿透 %"
+		"burn_damage": return "燃烧增伤 %"
+		"chill_damage": return "冰冻增伤 %"
+		"poison_damage": return "中毒增伤 %"
+		"shock_damage": return "感电增伤 %"
+		"curse_damage": return "诅咒增伤 %"
+		"ailment_duration": return "异常持续 %"
+		"ailment_chance": return "异常触发 %"
+		"ailment_effect": return "异常强度 %"
 		"crit_chance": return "暴击率 %"
 		"crit_damage": return "暴击伤害 %"
 		"attack_speed": return "攻击速度 %"
@@ -110,6 +131,9 @@ static func _label_for(key: String) -> String:
 		"cold_resist": return "冰霜抗性 %"
 		"poison_resist": return "毒素抗性 %"
 		"lightning_resist": return "闪电抗性 %"
+		"shadow_resist": return "暗影抗性 %"
+		"physical_resist": return "物理抗性 %"
+		"all_resist": return "全抗性 %"
 		"max_resource": return "最大资源"
 		"resource_regen": return "资源回复 %"
 		"skill_cost_reduction": return "技能减耗 %"

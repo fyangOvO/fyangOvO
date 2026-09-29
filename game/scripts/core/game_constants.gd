@@ -1355,9 +1355,23 @@ const STAT_BLOCK_CHANCE: String = "block_chance"           ## 格挡率 %
 const STAT_LIFE_ON_HIT: String = "life_on_hit"             ## 生命偷取 %
 const STAT_LIFE_REGEN: String = "life_regen"               ## 生命回复/秒
 const STAT_THORNS: String = "thorns"                       ## 荆棘反伤
-const STAT_ARMOR_PENETRATION: String = "armor_penetration" ## 护甲穿透 %
-const STAT_ELEMENTAL_DAMAGE: String = "elemental_damage"   ## 元素伤害 %
+## 护甲穿透 %。⚠️ 键名与数据层统一为 `armor_pierce`（`02-装备属性.md` §8.2 L7 / C2）：
+## 词缀 `add_armor_penetration.stat_key` 与底材 `base_stats` 均已用 `armor_pierce`，
+## 消费点在 `DamageCalc.pierced_armor` / `StatCalculator.direct`。旧键 `armor_penetration` 已废弃。
+const STAT_ARMOR_PIERCE: String = "armor_pierce"
+const STAT_ELEMENTAL_DAMAGE: String = "elemental_damage"   ## 元素伤害 %（通用总键，作用于全部非物理元素）
 const STAT_SKILL_LEVEL: String = "skill_level"             ## 技能等级（固定值）
+
+## ── 元素伤害子键（第三步 3-E1）─────────────────────────────────
+## 依据 `03-装备特色玩法.md` §4.2.2：**只做 5 个非物理元素子键**——
+## `elemental_damage_physical` 与 `pct_attack` 语义重叠，**不新增**（物理走攻击力体系）。
+## 取键口径（§4.2.3）：`elem_mult = 专精子键 + 通用总键 elemental_damage`（累加，非取代）；
+## 物理两者都不吃。命名 `elemental_damage_<元素>`。
+const STAT_ELEMENTAL_DAMAGE_FIRE: String = "elemental_damage_fire"           ## 火焰伤害 %
+const STAT_ELEMENTAL_DAMAGE_COLD: String = "elemental_damage_cold"           ## 冰霜伤害 %
+const STAT_ELEMENTAL_DAMAGE_LIGHTNING: String = "elemental_damage_lightning" ## 闪电伤害 %
+const STAT_ELEMENTAL_DAMAGE_POISON: String = "elemental_damage_poison"       ## 毒素伤害 %
+const STAT_ELEMENTAL_DAMAGE_SHADOW: String = "elemental_damage_shadow"       ## 暗影伤害 %
 
 ## ── 技能等级（第一步 B0 · 机制 A）───────────────────────────────
 ## 全局等级（非单技能），1–10。生效公式见 `01-技能体系.md` §2.1：
@@ -1375,6 +1389,38 @@ const STAT_FIRE_RESIST: String = "fire_resist"             ## 火焰抗性 %
 const STAT_COLD_RESIST: String = "cold_resist"             ## 冰霜抗性 %
 const STAT_POISON_RESIST: String = "poison_resist"         ## 毒素抗性 %
 const STAT_LIGHTNING_RESIST: String = "lightning_resist"   ## 闪电抗性 %
+## ── 补齐 3 系抗性（第三步 3-E3 / 2-L3）─────────────────────────
+## 依据 `02-装备属性.md` §3.1：元素 6 系（physical/fire/cold/lightning/poison/shadow）
+## 需 6 系正对；另有 `all_resist` 全抗（4+2 系同时 +，§3.2）。
+## ⚠️ `physical_resist` 与护甲的减伤**分别计算后相乘**（`1-(1-a)(1-b)`），**不可相加**
+## （否则坦克流无敌，见 §3.1 约束 / §8.2 L11）。
+const STAT_SHADOW_RESIST: String = "shadow_resist"         ## 暗影抗性 %（第三步补齐，原缺口）
+const STAT_PHYSICAL_RESIST: String = "physical_resist"     ## 物理抗性 %（与护甲相乘，非相加）
+const STAT_ALL_RESIST: String = "all_resist"               ## 全抗性 %（4+2 系同时 +）
+
+## ── 元素/抗性穿透（第三步 3.2）──────────────────────────────────
+## 口径（与 `armor_pierce` 对齐）：`effective_resist = max(0, target_resist - penetration)`。
+## `elemental_penetration` 对 5 系元素同效；`resist_penetration` 泛用（含 shadow/physical）。
+## 消费点：`DamageCalc.mitigation_factor(..., resist_penetration_pct)`（2-L10）。
+const STAT_ELEMENTAL_PENETRATION: String = "elemental_penetration" ## 全元素穿透 %
+const STAT_RESIST_PENETRATION: String = "resist_penetration"       ## 泛用抗性穿透 %
+
+## ── 元素聚合 / 对异常增伤（第三步 3.2 / 3.3）──────────────────────
+const STAT_ALL_ELEMENT_DAMAGE: String = "all_element_damage" ## 全元素伤害 %
+const STAT_DAMAGE_VS_AILMENT: String = "damage_vs_ailment"   ## 对处于异常状态目标增伤 %
+
+## ── 异常状态（AILMENT）增伤键（第三步 3.3）───────────────────────
+## ⚠️ 前置依赖：`AilmentSystem` 在工程侧**尚不存在**。本步**只落数据与键**，
+## 标注为「待 `AilmentSystem` 实装后接线」，避免制造新的死钩子（见 `02-装备属性.md` §3.3）。
+const STAT_BURN_DAMAGE: String = "burn_damage"           ## 对燃烧目标增伤 %
+const STAT_CHILL_DAMAGE: String = "chill_damage"         ## 对冰冻/减速目标增伤 %
+const STAT_POISON_DAMAGE: String = "poison_damage"       ## 对中毒目标增伤 %
+const STAT_SHOCK_DAMAGE: String = "shock_damage"         ## 对感电目标增伤 %
+const STAT_CURSE_DAMAGE: String = "curse_damage"         ## 对诅咒/虚弱目标增伤 %
+const STAT_AILMENT_DURATION: String = "ailment_duration" ## 异常状态持续时间 %
+const STAT_AILMENT_CHANCE: String = "ailment_chance"     ## 异常状态触发率 %
+const STAT_AILMENT_EFFECT: String = "ailment_effect"     ## 异常状态效果强度 %
+
 ## 全属性 %（神话词缀专用，GDD 0.3 节 3.2.2：神话装必含 1 条「全属性 +X%」）
 const STAT_ALL_ATTRIBUTES: String = "all_attributes"
 
@@ -1388,9 +1434,18 @@ const ALL_STAT_KEYS: Array[String] = [
 	STAT_MAX_RESOURCE, STAT_RESOURCE_REGEN,
 	STAT_COOLDOWN_REDUCTION, STAT_SKILL_COST_REDUCTION, STAT_PICKUP_RADIUS,
 	STAT_DODGE, STAT_BLOCK_CHANCE, STAT_LIFE_ON_HIT, STAT_LIFE_REGEN, STAT_THORNS,
-	STAT_ARMOR_PENETRATION, STAT_ELEMENTAL_DAMAGE, STAT_SKILL_LEVEL,
+	STAT_ARMOR_PIERCE, STAT_ELEMENTAL_DAMAGE, STAT_SKILL_LEVEL,
+	# 元素专精（3-E1 / 3.2）：5 个非物理子键 + 全元素伤害 + 对异常增伤 + 穿透
+	STAT_ELEMENTAL_DAMAGE_FIRE, STAT_ELEMENTAL_DAMAGE_COLD, STAT_ELEMENTAL_DAMAGE_LIGHTNING,
+	STAT_ELEMENTAL_DAMAGE_POISON, STAT_ELEMENTAL_DAMAGE_SHADOW,
+	STAT_ALL_ELEMENT_DAMAGE, STAT_DAMAGE_VS_AILMENT,
+	STAT_ELEMENTAL_PENETRATION, STAT_RESIST_PENETRATION,
 	STAT_MAGIC_FIND, STAT_XP_GAIN, STAT_GOLD_GAIN, STAT_KILL_HEAL,
 	STAT_FIRE_RESIST, STAT_COLD_RESIST, STAT_POISON_RESIST, STAT_LIGHTNING_RESIST,
+	STAT_SHADOW_RESIST, STAT_PHYSICAL_RESIST, STAT_ALL_RESIST,
+	# 异常状态增伤（3.3；待 AilmentSystem 实装后接线）
+	STAT_BURN_DAMAGE, STAT_CHILL_DAMAGE, STAT_POISON_DAMAGE, STAT_SHOCK_DAMAGE,
+	STAT_CURSE_DAMAGE, STAT_AILMENT_DURATION, STAT_AILMENT_CHANCE, STAT_AILMENT_EFFECT,
 	STAT_ALL_ATTRIBUTES,
 ]
 
@@ -1416,8 +1471,17 @@ const STAT_DISPLAY_NAMES: Dictionary = {
 	STAT_LIFE_ON_HIT: "生命偷取",
 	STAT_LIFE_REGEN: "生命回复",
 	STAT_THORNS: "荆棘反伤",
-	STAT_ARMOR_PENETRATION: "护甲穿透",
+	STAT_ARMOR_PIERCE: "护甲穿透",
 	STAT_ELEMENTAL_DAMAGE: "元素伤害",
+	STAT_ELEMENTAL_DAMAGE_FIRE: "火焰伤害",
+	STAT_ELEMENTAL_DAMAGE_COLD: "冰霜伤害",
+	STAT_ELEMENTAL_DAMAGE_LIGHTNING: "闪电伤害",
+	STAT_ELEMENTAL_DAMAGE_POISON: "毒素伤害",
+	STAT_ELEMENTAL_DAMAGE_SHADOW: "暗影伤害",
+	STAT_ALL_ELEMENT_DAMAGE: "全元素伤害",
+	STAT_DAMAGE_VS_AILMENT: "对异常增伤",
+	STAT_ELEMENTAL_PENETRATION: "元素穿透",
+	STAT_RESIST_PENETRATION: "抗性穿透",
 	STAT_SKILL_LEVEL: "技能等级",
 	STAT_MAGIC_FIND: "掉落幸运",
 	STAT_XP_GAIN: "经验获取",
@@ -1427,6 +1491,17 @@ const STAT_DISPLAY_NAMES: Dictionary = {
 	STAT_COLD_RESIST: "冰霜抗性",
 	STAT_POISON_RESIST: "毒素抗性",
 	STAT_LIGHTNING_RESIST: "闪电抗性",
+	STAT_SHADOW_RESIST: "暗影抗性",
+	STAT_PHYSICAL_RESIST: "物理抗性",
+	STAT_ALL_RESIST: "全抗性",
+	STAT_BURN_DAMAGE: "燃烧增伤",
+	STAT_CHILL_DAMAGE: "冰冻增伤",
+	STAT_POISON_DAMAGE: "中毒增伤",
+	STAT_SHOCK_DAMAGE: "感电增伤",
+	STAT_CURSE_DAMAGE: "诅咒增伤",
+	STAT_AILMENT_DURATION: "异常持续",
+	STAT_AILMENT_CHANCE: "异常触发",
+	STAT_AILMENT_EFFECT: "异常强度",
 	STAT_ALL_ATTRIBUTES: "全属性",
 }
 
