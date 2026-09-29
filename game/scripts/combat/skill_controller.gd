@@ -48,13 +48,6 @@ var _equipped_runes: Dictionary = {}
 ## 已警告过的「形态实现未落地」标记（避免每次施放都刷屏）
 var _pending_form_warned: Dictionary = {}
 
-## 形态 → 尚未落地的实现工单。落地后从表中删除即可（B0 的过渡实现随之失效）。
-##
-## 2026-09-29（B3-5）：PROJECTILE / GROUND 已由 `Projectile` / `GroundArea` 落地 ⇒ 移除。
-const PENDING_FORM_IMPL: Dictionary = {
-	SkillData.SkillType.BUFF: "3-B1（B4）BuffComponent",
-}
-
 
 func _ready() -> void:
 	if not player_path.is_empty():
@@ -74,7 +67,6 @@ func _load_skills() -> void:
 		if data != null:
 			_skills[id] = data
 			_cooldowns[id] = 0.0
-	_warn_pending_forms()
 
 
 ## 出战技能 id 列表（取栏链，见 _load_skills 注释）
@@ -85,23 +77,6 @@ func _equipped_skill_ids() -> Array[String]:
 			return data.skill_bar.duplicate()
 		return ConfigLoader.class_default_skill_bar(data.class_id)
 	return ConfigLoader.class_default_skill_bar(GameConstants.CLASS_DEFAULT)
-
-
-## 出战栏里若有「形态实现未落地」的技能，**加载时打印一次明确警告**。
-##
-## 为什么要这条：B0 只交付数据地基 + 技能等级，`1-L3/L4`（投射物 / 持续区域实体）与
-## `3-B1`（BuffComponent）在 B3/B4。若不给提示，玩家装上这些技能后
-## **什么都不会发生且零报错**——正是本项目反复栽的「静默失败」。
-func _warn_pending_forms() -> void:
-	var pending: Array[String] = []
-	for id in _skills:
-		var data: SkillData = _skills[id]
-		if PENDING_FORM_IMPL.has(data.type):
-			pending.append("%s(%s → 待 %s)" % [id, SkillData.TYPE_NAMES[data.type],
-				PENDING_FORM_IMPL[data.type]])
-	if not pending.is_empty():
-		push_warning("[SkillController] 出战栏含过渡实现技能（B0 简化版，实体待后续批次）：%s"
-			% ", ".join(pending))
 
 
 # =============================================================================
@@ -303,35 +278,41 @@ func _execute_ground(data: SkillData) -> void:
 	area.begin()
 
 
-## 增益（第一步 §3.2）。
+## 增益（第一步 §3.2；第四步 B4 3-B1 起**真实生效**）。
 ##
-## ⚠️ **B0 过渡实现**：时限 + 叠层 + 过期清理由 `3-B1`（B4）的 `BuffComponent` 承载。
-## 在那之前，这里把 `buff_id` 写进 `RunBuffSystem.buffs`（叠层语义已有），
-## 但 `RunBuffSystem.to_calculator_buffs()` 需要 `buff_id → pct` 的定义表才能换算成属性
-## ⇒ **目前会生效为空**，故此处额外打一次明确警告（避免静默）。
+## 落点：玩家 `BuffComponent`（限时 / 叠层 / 到期自动清理），时长取 `SkillData.duration`。
+## 定义表：`GameConstants.BUFF_DEFS`（`buff_id` → `pct` / `shield_pct_hp` / `restore_mana_pct`）。
+## ⚠️ 不再写 `RunBuffSystem.buffs`：那是「单局永久」字典，与「6 秒增益」语义不符，
+##   且 `buff_id`（`buff_warcry` …）不在符文池里 ⇒ `to_calculator_buffs()` 换算为空
+##   （B0 过渡实现，B4 3-B1 已替换）。
 func _execute_buff(data: SkillData) -> void:
-	var run := _find_run_buff_system()
-	if run == null:
-		push_warning("[SkillController] 增益技能 '%s' 找不到 RunBuffSystem，效果未生效" % data.id)
+	var def: Dictionary = GameConstants.BUFF_DEFS.get(data.buff_id, {})
+	if def.is_empty():
+		_warn_once(data.type, "[SkillController] 增益技能 '%s' 的 buff_id='%s' 不在 BUFF_DEFS ⇒ 无效果"
+			% [data.id, data.buff_id])
 		return
-	run.apply_option(data.buff_id)
-	_warn_once(data.type, "[SkillController] 增益技能 '%s'（buff_id=%s）已记入 RunBuffSystem，"
-		% [data.id, data.buff_id]
-		+ "但 buff_id→属性 的换算表尚未落地（待 3-B1/B4）⇒ 实际属性暂无变化")
+	var duration := maxf(data.duration, 0.0)
+	# ① 限时属性增益（攻击 / 偷取 / 暴击 / 移速 + 闪避 / 元素伤害 …）
+	var pct: Dictionary = def.get("pct", {})
+	if not pct.is_empty():
+		var bc: BuffComponent = _player.get_buff_component()
+		if bc != null:
+			for key in pct:
+				bc.add_buff_key(String(key), float(pct[key]), duration, data.buff_id)
+	# ② 立即授盾（铁壁 / 秘法护盾）—— 按**最大生命**百分比，随 `duration` 到期
+	var shield_pct := float(def.get("shield_pct_hp", 0.0))
+	if shield_pct > 0.0 and _player.health != null:
+		_player.health.grant_shield(
+			_player.health.get_max_hp() * shield_pct / 100.0, duration)
+	# ③ 立即回蓝（法力涌动）—— 按**最大法力**百分比
+	var mana_pct := float(def.get("restore_mana_pct", 0.0))
+	if mana_pct > 0.0:
+		var mana := _player.get_mana_pool()
+		if mana != null:
+			mana.restore(mana.maximum * mana_pct / 100.0)
 
 
-## 从场景树里找 `RunBuffSystem`（`level_scene` 通过 `get_run_buff_system()` 暴露）。
-func _find_run_buff_system() -> RunBuffSystem:
-	if _player == null:
-		return null
-	var host: Node = _player.get_parent()
-	if host == null:
-		return null
-	if host.has_method("get_run_buff_system"):
-		return host.call("get_run_buff_system") as RunBuffSystem
-	return null
-
-
+## 一次一类的警告（避免每次施放都刷屏）
 func _warn_once(key: int, msg: String) -> void:
 	if _pending_form_warned.has(key):
 		return
@@ -525,7 +506,9 @@ func _hit(target: Node, data: SkillData, knockback_px: float,
 		#   由恒传 `0.0` 改为按**技能元素**取「专精子键 + 通用总键 + 全元素键」
 		#   （`PlayerController.get_element_damage_bonus`，口径 §4.2.3）。
 		#   `physical` ⇒ 0.0（物理不吃元素乘区，走 `pct_attack`）。
-		_player.get_element_damage_bonus(data.element),
+		# 第四步 B4 3-B1：改走 `get_damage_bonus` ⇒ 额外并入**通用伤害 `all_damage`**
+		#   （临时增益，物理技能也吃）。
+		_player.get_damage_bonus(data.element),
 		# 破甲：先按玩家 armor_pierce% 削目标护甲（默认 0 ⇒ 与修复前一致）
 		DamageCalc.pierced_armor(
 			DamageCalc.target_armor(target), _player.get_combat_stat("armor_pierce")),

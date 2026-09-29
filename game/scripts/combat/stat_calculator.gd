@@ -30,7 +30,7 @@ const MYTHIC_SCALED_KEYS: Array[String] = ["max_hp", "attack", "armor"]
 ## 最终属性键顺序（展示用）
 const FINAL_KEYS: Array[String] = [
 	"max_hp", "attack", "armor", "crit_chance", "crit_damage", "attack_speed",
-	"elemental_damage", "dodge", "block_chance", "life_regen", "fire_resist",
+	"elemental_damage", "all_damage", "dodge", "block_chance", "life_regen", "fire_resist",
 	"cold_resist", "poison_resist", "lightning_resist",
 	# 第三步补齐的抗性 3 系（3-E5 / 2-L3）：暗影 / 物理 / 全抗
 	"shadow_resist", "physical_resist", "all_resist",
@@ -114,7 +114,7 @@ static func calculate(level: int, equipped: Array[EquipmentInstance], buffs: Dic
 				"life_on_hit", "thorns", "skill_cost_reduction", "cooldown_reduction",
 				"resource_regen", "move_speed", "all_attributes",
 				"armor_pierce", "life_steal", "damage_taken", "regen_pct_hp",
-				"shield_pct_hp", "damage_vs_ailment", "all_element_damage"]):
+				"shield_pct_hp", "damage_vs_ailment", "all_element_damage", "all_damage"]):
 			pct[key] = float(pct.get(key, 0.0)) + float(gear[key])
 	# Buff pct（嵌套：buffs = {buff_id: {"pct": {...}}}）
 	for bkey in buffs:
@@ -141,6 +141,9 @@ static func calculate(level: int, equipped: Array[EquipmentInstance], buffs: Dic
 		"crit_damage": pct.get("crit_damage", 0.0),
 		"attack_speed": pct.get("attack_speed", 0.0),
 		"elemental_damage": pct.get("elemental_damage", 0.0),
+		# 通用伤害加成（第四步 B4 3-B1）：临时增益 `all_damage` 的落点。
+		# 消费在 `PlayerController.get_element_damage_bonus`（物理 + 元素皆受益）。
+		"all_damage": pct.get("all_damage", 0.0),
 		"dodge": pct.get("dodge", 0.0),
 		"block_chance": pct.get("block_chance", 0.0),
 		"life_regen": flat.get("life_regen", 0.0) + pct.get("life_regen", 0.0),

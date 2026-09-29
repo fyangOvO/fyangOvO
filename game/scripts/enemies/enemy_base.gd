@@ -100,6 +100,11 @@ var data: MonsterData = null
 ## 生命组件（2.7 收编：HP / 受击 / 死亡；apply_mitigation=false 防双重减伤）
 @onready var health: HealthComponent = $Health
 
+## 临时增益组件（第四步 B4 3-B3，**代码创建**，与 `Health` 并列）。
+## 敌人侧消费点：`get_armor()`（减甲 `pct_armor`，来自 `enemy_armor_reduction`）/
+## `_move_speed()`（减速 `move_speed`，来自 `ms_boost` 负值）。
+var buff_component: BuffComponent = null
+
 ## 当前生命（转发到生命组件；保留属性名兼容 2.4 验证与外部读取）
 var current_hp: float:
 	get:
@@ -263,6 +268,10 @@ func _ready() -> void:
 	else:
 		add_to_group(&"enemies")
 	_spawn_point = global_position
+	# 临时增益组件（第四步 B4 3-B3）：代码创建、与 `$Health` 并列；无增益时 `_process` 自关。
+	buff_component = BuffComponent.new()
+	buff_component.name = "BuffComponent"
+	add_child(buff_component)
 	# 允許呼叫方**預先注入** `data`（召喚物在 `Summon._ready()` 合成 MonsterData 後傳入）；
 	# 未注入才走怪物表查詢 —— 既有敵人行為不變。
 	if data == null:
@@ -853,10 +862,16 @@ func _refresh_player() -> void:
 	_player = best
 
 
-## 移動速度（px/s）。預設 = 怪物表 `move_speed` × 詞綴移速乘區。
+## 移動速度（px/s）。預設 = 怪物表 `move_speed` × 詞綴移速乘區 × 臨時增益移速乘區。
 ## 友方召喚物覆寫本方法以**每幀動態跟隨玩家**（見 `scripts/combat/summon.gd`）。
 func _move_speed() -> float:
-	return data.move_speed * _move_mult
+	var speed := data.move_speed * _move_mult
+	# 第四步 B4 3-B3：临时增益减速（`ms_boost` / `move_speed`，百分数增量，负值即减速）
+	if buff_component != null:
+		var ms := buff_component.get_stat_bonus("move_speed")
+		if not is_zero_approx(ms):
+			speed *= maxf(1.0 + ms / 100.0, 0.0)
+	return speed
 
 
 ## 索敵半徑（px）：目標入此範圍才由巡邏轉為追擊。預設沿用全域常量。
@@ -1441,9 +1456,20 @@ func apply_knockback(offset: Vector2) -> void:
 	_knockback_velocity += offset.normalized() * sqrt(2.0 * KNOCKBACK_DECAY * l)
 
 
-## 伤害管线读取接口（DamageCalc.target_*；怪物护甲来自数据 × 等级成长）
+## 伤害管线读取接口（DamageCalc.target_*；怪物护甲来自数据 × 等级成长）。
+## 第四步 B4 3-B3：再乘临时增益减甲乘区（`enemy_armor_reduction` → `pct_armor` 负值）。
 func get_armor() -> float:
-	return data.get_armor(level)
+	var armor := data.get_armor(level)
+	if buff_component != null:
+		var pct := buff_component.get_stat_bonus("pct_armor")
+		if not is_zero_approx(pct):
+			armor *= maxf(1.0 + pct / 100.0, 0.0)
+	return armor
+
+
+## 临时增益组件（第四步 B4 3-B3）。`_ready()` 已建，恒非 null。
+func get_buff_component() -> BuffComponent:
+	return buff_component
 
 
 ## 元素抗性：2.4 怪物表未定义抗性，统一 0（阶段 3 词缀/特殊怪接入）

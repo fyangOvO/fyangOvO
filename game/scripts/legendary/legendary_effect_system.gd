@@ -178,6 +178,8 @@ static func _resolve_effect(effect: Dictionary, fx: Dictionary, ctx: Dictionary)
 				"value": float(effect.get("value", 0.0)),
 				"duration": float(effect.get("duration", 1.0)),
 				"target": String(effect.get("target", "self")),
+				# 第四步 B4 3-B1：叠层上限（`七劫之冠` = 9）。缺省 1 = 刷新不叠层。
+				"max_stacks": int(effect.get("max_stacks", 1)),
 			}
 		"extra_loot":
 			return {

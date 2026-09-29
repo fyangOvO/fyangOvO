@@ -13,9 +13,11 @@
 ## `gain_resource` / `resource_refund`（含 `cooldown_half`）/ `reflect` /
 ## `revive_protect`（走死亡钩子）/ `extra_loot`（含 `limit_per_run` 单局计数）。
 ##
-## `buff_stat` / `ms_boost` / `damage_reduction` / `summon` 需要 B4 的 `BuffComponent`
-## （`3-B1`/`3-B2`）与召唤物系统（`1-L5`）⇒ 本类**只记一次日志、不执行**（不报错、不静默）。
-## 这四类对应 16 条特效（第二期清单，见 `03-装备特色玩法.md` §2.8）。
+## 第四步 B4 3-B1/B2/B3 追加（4 类）：`buff_stat`（含 `target: enemy` 挂敌人）/
+## `ms_boost` / `damage_reduction` / `summon` —— 前 3 类走 `BuffComponent.add_buff`，
+## `summon` 走 `Summon.spawn`（与技能侧同一入口，带存活上限 + `DEFS` 未定义守门）。
+## 数值已由 `on_event` 算好，本类不自己算。
+## ⇒ 第二期 16 条特效**全部通电**。
 ##
 ## 事件点落点（§2.4 清单）：
 ##   on_hit / on_crit      ← `EventBus.damage_dealt`（`target != 玩家` 分流；is_crit 分 hit/crit）
@@ -264,6 +266,14 @@ func _execute(r: Dictionary, ctx: Dictionary) -> void:
 			_exec_reflect(result, ctx)
 		"extra_loot":
 			_exec_extra_loot(r, result)
+		"buff_stat":
+			_exec_buff_stat(r, result, ctx)
+		"ms_boost":
+			_exec_ms_boost(r, result)
+		"damage_reduction":
+			_exec_damage_reduction(r, result)
+		"summon":
+			_exec_summon(r, result)
 		"revive_protect":
 			# 由死亡钩子（`_try_revive`）消费；正常事件路径不执行（防「活着但低血」白耗冷却）
 			pass
@@ -275,7 +285,7 @@ func _warn_once(etype: String, name: String) -> void:
 	if _warned_types.has(etype):
 		return
 	_warned_types[etype] = true
-	print("[Legendary] 执行器未实现（待 B4 增益/召唤物系统）：%s（%s）" % [etype, name])
+	print("[Legendary] 执行器未实现 / 前置缺失：%s（%s）" % [etype, name])
 
 
 # ---- 1. deal_damage（含 area 范围查询）-------------------------------------
@@ -434,6 +444,109 @@ func _exec_extra_loot(r: Dictionary, result: Dictionary) -> void:
 		return
 	_extra_loot_used[eid] = int(_extra_loot_used.get(eid, 0)) + 1
 	_spawn_loot.call(entry, _player.global_position)
+
+
+# ---- 6. buff_stat / ms_boost / damage_reduction（第四步 B4 3-B1）-----------
+#
+# 三类都落到宿主 `BuffComponent`（`add_buff`）。数值 / 时长 / 叠层上限由 `on_event` 算好，
+# 本类只做「挂到谁身上」的路由：
+#   · `buff_stat.target`：`self`（默认）= 玩家 ｜ `enemy` = 本次触发目标（`ctx.target`）
+#   · `ms_boost` / `damage_reduction` 恒挂玩家（数据里无 `target` 字段）
+# `source_id` 取 `effect_id` ⇒ 同一条特效反复触发按「叠层 / 刷新」合并（见 `BuffComponent`）。
+
+func _exec_buff_stat(r: Dictionary, result: Dictionary, ctx: Dictionary) -> void:
+	var stat := String(result.get("stat", ""))
+	if BuffComponent.resolve_key(stat).is_empty():
+		_warn_once("buff_stat(未知 stat=%s)" % stat, String(r.get("name", "")))
+		return
+	var target := _resolve_buff_target(String(result.get("target", "self")), ctx)
+	var bc := _buff_of(target)
+	if bc == null:
+		_warn_once("buff_stat(目标无 BuffComponent)", String(r.get("name", "")))
+		return
+	bc.add_buff(stat, float(result.get("value", 0.0)), float(result.get("duration", 1.0)),
+		String(r.get("effect_id", "")), int(result.get("max_stacks", 1)))
+
+
+func _exec_ms_boost(r: Dictionary, result: Dictionary) -> void:
+	var bc := _player_buff()
+	if bc == null:
+		return
+	bc.add_buff("move_speed", float(result.get("value", 0.0)),
+		float(result.get("duration", 1.0)), String(r.get("effect_id", "")))
+	# `element_attach`（裂界指环「攻击附带该精英的伤害类型」）需把精英元素写进攻击管线
+	# —— 属攻击管线改造，本批不实现（显式记一次，不静默）。
+	if bool(result.get("element_attach", false)):
+		_warn_once("ms_boost(element_attach 未接线)", String(r.get("name", "")))
+
+
+func _exec_damage_reduction(r: Dictionary, result: Dictionary) -> void:
+	var bc := _player_buff()
+	if bc == null:
+		return
+	bc.add_buff("damage_reduction", float(result.get("value", 0.0)),
+		float(result.get("duration", 1.0)), String(r.get("effect_id", "")))
+
+
+## `buff_stat` 的 `target` 路由：`enemy` ⇒ 本次触发目标（缺 target 时退化为玩家自身）。
+func _resolve_buff_target(target: String, ctx: Dictionary) -> Node:
+	if target == "enemy":
+		var t: Node = ctx.get("target", null)
+		if t != null and is_instance_valid(t):
+			return t
+	return _player
+
+
+## 取某节点的 `BuffComponent`（缺省 null；调用方据此记日志）。
+func _buff_of(node: Node) -> BuffComponent:
+	if node == null or not is_instance_valid(node) or not node.has_method("get_buff_component"):
+		return null
+	return node.call("get_buff_component")
+
+
+func _player_buff() -> BuffComponent:
+	return _buff_of(_player)
+
+
+# ---- 7. summon（第四步 B4 3-B1；工单 1-L5 的传奇侧落点）--------------------
+
+## 生成 `count` 只 `creature`（走 `Summon.spawn`，与技能侧 `_execute_summon` 同一入口）。
+## ⚠️ 两道守门，**都不静默**：
+##   ① `creature` 必须真的在 `Summon.DEFS` 里 —— 否则 `Summon._configure` 的缺省兜底会
+##      把它悄悄变成灵狼（String 字段脱钩）。命中即记一次日志并**跳过**。
+##   ② 同时存活数 ≤ `LEGENDARY_SUMMON_CAP`（设计 §2.7B：防刷屏）。
+func _exec_summon(r: Dictionary, result: Dictionary) -> void:
+	var creature := String(result.get("creature", ""))
+	if not Summon.DEFS.has(creature):
+		_warn_once("summon(未定义 creature=%s)" % creature, String(r.get("name", "")))
+		return
+	if _player == null or not is_instance_valid(_player):
+		return
+	var host: Node = _player.get_parent()
+	if host == null:
+		return
+	var count := maxi(int(result.get("count", 1)), 1)
+	var duration := float(result.get("duration", 8.0))
+	var alive := _count_summons(creature)
+	if alive >= GameConstants.LEGENDARY_SUMMON_CAP:
+		return
+	count = mini(count, GameConstants.LEGENDARY_SUMMON_CAP - alive)
+	# `damage_pct` 为**比例**（0.4 = 玩家攻击的 40%）；缺省 -1 = 用 DEFS 预设
+	var atk_ratio := -1.0
+	if result.has("damage_pct"):
+		atk_ratio = float(result["damage_pct"])
+	for i in range(count):
+		Summon.spawn(host, _player, creature, _player.global_position, duration, atk_ratio)
+
+
+## 场上（`summons` 组）指定 `summon_id` 的存活数
+func _count_summons(creature: String) -> int:
+	var n := 0
+	for s in get_tree().get_nodes_in_group(&"summons"):
+		if s != null and is_instance_valid(s) and s.has_method("get_summon_id") \
+				and String(s.call("get_summon_id")) == creature:
+			n += 1
+	return n
 
 
 # ---- 内部小工具 -------------------------------------------------------------

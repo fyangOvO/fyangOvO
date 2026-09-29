@@ -152,6 +152,8 @@ var _skill_bar: SkillBarUI = null
 var _pickup_toasts: PickupToastHUD = null
 ## 召喚物 HUD（規格 §12.4#6 · 技能欄旁小圖標 + 倒數環）
 var _summon_bar: SummonBarUI = null
+## 臨時增益 HUD（第四步 B4 3-B4 · 召喚欄上方小圖標 + 剩餘時間）
+var _buff_bar: BuffBarUI = null
 
 ## 8C BOSS 觉醒卡：BOSS 远端沉睡，玩家接近 AWAKEN_TRIGGER_DIST 触发觉醒立绘卡，
 ## 卡结束后解除冻结正式开战（DNF 觉醒立绘风格，步骤 8C）。
@@ -404,6 +406,10 @@ func _build() -> void:
 	_actors.add_child(_player)
 	_player.global_position = _cell_to_world(spawn_cell)
 	_apply_account_stats()
+	# 第四步 B4 3-B2：临时增益变化 ⇒ 立即重算属性（不补血；buff 到期/新增都走这里）。
+	var bc := _player.get_buff_component()
+	if bc != null:
+		bc.changed.connect(_on_player_buff_changed)
 	# 3-K1/K2：挂载传奇特效总线（必须在玩家 + 属性就绪**之后** —— 总线要读玩家攻击力 /
 	# 生命上限，并把死亡钩子 / 受击钩子注入玩家的 HealthComponent）。
 	_setup_legendary_bus()
@@ -430,6 +436,7 @@ func _build() -> void:
 	_build_skill_bar()
 	_build_quick_slot()
 	_build_summon_bar()
+	_build_buff_bar()
 	print("[Level] 进入「%s」Lv.%d · 难度 %d · 敌人 %d（精英 %d / BOSS %d）· 目标：%s"
 		% [_level_def.display_name, _level_def.level, difficulty_tier,
 			_alive.size(), _elite_total, _boss_total, _objective_desc])
@@ -465,10 +472,14 @@ func _apply_account_stats(refill_hp: bool = true) -> void:
 	var data := SaveManager.current_data
 	if data == null or _player == null or _player.health == null:
 		return
-	# 第三参数 = 局内增益（三选一 / 祭坛 / 连杀，由 `RunBuffSystem` 汇总）。
+	# 第三参数 = 局内增益（三选一 / 祭坛 / 连杀，由 `RunBuffSystem` 汇总）
+	#   **并入** 临时增益（第四步 B4 3-B1/B2，由玩家 `BuffComponent` 产出；不是取代）。
 	# ⚠️ 此前传的是**空字典** ⇒ 面板接上后选了增益也不生效（第 9 个「生成没人消费」）。
-	var stats := StatCalculator.calculate(data.account_level, data.equipped,
-		_buff_system.to_calculator_buffs())
+	var buffs := _buff_system.to_calculator_buffs()
+	var bc := _player.get_buff_component()
+	if bc != null:
+		buffs = _merge_calc_buffs(buffs, bc.to_calculator_buffs())
+	var stats := StatCalculator.calculate(data.account_level, data.equipped, buffs)
 	# 【D1】注入完整属性 + 账号等级（等级供 `get_player_level()` / 越级惩罚 / 保底掉落使用）
 	_player.apply_combat_stats(stats, data.account_level)
 	var max_hp := float(stats.get("max_hp", 0.0))
@@ -479,6 +490,26 @@ func _apply_account_stats(refill_hp: bool = true) -> void:
 		else:
 			# 保留当前血量，只把超出新上限的部分削掉（升级加血上限不自动补满）
 			_player.health.current_hp = minf(_player.health.current_hp, max_hp)
+
+
+## 临时增益变更（新增 / 叠层 / 到期）⇒ 重算属性。**不补血**（与升级同口径）。
+func _on_player_buff_changed() -> void:
+	_apply_account_stats(false)
+
+
+## 合并两份 `{buff_id: {"pct": {stat_key: value}}}`；同名 id 的 pct 键**相加**（不覆盖）。
+static func _merge_calc_buffs(a: Dictionary, b: Dictionary) -> Dictionary:
+	var out := a.duplicate(true)
+	for id in b.keys():
+		if not out.has(id):
+			out[id] = b[id]
+			continue
+		var pa: Dictionary = out[id].get("pct", {})
+		var pb: Dictionary = b[id].get("pct", {})
+		for k in pb.keys():
+			pa[k] = float(pa.get(k, 0.0)) + float(pb[k])
+		out[id]["pct"] = pa
+	return out
 
 
 # =============================================================================
@@ -1188,6 +1219,9 @@ const QUICK_SLOT_ORIGIN: Vector2 = Vector2(368.0, 296.0)
 ## 召喚物 HUD 原點（規格 §12.4#6）：技能欄（472,296，48px）**正上方**，
 ## 2 槽 × 24px = 52 寬。刻意小巧，不與技能欄 / 消耗品欄重疊（640×360 已滿）。
 const SUMMON_BAR_ORIGIN: Vector2 = Vector2(472.0, 268.0)
+## 臨時增益 HUD 原點（第四步 B4 3-B4）：召喚欄（472,268，24px 高）**正上方**。
+## 6 槽 × 24px + 5 間隙 × 3 = 159 寬 ⇒ x = 472..631（螢幕 640，右留 9px）。
+const BUFF_BAR_ORIGIN: Vector2 = Vector2(472.0, 244.0)
 ## 槽邊長（px）。與 `skill_slot_48.png` / `skill_icon_*_48.png` 原生尺寸一致 ⇒ **1× 整數**。
 const SKILL_SLOT_PX: float = 48.0
 ## 槽間距（px）。
@@ -1237,6 +1271,21 @@ func _build_summon_bar() -> void:
 	bar.position = SUMMON_BAR_ORIGIN
 	$HUD.add_child(bar)
 	_summon_bar = bar
+
+
+## 臨時增益 HUD（第四步 B4 3-B4）：數據源 = 玩家的 `BuffComponent`（鴨子型別）。
+func _build_buff_bar() -> void:
+	var bar := BuffBarUI.new()
+	bar.name = "BuffBar"
+	bar.position = BUFF_BAR_ORIGIN
+	bar.source = _player
+	$HUD.add_child(bar)
+	_buff_bar = bar
+
+
+## 驗證 / 測試鉤子
+func get_buff_bar() -> BuffBarUI:
+	return _buff_bar
 
 
 ## 章節/關卡名橫幅文字（底板貼圖見 `_apply_hud_skin`）。`_build()` 取得關卡定義後呼叫。

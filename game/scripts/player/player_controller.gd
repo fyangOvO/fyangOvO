@@ -146,6 +146,11 @@ const HAND_SPREAD_Y_DAMP: float = 0.5
 ## 生命组件（任务 2.6，挂在 Player 下；持有 HP / 护盾 / 异常状态 / 减伤链）
 @onready var health: HealthComponent = $Health
 
+## 临时增益组件（第四步 B4 3-B1/B2，**代码创建**，与 `Health` 并列）。
+## 单局态、不写存档；`HealthComponent` 经 `get_buff_component()` 读 `move_speed` / `damage_reduction`，
+## 其余键并入 `StatCalculator`（见 `LevelScene._apply_account_stats`）。
+var buff_component: BuffComponent = null
+
 ## 是否生成占位美术（真实资源就绪后置 false）。占位贴图在运行时用代码生成，
 ## 避免把二进制资源塞进仓库。
 @export var use_placeholder_art: bool = true
@@ -302,6 +307,11 @@ func get_combat_stat(key: String) -> float:
 func _ready() -> void:
 	# 敌人 AI（2.4）按本组定位玩家；玩家生命/受击在 2.6 接入前只有组定位职责
 	add_to_group(&"player")
+	# 临时增益组件（第四步 B4 3-B1/B2）：代码创建、与 `$Health` 并列。
+	# 先于战斗属性注入（`apply_combat_stats` 由 `LevelScene` 在 `add_child` 后调）。
+	buff_component = BuffComponent.new()
+	buff_component.name = "BuffComponent"
+	add_child(buff_component)
 	# 顶层俯视移动：用 FLOATING 模式，否则会被 default_gravity 往下拽
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	# 占位美术**总是先建**：主/副手占位武器节点是既有契约（`verify_player` D 段
@@ -525,6 +535,21 @@ func get_element_damage_bonus(element: String) -> float:
 	return get_combat_stat(GameConstants.STAT_ELEMENTAL_DAMAGE_PREFIX + element) \
 		+ get_combat_stat(GameConstants.STAT_ELEMENTAL_DAMAGE) \
 		+ get_combat_stat(GameConstants.STAT_ALL_ELEMENT_DAMAGE)
+
+
+## 临时增益组件（第四步 B4 3-B1/B2）。供 `HealthComponent` 读 `move_speed` / `damage_reduction`，
+## 供 `LevelScene` 把其余键并入 `StatCalculator`。`_ready()` 已建，恒非 null。
+func get_buff_component() -> BuffComponent:
+	return buff_component
+
+
+## 伤害加成（`compute_hit` 第 5 形参）＝ 元素加成 + 通用伤害 `all_damage`。
+##
+## 拍板①（第四步 B4 3-B1）：`all_damage` 在此并入 ⇒ **物理与元素同时受益**
+## （`get_element_damage_bonus` 对物理恒 0 的口径保持不变，只在外面加通用伤害）。
+## 唯一消费点：`PlayerController._perform_attack` / `SkillController._hit` 的 `DamageCalc.compute_hit`。
+func get_damage_bonus(element: String) -> float:
+	return get_element_damage_bonus(element) + get_combat_stat(GameConstants.STAT_ALL_DAMAGE)
 
 
 ## 攻速乘区。注入时 = 1 + attack_speed%/100（`apply_combat_stats` 里算好）；未注入 = 1.0。
@@ -1011,10 +1036,10 @@ func _perform_attack() -> void:
 		get_crit_chance(),
 		get_crit_damage(),
 		GameConstants.ELEMENT_PHYSICAL,
-		# 元素伤害加成（第三步 2-L8）：普攻恒物理 ⇒ 按 §4.2.3 口径返回 **0.0**
-		# （物理不吃元素子键/总键/全元素键，走 `pct_attack`）。保留取键调用以固定口径，
-		# 避免日后有人「顺手补一个 0.0 → elemental_damage」把物理也吃上元素乘区。
-		get_element_damage_bonus(GameConstants.ELEMENT_PHYSICAL),
+		# 元素伤害加成（第三步 2-L8）：普攻恒物理 ⇒ 元素子键按 §4.2.3 口径返回 **0.0**；
+		# 第四步 B4 3-B1 起改走 `get_damage_bonus`：额外并入**通用伤害 `all_damage`**
+		# （临时增益，物理也吃）—— `get_element_damage_bonus` 的物理恒 0 口径不变。
+		get_damage_bonus(GameConstants.ELEMENT_PHYSICAL),
 		DamageCalc.pierced_armor(DamageCalc.target_armor(target), get_combat_stat("armor_pierce")),
 		DamageCalc.target_resist(target, GameConstants.ELEMENT_PHYSICAL),
 		DamageCalc.target_level(target),

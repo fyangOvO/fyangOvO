@@ -17,6 +17,9 @@
 ##   get_dodge_chance()              → 闪避率 %（缺省 0）
 ##   get_block_chance()              → 格挡率 %（缺省 0）
 ##   get_attack_damage()             → dot 来源攻击力（缺省 1）
+##   get_buff_component()            → 临时增益组件（第四步 B4 3-B2；缺省 null）
+##     —— `move_speed` / `damage_reduction` 两类增益**在本组件内消费**（玩家/敌人通用），
+##        不经 `StatCalculator`（否则玩家侧会被 `_move_speed_multiplier` 二次计入）。
 ##
 ## ⚠️ 减伤只走「物理路径」（护甲）：宿主 get_resist 阶段 3 前恒 0，
 ##    元素抗性减伤数学上 = 0，与物理等价；抗性接口保留供词缀接入。
@@ -28,6 +31,12 @@ var current_hp: float = 0.0
 
 ## 护盾值（先于生命被吸收）
 var shield: float = 0.0
+
+## 组件内时钟（秒；仅用于限时护盾到期判定）
+var _clock: float = 0.0
+
+## 限时护盾到期时刻（`_clock` 计；0 = 无到期，即永久盾）
+var _shield_expire_at: float = 0.0
 
 ## 是否已死亡（死亡后忽略受击 / 施加异常）
 var is_dead: bool = false
@@ -71,6 +80,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_clock += delta
+	# 限时护盾到期（第四步 B4 3-B1）——放在 `is_dead` 早退**之前**，死亡也应清盾
+	if _shield_expire_at > 0.0 and _clock >= _shield_expire_at:
+		_shield_expire_at = 0.0
+		shield = 0.0
 	if is_dead:
 		return
 	_tick_regen(delta)
@@ -97,11 +111,17 @@ func get_shield() -> float:
 	return shield
 
 
-## 当前移动速度乘区：冰冻减速 0.6，否则 1.0（玩家控制器读取）
+## 当前移动速度乘区：冰冻减速 0.6，否则 1.0；再乘临时增益移速（`ms_boost` / `move_speed`）。
+## 玩家控制器 / 敌人 AI 均读取本方法（`_physics_process` / `_move_speed`）。
 func get_move_speed_factor() -> float:
+	var factor := 1.0
 	if _ailments.has(GameConstants.AILMENT_SLOW):
-		return GameConstants.AILMENT_SLOW_SPEED_FACTOR
-	return 1.0
+		factor = GameConstants.AILMENT_SLOW_SPEED_FACTOR
+	# 第四步 B4 3-B2：临时增益移速（百分数增量，+20 → ×1.20）
+	var buff_ms := _host_buff_bonus("move_speed")
+	if not is_zero_approx(buff_ms):
+		factor *= maxf(1.0 + buff_ms / 100.0, 0.0)
+	return factor
 
 
 ## 是否处于任一异常状态
@@ -166,11 +186,15 @@ func restore(amount: float) -> void:
 	EventBus.health_changed.emit(current_hp, get_max_hp())
 
 
-## 授予护盾（可叠加；2.6 无上限，阶段 3 若需 cap 在此加）
-func grant_shield(amount: float) -> void:
+## 授予护盾（可叠加；2.6 无上限，阶段 3 若需 cap 在此加）。
+## `duration > 0` ⇒ 护盾**到期清零**（第四步 B4 3-B1：BUFF 技能「铁壁 / 秘法护盾」为限时盾）。
+## 缺省 0 = 永久，与接线前**逐位一致**（既有 `verify_health` 的单参调用不受影响）。
+func grant_shield(amount: float, duration: float = 0.0) -> void:
 	if is_dead or amount <= 0.0:
 		return
 	shield += amount
+	if duration > 0.0:
+		_shield_expire_at = maxf(_shield_expire_at, _clock + duration)
 
 
 ## 死亡（供外部直接触发，如关卡陷阱）
@@ -266,13 +290,28 @@ func _host_invulnerable() -> bool:
 	return false
 
 
-## 护甲减伤乘数（0–1）：DamageCalc.mitigation_factor 返回减伤后的乘数（DR=ARM/(ARM+50L)）
+## 护甲减伤乘数（0–1）：DamageCalc.mitigation_factor 返回减伤后的乘数（DR=ARM/(ARM+50L)）。
+## 再乘临时增益减伤（`damage_reduction`，第四步 B4 3-B2）—— 与护甲**相乘**（不相加）。
 func _damage_reduction_multiplier() -> float:
 	var armor := 0.0
 	var level := _host_level()
 	if host != null and host.has_method("get_armor"):
 		armor = float(host.call("get_armor"))
-	return DamageCalc.mitigation_factor(armor, 0.0, level, GameConstants.ELEMENT_PHYSICAL)
+	var mult := DamageCalc.mitigation_factor(armor, 0.0, level, GameConstants.ELEMENT_PHYSICAL)
+	var dr := _host_buff_bonus("damage_reduction")
+	if dr > 0.0:
+		mult *= maxf(1.0 - minf(dr, 100.0) / 100.0, 0.0)
+	return mult
+
+
+## 宿主 `BuffComponent` 某键的总加成（缺省 0）。宿主未挂组件时不建节点、不报错。
+func _host_buff_bonus(key: String) -> float:
+	if host == null or not host.has_method("get_buff_component"):
+		return 0.0
+	var bc = host.call("get_buff_component")
+	if bc == null:
+		return 0.0
+	return float(bc.get_stat_bonus(key))
 
 
 ## 闪避率 roll（%）。命中返回 false；闪避成功返回 true（免疫本次伤害）

@@ -1327,6 +1327,11 @@ const LEGENDARY_EXTRA_LOOT_LIMIT_DEFAULT: int = 5
 ## 取值与 `bu_xiu_zhe_de_can_qu` 的 `trigger.hp_below_pct = 0.01` 一致。
 const LEGENDARY_REVIVE_BAND_HP_PCT: float = 0.01
 
+## 传奇 `summon` 的**同时存活上限**（第四步 B4 3-B1；`03-装备特色玩法.md` §2.7B 硬需求
+## 「召唤上限需限制，避免 3 条特效 × N 次触发刷屏」）。
+## 统计口径：场上 `summons` 组内 `summon_id == creature` 的节点数；已达上限则**跳过**本次召唤。
+const LEGENDARY_SUMMON_CAP: int = 4
+
 
 # =============================================================================
 # 九、存档
@@ -1477,6 +1482,32 @@ const STAT_RESIST_PENETRATION: String = "resist_penetration"       ## 泛用抗�
 ## ── 元素聚合 / 对异常增伤（第三步 3.2 / 3.3）──────────────────────
 const STAT_ALL_ELEMENT_DAMAGE: String = "all_element_damage" ## 全元素伤害 %
 const STAT_DAMAGE_VS_AILMENT: String = "damage_vs_ailment"   ## 对处于异常状态目标增伤 %
+
+## ── 通用伤害（第四步 B4 · 3-B1）──────────────────────────────────
+## **非词缀键**：只由 `BuffComponent`（临时增益）产出，故**不进 `ALL_STAT_KEYS`**，
+## 但进 `StatCalculator.FINAL_KEYS`（面板可见 / 可验）。
+## 口径：物理 + 元素**同时**受益（与 `elemental_damage` 只作用于 5 系非物理不同）。
+## 唯一消费点：`PlayerController.get_damage_bonus()`（`compute_hit` 第 5 形参）。
+const STAT_ALL_DAMAGE: String = "all_damage"
+
+## ── BUFF 型技能的效果定义表（第四步 B4 · 3-B1）───────────────────
+## `SkillData.buff_id`（7 条：战吼 / 血怒 / 铁壁 / 鹰眼 / 疾风步 / 秘法护盾 / 法力涌动）
+## → 效果。键为 **`StatCalculator` 键**（不经 effect JSON 别名表，走 `add_buff_key`）。
+##   · `pct`              → 限时增益（`BuffComponent.add_buff_key`，时长取 `SkillData.duration`）
+##   · `shield_pct_hp`    → 立即授盾 = 最大生命 × pct%
+##   · `restore_mana_pct` → 立即回蓝 = 最大法力 × pct%
+## ⚠️ 全案此前**无此表** ⇒ 7 条 BUFF 技能施放后零效果（B0 只写进 `RunBuffSystem`，
+##    而那里是「单局永久」，与「6 秒增益」语义不符，且 `buff_id` 不在符文池里 ⇒ 换算为空）。
+## 唯一消费点：`SkillController._execute_buff()`。
+const BUFF_DEFS: Dictionary = {
+	"buff_warcry":        { "pct": { "pct_attack": 25.0 } },
+	"buff_blood_rage":    { "pct": { "life_steal": 15.0 } },
+	"buff_iron_bulwark":  { "shield_pct_hp": 35.0 },
+	"buff_hawk_eye":      { "pct": { "crit_chance": 30.0 } },
+	"buff_wind_walk":     { "pct": { "move_speed": 40.0, "dodge": 25.0 } },
+	"buff_arcane_shield": { "shield_pct_hp": 30.0 },
+	"buff_mana_surge":    { "pct": { "elemental_damage": 20.0 }, "restore_mana_pct": 40.0 },
+}
 
 ## ── 异常状态（AILMENT）增伤键（第三步 3.3）───────────────────────
 ## ⚠️ 前置依赖：`AilmentSystem` 在工程侧**尚不存在**。本步**只落数据与键**，

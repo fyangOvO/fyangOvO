@@ -1,6 +1,6 @@
 ## 角色属性面板（任务 7.2 · class_name）
 ##
-## **键口径**：本面板**只认 `StatCalculator.FINAL_KEYS`（52 键）**，也就是
+## **键口径**：本面板**只认 `StatCalculator.FINAL_KEYS`（53 键）**，也就是
 ## `StatCalculator.calculate()` 的输出字典。渲染顺序直接跟随 `FINAL_KEYS`，
 ## 所以结算侧新增/改名键时面板会自动跟上 —— 不会再出现「面板读 flat_hp、
 ## 结算吐 max_hp，结果整页显示 0」这类静默漂移（集成层阶段 2 修的就是这个）。
@@ -19,6 +19,7 @@ const LABELS: Dictionary = {
 	"crit_damage": "暴击伤害",
 	"attack_speed": "攻击速度",
 	"elemental_damage": "元素伤害",
+	"all_damage": "通用伤害",
 	"dodge": "闪避",
 	"block_chance": "格挡率",
 	"life_regen": "生命回复",
@@ -69,7 +70,7 @@ const LABELS: Dictionary = {
 
 ## 以百分号渲染的键（其余按整数渲染）
 const PCT_KEYS: Array[String] = [
-	"crit_chance", "crit_damage", "attack_speed", "elemental_damage",
+	"crit_chance", "crit_damage", "attack_speed", "elemental_damage", "all_damage",
 	"dodge", "block_chance", "fire_resist", "cold_resist", "poison_resist",
 	"lightning_resist", "shadow_resist", "physical_resist", "all_resist",
 	"resource_regen", "skill_cost_reduction",
@@ -139,8 +140,9 @@ func _build_ui() -> void:
 
 ## 渲染属性总表。`stats` 必须是 `StatCalculator.calculate()` 的输出。
 ## 布局（步骤 5 修视口裁切）：**每行 4 项**，640×360 视口全屏可见。
-## （演进：2 列 → 31 行超视口被裁；3 列 → 32 键 11 行；第三步键数 32→52 ⇒ 改 **4 列 = 13 行**
-##   仍适配 360 高。**改 `FINAL_KEYS` 长度必须同步复核此处列数**，否则重演裁切。）
+## （演进：2 列 → 31 行超视口被裁；3 列 → 32 键 11 行；第三步键数 32→52 ⇒ 改 **4 列 = 13 行**；
+##   第四步 B4 3-B1 键数 52→53 ⇒ 4 列 = **14 行**，仍适配 360 高。
+##   **改 `FINAL_KEYS` 长度必须同步复核此处列数**，否则重演裁切。）
 ## `class_display`（2026-09-22）：职业显示名，非空时标题变为「职业 · 角色属性」。
 ## `class_id`（步骤 5）：标题配色跟随职业色。
 func show_stats(stats: Dictionary, class_display: String = "", class_id: String = "") -> void:

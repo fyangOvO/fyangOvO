@@ -67,6 +67,41 @@ const DEFS: Dictionary = {
 		"element": "fire",
 		"icon": "skill_icon_summon_elemental",
 	},
+	## ── 傳奇特效召喚（第四步 B4 3-B1；工單 1-L5 的傳奇側落點）────────────
+	## ⚠️ 這兩條此前**不存在** ⇒ `_configure()` 的 `DEFS.get(id, DEFS["summon_spirit_wolf"])`
+	##    缺省兜底會把「幽魂 / 回響體」**靜默變成靈狼**（正是本項目反覆栽的 String 欄位脫鉤）。
+	##    素材（`assets/pack/creatures/ghost|echo_copy/`）尚未生產 ⇒ 走佔位色塊，
+	##    `icon` 暫借用靈狼圖標（B7 素材替換時一併換）。
+	"ghost": {
+		"display_name": "幽魂",
+		"hp_ratio": 0.25,
+		"atk_ratio": 0.55,
+		"speed_ratio": 1.0,
+		"search_range": 200.0,
+		"attack_range": 28.0,
+		"attack_interval": 1.1,
+		"ranged": false,
+		"splash_radius": 0.0,
+		"splash_ratio": 0.0,
+		"charge": false,
+		"element": "shadow",
+		"icon": "skill_icon_spirit_wolf",
+	},
+	"echo_copy": {
+		"display_name": "回響體",
+		"hp_ratio": 0.15,
+		"atk_ratio": 0.40,
+		"speed_ratio": 1.1,
+		"search_range": 220.0,
+		"attack_range": 30.0,
+		"attack_interval": 0.9,
+		"ranged": false,
+		"splash_radius": 0.0,
+		"splash_ratio": 0.0,
+		"charge": false,
+		"element": "physical",
+		"icon": "skill_icon_spirit_wolf",
+	},
 }
 
 ## 召喚物 id（§12.1）：`summon_spirit_wolf` / `summon_elemental`。
@@ -75,6 +110,11 @@ const DEFS: Dictionary = {
 
 ## 存活時間（秒，§12.2）：到期消失（不計死亡）。
 @export var lifetime: float = 15.0
+
+## 攻擊比例覆寫（第四步 B4 3-B1）：`>= 0` 時取代 `DEFS[summon_id].atk_ratio`
+## （傳奇特効 `summon.damage_pct`，如「七重回響之冠」= 0.4）。`-1` = 用 DEFS 預設。
+## ⚠️ 必須在 `add_child()` 前設定（`_ready()` → `_configure()` 就讀它）。
+var atk_ratio_override: float = -1.0
 
 ## 召喚者（玩家）。由 `spawn()` 注入，亦可在生成後補設。
 ## ⚠️ 必須在 `add_child()` 前設定，`_ready()` 就會讀它算初始生命上限。
@@ -108,7 +148,8 @@ var _charge_used: bool = false
 ## 生成一隻召喚物（**技能側統一入口**）。
 ## 由未來的 `SkillController` SUMMON 分派 / 驗證腳本調用；
 ## host 一般傳 `LevelScene` 的 `Actors` 容器（與 BOSS 召喚一致）。
-static func spawn(host: Node, owner_ref: Node, id: String, pos: Vector2) -> Summon:
+static func spawn(host: Node, owner_ref: Node, id: String, pos: Vector2,
+		lifetime: float = -1.0, atk_ratio: float = -1.0) -> Summon:
 	if host == null:
 		return null
 	var scene := load(SCENE_PATH) as PackedScene
@@ -121,6 +162,11 @@ static func spawn(host: Node, owner_ref: Node, id: String, pos: Vector2) -> Summ
 	# ⚠️ 順序：先設定匯出/注入欄位，再 add_child（`_ready()` 就用它們建屬性、定群組）
 	s.summon_id = id
 	s.owner_player = owner_ref
+	# 第四步 B4 3-B1：傳奇特效可覆寫存活時間 / 攻擊比例（缺省 -1 = 用 DEFS 預設）
+	if lifetime >= 0.0:
+		s.lifetime = lifetime
+	if atk_ratio >= 0.0:
+		s.atk_ratio_override = atk_ratio
 	host.add_child(s)
 	s.global_position = pos
 	s.play_spawn_fx()
@@ -147,7 +193,7 @@ func _ready() -> void:
 func _configure() -> void:
 	var d: Dictionary = DEFS.get(summon_id, DEFS["summon_spirit_wolf"])
 	_hp_ratio = float(d["hp_ratio"])
-	_atk_ratio = float(d["atk_ratio"])
+	_atk_ratio = atk_ratio_override if atk_ratio_override >= 0.0 else float(d["atk_ratio"])
 	_speed_ratio = float(d["speed_ratio"])
 	_search_range = float(d["search_range"])
 	_attack_range_px = float(d["attack_range"])
