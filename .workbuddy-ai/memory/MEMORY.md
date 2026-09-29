@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B3-4 傳奇特效總線 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-5 技能形態實體（`1-L3`/`1-L4`，2 工單）** |
+| **工程落地** | 🟡 **B3-5 技能形態實體 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-6 套裝徽記 UI（`2-L15`，1 工單）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -70,7 +70,24 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 （否則 `Could not find type`）⑦**`HitQuery.circle` 排除圓心節點** ⇒ 以目標為圓心的 AoE 會漏掉目標本身（顯式補 `ctx.target`）
 ⑧**`EventBus.damage_taken` 只有近戰會發** ⇒ 玩家受擊改用 `HealthComponent.damaged_hook` 才覆蓋全
 ⚠️ **遺留**：①16 條待 B4 ②`extra_loot` 未強制 `loot_quality` ③套裝特效未接（屬「第 2 塊 套裝機制」）
-⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → **B3-5 形態** → B3-6 徽記 → B3-7 校驗
+
+⇒ **B3-5 技能形態實體 已落地**（2 工單 / 10 檔）：新建 `scripts/combat/projectile.gd`（**飛行/命中/穿透/分裂/連鎖**）
++ `scripts/combat/ground_area.gd`（**tick 結算/落地爆發/到期釋放**），皆**純腳本實體**（`.new()` + 代碼占位視覺，
+與 `enemy_projectile.gd` 同構）｜`skill_controller.gd` 的 B0 **過渡實現**（即時一次性結算）**換成真實實體**
+｜`skill_data.gd` +3 字段（`chain_decay_pct`/`split_count`/`split_damage_pct`）+ `config_loader` 載入
+｜符文修飾器支援 **`on_hit_split` 嵌套 dict**（此前**靜默丟棄**）｜`_hit()` +`raw_multiplier`/`damage_scale`
+（支撐「每 tick 倍率」與「連鎖衰減/分裂佔比」）｜`game_constants.gd` +`ELEMENT_COLORS` +7 投射物/地面常量
+｜新增 `tools/verify_skill_forms`（**A~K 十一段 27 條，全走 `try_cast` 生產路徑**）
+**成果**：7 個技能形態**全部有實體實現**（`PENDING_FORM_IMPL` 只剩 BUFF）｜**多發投射物傷害修正到設計值**
+（B0 只結算 1 發 ⇒ 現 N 發獨立結算，`multishot` 全中 300%）｜持續區域總量 == `total_damage_multiplier()`（§5.1 不變量）
+⚠️ **本批 3 項用戶裁定**：純腳本（不建 `.tscn`）/ 擴 `SkillData` 字段（非硬編碼）/ 持續區域落點 = **玩家腳下**
+⚠️ **本批新踩 3 坑**（詳見 `IRON-RULES.md` ⑨⑩⑪）：⑨**`add_child()` 觸發的 `_ready()` 早於 `global_position` 賦值**
+⇒ 落點相關結算會打在原點（改兩段式 `begin()`）⑩**`end_cast()` 的同步窗口**：投射物/區域命中在窗口外
+⇒ 埋點**靜默漏記**（+`note_deferred_hit()` 補記，並區分「非同步」與「真空放」）⑪**測試清場須 `free()` 而非 `queue_free()`**
+（延遲釋放會讓下一用例誤計殘留實體）
+⚠️ **遺留（非本批）**：①`explosive_arrow` 的**命中爆炸**（`radius` 對投射物無法區分「顯式聲明」與「默認 48」）
+②`poison_cloud`/`void_rift` 的「使其中毒」/「拉向中心」等附加效果 ③`rune_echo`（`echo_count`）未承載
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → B3-5 ✅ → **B3-6 徽記** → B3-7 校驗
 
 （明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
 
@@ -78,7 +95,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3/B3-4 各另起 commit（**最新 `3ed3bd8`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3/B3-4/B3-5 各另起 commit（**最新 `89a88b7`**）。
 
 ---
 
