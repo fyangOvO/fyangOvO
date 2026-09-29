@@ -4,7 +4,7 @@
 ##   godot --headless --path "D:/七傳說/game" res://tools/verify_affix_roller.tscn
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
-## 覆盖范围（7 个测试段）：
+## 覆盖范围（8 个测试段）：
 ##   A. 参数：品质权重和 100、条数表合法（沿用 3.1）
 ##   B. 条数拆分：白 0 条 / 蓝 1–2 / 橙 5–6 / 红 6–7，前后缀不超上限，不变式保真
 ##   C. 互斥 + 权重：同互斥组不重复、权重词缀出现率高于低权重（抽样）
@@ -12,6 +12,7 @@
 ##   E. 强化词缀：紫+ 概率区间内出现、数值 ×1.5 且 is_empowered
 ##   F. 红装神话槽：必含 1 条神话词缀，普通条数仍为 6–7（不占普通位）
 ##   G. 掉落接入：roll_loot 装备条目带 instance 词缀，pickup_loot 入包
+##   H. 词缀键名统一（第三步 2-V7）：add_armor_penetration.stat_key == "armor_pierce"
 extends Node
 
 const ENEMY_SCENE := preload("res://scenes/enemies/enemy_base.tscn")
@@ -45,6 +46,7 @@ func _ready() -> void:
 	await _test_empower()
 	await _test_mythic_slot()
 	await _test_loot_integration()
+	await _test_key_unification()
 	_finish()
 
 
@@ -284,6 +286,29 @@ func _test_loot_integration() -> void:
 	var last: Dictionary = _player.inventory[_player.inventory.size() - 1]
 	_ok("拾取条目带 affix_count=1 与完整 instance",
 		int(last.get("affix_count", -1)) == 1 and last.has("instance"))
+
+
+# =============================================================================
+# H. 词缀键名统一（第三步 2-V7）
+# =============================================================================
+
+func _test_key_unification() -> void:
+	print("--- H. 词缀键名统一（2-V7）---")
+	# §7.2 键名统一：add_armor_penetration 的 stat_key 由 armor_penetration 改为 armor_pierce
+	# （死钩子 C2：StatCalculator 只认 armor_pierce，旧键恒 0）
+	var affix: AffixData = ConfigLoader.get_affix("add_armor_penetration")
+	_ok("add_armor_penetration 存在", affix != null)
+	_ok("add_armor_penetration.stat_key == \"armor_pierce\"（2-V7）",
+		affix != null and affix.stat_key == "armor_pierce")
+	# 全表无 legacy 键残留（C2 死钩子已清零）
+	var legacy: Array[String] = []
+	for key in ConfigLoader.affixes:
+		var a: AffixData = ConfigLoader.affixes[key]
+		if a != null and a.stat_key == "armor_penetration":
+			legacy.append(a.id)
+	_ok("全表无 affix 使用 legacy 键 armor_penetration（残留 %d 条）" % legacy.size(), legacy.is_empty())
+	for l in legacy:
+		_info("残留: %s" % l)
 
 
 func _finish() -> void:

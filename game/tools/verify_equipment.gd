@@ -4,14 +4,15 @@
 ##   godot --headless --path "D:/七傳說/game" res://tools/verify_equipment.tscn
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
-## 覆盖范围（6 个测试段）：
+## 覆盖范围（8 个测试段）：
 ##   A. 底材数据：全部模板 validate() 通过、部位 / 稀有度 / 等级区间合法
-##   B. 词缀数据：全部词缀 validate() 通过、前/后缀分布、互斥组不悬空
+##   B. 词缀数据：全部词缀 validate() 通过、前/后缀分布、互斥组不悬空、总数 == 48（2-V1）
 ##   C. 词缀池表：≥8 池、装备引用全部存在、池内词缀全部存在、mythic_pool 就位
 ##   D. 词缀条数表：GDD 3.2.3 权威不变式 前缀上限+后缀上限=条数上限（8 档）
 ##   E. 实例化：create_from_template → 字段正确、to_dict/from_dict 往返一致、iLvl 缩放正确
 ##   F. 池查询：get_affixes_in_pool 部位过滤、get_affixes_for_slot 部位合法
 ##   G. stat_key 白名单（第三步 2-V6）：每条词缀的 stat_key ∈ 已知键
+##   H. 底材 base_stats 键白名单（第三步 2-V7b）：所有底材 base_stats 的键 ∈ 已知键
 extends Node
 
 var _fail: int = 0
@@ -47,6 +48,7 @@ func _ready() -> void:
 	await _test_instance()
 	await _test_pool_query()
 	await _test_stat_key_whitelist()
+	await _test_base_stats_whitelist()
 	_finish()
 
 
@@ -102,6 +104,9 @@ func _test_affixes() -> void:
 		else:
 			suffix_count += 1
 	_ok("词缀总数 ≥ 30（GDD 词缀池基准）", ConfigLoader.affixes.size() >= 30)
+	# 2-V1：第二步合并后应为 33 + 15 = 48（规范值，非从数据反推）
+	_ok("词缀总数 == 48（第二步合并后 · 2-V1，实际 %d）" % ConfigLoader.affixes.size(),
+		ConfigLoader.affixes.size() == 48)
 	_ok("全部词缀数据合法", all_valid)
 	_ok("前/后缀都有分布（前 %d / 后 %d）" % [prefix_count, suffix_count], prefix_count > 0 and suffix_count > 0)
 	# 互斥组引用不悬空（组名要么是自身 id 要么是存在的词缀 id）
@@ -282,6 +287,39 @@ func _test_stat_key_whitelist() -> void:
 		_info("越界: %s" % b)
 	for b in empty_key:
 		_info("空键: %s" % b)
+
+
+# =============================================================================
+# H. 底材 base_stats 键白名单（第三步 2-V7b）
+# =============================================================================
+
+func _test_base_stats_whitelist() -> void:
+	print("--- H. 底材 base_stats 键白名单（2-V7b）---")
+	var known := {}
+	for k in GameConstants.ALL_STAT_KEYS:
+		known[k] = true
+	for k in EXTRA_STAT_KEYS:
+		known[k] = true
+	# 正向断言：白名单规模非退化（防 ALL_STAT_KEYS 被清空导致「全通过」）
+	_ok("白名单规模 ≥ 40（实际 %d）" % known.size(), known.size() >= 40)
+	# 附錄 B.8①：底材 base_stats 也曾用 legacy 键 armor_penetration（hammer_glacier）
+	# ⇒ 除「∈ 白名单」外，额外拦截 legacy 键（应统一为 armor_pierce）
+	var bad: Array[String] = []
+	var checked := 0
+	for tid in ConfigLoader.get_all_equipment_ids():
+		var tpl := ConfigLoader.get_equipment_template(tid)
+		if tpl == null:
+			continue
+		for k in tpl.base_stats:
+			checked += 1
+			if not known.has(k):
+				bad.append("%s -> base_stats.%s（不在白名单）" % [tid, k])
+			elif k == "armor_penetration":
+				bad.append("%s -> base_stats.%s（legacy 键，应改 armor_pierce）" % [tid, k])
+	_ok("全部底材 base_stats 键 ∈ 白名单且无 legacy 键（%d 个键，违规 %d 条）" % [checked, bad.size()],
+		bad.is_empty())
+	for b in bad:
+		_info("违规: %s" % b)
 
 
 func _finish() -> void:
