@@ -95,6 +95,10 @@ extends Resource
 ## 爬塔进度（S10 连带）。`{highest_unlocked: int, current_layer: int, runs: int, best_layer: int}`
 @export var tower_progress: Dictionary = {}
 
+## 已获得的唯一性组（第六步 B5-3 / 6-W6-17）。append-only：获得即永久锁住该组底材不再掉落；
+## 分解不释放（6-W6-Q8）。元素 = EquipmentData.unique_group（特殊档底材各自以 id 为组）。
+@export var obtained_unique_groups: Array[String] = []
+
 # =============================================================================
 # 装备
 # =============================================================================
@@ -186,6 +190,7 @@ static func create_new(p_slot: int, p_class_id: String = GameConstants.CLASS_DEF
 	# 门票 / 爬塔进度（第六步 S10 · 6-W6-01）。不预置 0 值键，与 consumables = {} 口径一致。
 	data.tickets = {}
 	data.tower_progress = {}
+	data.obtained_unique_groups = []
 	data.unlocked_levels = ["ch1_l01"]
 	data.cleared_levels = []
 	data.unlocked_difficulty_tier = GameConstants.DifficultyTier.NM1
@@ -325,6 +330,7 @@ func to_dict() -> Dictionary:
 		"consumables": consumables,
 		"tickets": tickets.duplicate(),
 		"tower_progress": tower_progress.duplicate(true),
+		"obtained_unique_groups": obtained_unique_groups.duplicate(),
 		"inventory": inv,
 		"equipped": eq,
 		"stash": st,
@@ -368,6 +374,7 @@ static func from_dict(data: Dictionary) -> SaveData:
 	out.consumables = data.get("consumables", {}) if data.get("consumables") is Dictionary else {}
 	out.tickets = data.get("tickets", {}) if data.get("tickets") is Dictionary else {}
 	out.tower_progress = data.get("tower_progress", {}) if data.get("tower_progress") is Dictionary else {}
+	out.obtained_unique_groups = _to_string_array(data.get("obtained_unique_groups", []))
 	out.inventory = _to_item_array(data.get("inventory", []))
 	out.stash = _to_item_array(data.get("stash", []))
 	out.unlocked_levels = _to_string_array(data.get("unlocked_levels", []))
@@ -439,6 +446,10 @@ func migrate() -> bool:
 				tickets = {}
 				tower_progress = {}
 				save_version = 6
+			6:
+				# v7（2026-09-29 · 第六步 B5-3 / 6-W6-17）：唯一装备已获组（append-only）。
+				obtained_unique_groups = []
+				save_version = 7
 			_:
 				save_version = GameConstants.SAVE_VERSION
 	save_version = GameConstants.SAVE_VERSION

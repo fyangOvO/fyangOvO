@@ -432,6 +432,8 @@ func _build() -> void:
 	_player.art_id = _player_art_id_from_class()
 	_actors.add_child(_player)
 	_player.global_position = _cell_to_world(spawn_cell)
+	# B5-3：开局从存档灌入已锁唯一组（特殊装备只掉一次）。
+	LootRoller.sync_locked_unique_groups()
 	_apply_account_stats()
 	# 第四步 B4 3-B2：临时增益变化 ⇒ 立即重算属性（不补血；buff 到期/新增都走这里）。
 	var bc := _player.get_buff_component()

@@ -20,6 +20,35 @@ class_name LootRoller
 ## 掉落 iLvl 的三角抖动跨度（±N）。口径见 `_roll_item_level()`（GDD 04 §3.3 / 工单 4-W3）。
 const ITEM_LEVEL_JITTER: int = 2
 
+## 本跑已锁的唯一性组（B5-3 / 6-W6-17）。开局由 level_scene 从
+## SaveData.obtained_unique_groups 灌入；拾取唯一装备时即时追加。
+## 已锁组对应的底材不再进入掉落池（同组只掉一次）。
+static var locked_unique_groups: Array[String] = []
+
+
+## 开局从持久存档灌入已锁唯一组（每关开始调一次，清空上一跑残留再同步）。
+static func sync_locked_unique_groups() -> void:
+	locked_unique_groups.clear()
+	var data = SaveManager.current_data
+	if data != null and data.get("obtained_unique_groups") is Array:
+		for g in data.obtained_unique_groups:
+			var s := str(g)
+			if not s.is_empty() and not locked_unique_groups.has(s):
+				locked_unique_groups.append(s)
+
+
+## 记录一组唯一装备「已获得」（append-only，B5-3 / 6-W6-Q8）。
+## 同时锁本跑 + 写持久存档。**分解不调用本函数** ⇒ 永不释放，杜绝
+## 「获得 → 分解 → 再刷」无限重复（与「拆解后不能再掉 = 不能」自洽）。
+static func obtain_unique(group: String) -> void:
+	if group.is_empty():
+		return
+	if not locked_unique_groups.has(group):
+		locked_unique_groups.append(group)
+	var data = SaveManager.current_data
+	if data != null and not data.obtained_unique_groups.has(group):
+		data.obtained_unique_groups.append(group)
+
 
 ## 保底装备：直接 roll **一件装备**，**不经过** `drop_chance` 触发判定。
 ##
@@ -208,6 +237,9 @@ static func _pick_template(rarity: int, level: int) -> EquipmentData:
 		if level < template.item_level_min or level > template.item_level_max:
 			continue
 		if rarity == GameConstants.Rarity.SET and template.set_id.is_empty():
+			continue
+		# B5-3 / 6-W6-17：唯一组已锁（本跑或历史已获得）⇒ 该底材不再进池。
+		if not template.unique_group.is_empty() and locked_unique_groups.has(template.unique_group):
 			continue
 		pool.append(template)
 	if pool.is_empty():

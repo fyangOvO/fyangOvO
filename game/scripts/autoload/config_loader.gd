@@ -208,6 +208,7 @@ func _load_equipment_dir(dir_path: String) -> void:
 			res.undismantlable = bool(raw.get("undismantlable", false))
 			res.legendary_effect_id = String(raw.get("legendary_effect_id", ""))
 			res.growth_stat_key = String(raw.get("growth_stat_key", ""))
+			res.unique_group = String(raw.get("unique_group", ""))
 			res.growth_max = float(raw.get("growth_max", GameConstants.HIDDEN_GROWTH_MAX_BONUS * 100.0))
 			_register(equipment_templates, res.id, res, entry)
 			_validate(res, entry)

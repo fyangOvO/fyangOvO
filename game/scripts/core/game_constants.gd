@@ -1466,7 +1466,8 @@ const SKILL_ICON: Dictionary = {
 ## 磁盘存档格式版本。**每次改动 SaveData 字段结构必须 +1，并在 `migrate()` 补一条显式分支。**
 ## v2 class_id ｜ v3 skill_bar ｜ v4 consumables ｜ v5 skill_runes + skill_branches（B4-4 / 1-L9）
 ## v6 tickets + tower_progress（第六步 S10 · B5-1 / 6-W6-01）
-const SAVE_VERSION: int = 6
+## v7 obtained_unique_groups（第六步 B5-3 / 6-W6-17，唯一装备 append-only）
+const SAVE_VERSION: int = 7
 const SAVE_DIR: String = "user://saves"
 const SAVE_MAX_SLOTS: int = 8
 const SAVE_BACKUP_ROTATION: int = 3 ## 每槽保留的备份份数

@@ -749,6 +749,9 @@ func pickup_loot(entry: Dictionary) -> void:
 			var rn := GameConstants.rarity_name(int(item["rarity"]))
 			var tmpl: EquipmentData = ConfigLoader.equipment_templates.get(item["item_id"])
 			var nm: String = tmpl.display_name if tmpl != null else str(item["item_id"])
+			# B5-3 / 6-W6-17：唯一装备拾取即锁（append-only；分解不释放，见 obtain_unique）。
+			if tmpl != null and not tmpl.unique_group.is_empty():
+				LootRoller.obtain_unique(tmpl.unique_group)
 			print("[Loot] 拾取 %s（%s · iLvl %d · %d 条词缀，背包 %d 件）"
 					% [nm, rn, item["item_level"], item["affix_count"], inventory.size()])
 

@@ -19,6 +19,7 @@
   "rarity_max": "special_abyss",
   "icon_path": "res://assets/icons/equipment/equip_dagger_48.png",
   "drop_weight": 60.0,
+  "unique_group": "abyss_blade",
   "craftable": false
  },
  {
@@ -40,6 +41,7 @@
   "rarity_max": "special_abyss",
   "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
   "drop_weight": 60.0,
+  "unique_group": "abyss_crown",
   "craftable": false
  },
  {
@@ -61,6 +63,7 @@
   "rarity_max": "special_abyss",
   "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
   "drop_weight": 60.0,
+  "unique_group": "abyss_treads",
   "craftable": false
  }
 ]

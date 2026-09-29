@@ -70,6 +70,11 @@ extends Resource
 ## growth_stat_key：成长的属性键（统计键，如 all_attributes / move_speed；空 = 不可成长）
 @export var growth_stat_key: String = ""
 
+## 唯一性组（第六步 B5-3 / 6-W6-17）。
+## 非空 = 该底材为「唯一装备」：同组整局/整存档只掉落一次，获得后即锁（append-only）。
+## 特殊档（深渊/塔）底材各自以自身 id 为组；普通装备留空 = 可重复掉落。
+@export var unique_group: String = ""
+
 ## 成长上限（百分数，如 5.0 = +5%）；默认取 HIDDEN_GROWTH_MAX_BONUS（20%）
 @export var growth_max: float = 20.0
 

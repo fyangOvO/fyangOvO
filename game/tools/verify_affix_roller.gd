@@ -71,7 +71,7 @@ func _test_params() -> void:
 	_ok("品质权重和 = 100（%.1f）" % sum_w, absf(sum_w - 100.0) < 0.001)
 	_ok("品质权重与 5 阶档位等长",
 		AffixRoller.QUALITY_WEIGHTS.size() == GameConstants.AFFIX_ROLL_QUALITY_TIERS.size())
-	_ok("强化概率数组覆盖 8 档", AffixRoller.EMPOWER_CHANCE_BY_RARITY.size() == GameConstants.RARITY_COUNT)
+	_ok("强化概率数组覆盖 %d 档" % GameConstants.RARITY_COUNT, AffixRoller.EMPOWER_CHANCE_BY_RARITY.size() == GameConstants.RARITY_COUNT)
 	var empowered_ok := AffixRoller.EMPOWER_CHANCE_BY_RARITY[GameConstants.Rarity.MYTHIC] >= \
 		AffixRoller.EMPOWER_CHANCE_BY_RARITY[GameConstants.Rarity.LEGENDARY] \
 		and AffixRoller.EMPOWER_CHANCE_BY_RARITY[GameConstants.Rarity.LEGENDARY] >= \

@@ -27,6 +27,8 @@ const EMPOWER_CHANCE_BY_RARITY: Array[float] = [
 	25.0,  # MYTHIC 红
 	10.0,  # SET 绿（套装单件弱于紫，概率同档压低）
 	20.0,  # HIDDEN 彩（锚定橙装）
+	20.0,  # SPECIAL_ABYSS 深渊（B5-2 扩容；特殊档高词缀数，锚定橙装强化率）
+	20.0,  # SPECIAL_TOWER 塔（与深渊平级）
 ]
 
 ## 神话词缀 ID（红装独立槽，不占普通词缀位）

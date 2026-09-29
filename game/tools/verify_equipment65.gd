@@ -46,8 +46,8 @@ func _ready() -> void:
 func _test_total() -> void:
 	print("--- A. 装备库总量 ---")
 	var ids := ConfigLoader.get_all_equipment_ids()
-	_ok("装备库 62 件（weapons 14 / armor 14 / jewelry 16 + 套装件 18）",
-		ids.size() == 62)
+	_ok("装备库 68 件（weapons 16 / armor 18 / jewelry 16 + 套装件 18；含特殊底材 6）",
+		ids.size() == 68)
 
 
 # =============================================================================

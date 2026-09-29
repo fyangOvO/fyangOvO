@@ -11,6 +11,9 @@ extends RefCounted
 const RARITY_PRICE := {
 	"common": 10.0, "magic": 25.0, "rare": 60.0, "epic": 150.0,
 	"legendary": 400.0, "set": 350.0, "mythic": 800.0, "hidden": 1000.0,
+	# B5-3 / 6-W6-16：特殊档（深渊/塔）定价。二者平级同强度，略高于彩装 1000。
+	# 不补则 _rarity_key 回退 "common" ⇒ 特殊装被贱卖 10 金。
+	"special_abyss": 1200.0, "special_tower": 1400.0,
 }
 const POTION_PRICE := 50.0
 const MATERIAL_PRICE := 30.0

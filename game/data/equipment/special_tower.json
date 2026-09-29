@@ -19,6 +19,7 @@
   "rarity_max": "special_tower",
   "icon_path": "res://assets/icons/equipment/equip_staff_48.png",
   "drop_weight": 60.0,
+  "unique_group": "tower_spire_staff",
   "craftable": false
  },
  {
@@ -39,6 +40,7 @@
   "rarity_max": "special_tower",
   "icon_path": "res://assets/icons/equipment/equip_chest_48.png",
   "drop_weight": 60.0,
+  "unique_group": "tower_plate",
   "craftable": false
  },
  {
@@ -60,6 +62,7 @@
   "rarity_max": "special_tower",
   "icon_path": "res://assets/icons/equipment/equip_gauntlet_48.png",
   "drop_weight": 60.0,
+  "unique_group": "tower_gauntlets",
   "craftable": false
  }
 ]

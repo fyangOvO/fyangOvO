@@ -109,7 +109,12 @@ func get_adjusted_weights(difficulty_tier: int = 0, apply_overlevel_penalty: boo
 				w *= set_mult
 			_:
 				pass # 隐藏彩：权重不随难度变化
-		if apply_overlevel_penalty and i >= GameConstants.Rarity.EPIC and i <= GameConstants.Rarity.MYTHIC:
+		# Q1（6-W6-Q1）：越级惩罚只落在 EPIC..MYTHIC（3..5）。特殊档（8/9，深渊/塔）
+		# 来源锁定、不吃等级差惩罚——行为本已正确（上界 MYTHIC=5 < 8），此处显式收窄并
+		# 注释 `and i < SPECIAL_ABYSS`，防未来把上界放宽成 RARITY_COUNT-1 时误中特殊档。
+		if apply_overlevel_penalty and i >= GameConstants.Rarity.EPIC \
+				and i <= GameConstants.Rarity.MYTHIC \
+				and i < GameConstants.Rarity.SPECIAL_ABYSS:
 			w *= GameConstants.OVERLEVEL_PENALTY_MULT
 		out.append(w)
 	return out

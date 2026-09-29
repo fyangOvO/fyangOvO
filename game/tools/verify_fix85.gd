@@ -77,10 +77,10 @@ func _run() -> void:
 		t20 >= 1.0 and t20 <= 8.0 and t20 <= t1 * 2.0)
 
 	# F. 数据完整性锚点（怪物 ≥ 16 / 技能 ≥ 36 容許擴容；其他表屬穩態）
-	_ok("数据表锚点：怪物 ≥ 16（%d） / BOSS 2 / 技能 ≥ 36（%d） / 装备 62 / 关卡 20"
+	_ok("数据表锚点：怪物 ≥ 16（%d） / BOSS 2 / 技能 ≥ 36（%d） / 装备 68 / 关卡 20"
 			% [ConfigLoader.monsters.size(), ConfigLoader.skills.size()],
 		ConfigLoader.monsters.size() >= 16 and ConfigLoader.bosses.size() == 2
-		and ConfigLoader.skills.size() >= 36 and ConfigLoader.equipment_templates.size() == 62
+		and ConfigLoader.skills.size() >= 36 and ConfigLoader.equipment_templates.size() == 68
 		and ConfigLoader.levels.size() == 20)
 
 

@@ -19,8 +19,14 @@ static func get_reroll_cost(item: EquipmentInstance) -> Dictionary:
 
 
 ## 能否重铸（仅红装；彩装不可重铸）
+## Q7（6-W6-Q7）：特殊档（8/9 深渊/塔）显式排除——重铸会把专属词缀一起洗掉。
+##   现用 == MYTHIC 已天然排除 8/9；此处显式拦死，防未来把判定放宽成 >= MYTHIC 时误中。
 static func can_reroll(item: EquipmentInstance) -> bool:
-	return item != null and item.rarity == GameConstants.Rarity.MYTHIC
+	if item == null:
+		return false
+	if item.rarity >= GameConstants.Rarity.SPECIAL_ABYSS:
+		return false
+	return item.rarity == GameConstants.Rarity.MYTHIC
 
 
 ## 重掷神话词缀：找到神话独立槽词缀重掷数值；无则返回 false。
