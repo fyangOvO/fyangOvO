@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B3-1 數據底座 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-2 元素與抗性管線（9 工單）** |
+| **工程落地** | 🟡 **B3-2 元素與抗性管線 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-3 傷害與資源接線（7 工單）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -35,15 +35,25 @@
 ｜ 掉落表 3 檔 +`rune_drop_chance`/`material_sub_weights`/`item_level_spread` ｜ `02-check` **11/4 → 14/0**（A4 依 §1.5 裁定改 `[WARN]`）
 ⚠️ **B3 口徑**：官方 members 58 條，**實際 `batch==B3` 為 54 條**（7 條歸 B6/B7/B4）
 ⚠️ **已落地 5 條不必重做**：`2-L2`/`2-L4`/`2-V9`/`3-X2`/`3-X6`（B0 已做）；`2-L1`/`2-V8` 係數在 `PlayerController`（裁定保持現狀）
-⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 元素抗性 → B3-3 傷害資源 → **B3-4 特効總線（核心）** → B3-5 形態 → B3-6 徽記 → B3-7 校驗
+⇒ **B3-2 元素與抗性管線 已落地**（9 工單 / 8 檔）：`FINAL_KEYS` 32→**52**（元素子鍵 5 + 抗性 3
++ 穿透 2 + 異常 8 + 全元素/對異常 2）｜ `_RESIST_KEY_BY_ELEMENT` 4 系 → **6 系全映射**（補 shadow/physical）
+｜ `mitigation_factor` +`resist_penetration_pct`（`eff=max(0,r-p)`）｜ **物理減傷改護甲×物抗相乘**
+｜ `STAT_ARMOR_PENETRATION` → **`STAT_ARMOR_PIERCE`**（C2 殘留清零）｜ 面板 `LABELS`/`PCT_KEYS` 補 20 鍵
++ **3 欄→4 欄**（52 鍵 × 4 = 13 行仍適配 640×360）｜ 新增斷言 **2-V6**（stat_key 白名單）/ **2-V14**
+（6 系映射 + 行為斷言）/ 穿透+物理相乘 G1 段 / **新鍵裝備路徑注入 H 段**
+⚠️ **本批新踩坑（後綴漏判）**：pct 用 `ends_with("_damage")` ⇒ `elemental_damage_fire`（真後綴 `_fire`）
+**全漏判恆 0** ⇒ 補前綴規則 `begins_with("elemental_damage")`（詳見 `IRON-RULES.md`）
+⚠️ **遺留**：① 元素子鍵**暫無供給源**（15 條新詞綴不含子鍵）⇒ 恆 0，待 B3-3 技能取鍵口徑（`E6`）
+② `UISkin` 圖標鍵仍 `affix_armor_penetration` ⇒ `affix_icon("armor_pierce")` 回 null（**無運行時消費點**，留 B7）
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 傷害資源 → **B3-4 特効總線（核心）** → B3-5 形態 → B3-6 徽記 → B3-7 校驗
 
-（明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九）
+（明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
 
 ⚠️ **留給各自批次的預存回歸紅**（用戶已裁定本輪不動）：4 條**無工單**（`verify_choice_panel` 裸 Color
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1 各另起 commit（最新 `1fd256e`）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2 各另起 commit（**最新 `7e24886`**）。
 
 ---
 
