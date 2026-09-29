@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B3-2 元素與抗性管線 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-3 傷害與資源接線（7 工單）** |
+| **工程落地** | 🟡 **B3-3 傷害與資源接線 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-4 傳奇特效總線（11 工單，核心）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -43,9 +43,19 @@
 （6 系映射 + 行為斷言）/ 穿透+物理相乘 G1 段 / **新鍵裝備路徑注入 H 段**
 ⚠️ **本批新踩坑（後綴漏判）**：pct 用 `ends_with("_damage")` ⇒ `elemental_damage_fire`（真後綴 `_fire`）
 **全漏判恆 0** ⇒ 補前綴規則 `begins_with("elemental_damage")`（詳見 `IRON-RULES.md`）
-⚠️ **遺留**：① 元素子鍵**暫無供給源**（15 條新詞綴不含子鍵）⇒ 恆 0，待 B3-3 技能取鍵口徑（`E6`）
+⚠️ **遺留**：① 元素子鍵**暫無供給源**（15 條新詞綴不含子鍵）⇒ 恆 0，**接線已就位**（待元素專精詞綴）
 ② `UISkin` 圖標鍵仍 `affix_armor_penetration` ⇒ `affix_icon("armor_pierce")` 回 null（**無運行時消費點**，留 B7）
-⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 傷害資源 → **B3-4 特効總線（核心）** → B3-5 形態 → B3-6 徽記 → B3-7 校驗
+
+⇒ **B3-3 傷害與資源接線 已落地**（7 工單 / 5 檔）：`SkillController.try_cast` 接 **CDR + 減耗**（皆 **70% 硬頂**，
+`real_cost≥0` / `_cooldowns≥0.2s`，作用在符文修飾後的 `effective` 上不丟符文）｜ `_hit` 第 5 形參改
+`get_element_damage_bonus(data.element)`（死鉤子① 復活）｜ 新增 `PlayerController.get_element_damage_bonus()`
+（`physical⇒0`；其餘 = 專精子鍵 + `elemental_damage` + `all_element_damage` 三者累加）｜ `apply_combat_stats`
+追加 `mana_pool.apply_stats(max_resource, resource_regen/100, **0**）` + `_physics_process` 補 `tick_regen`
+（`resource_regen`/`max_resource` 兩死鉤子復活；`cost_reduction_pct` 刻意傳 0 防雙重減免）｜ 新增斷言
+**2-V10**（元素端到端「+100% ⇒ 傷害翻倍」+ 普攻不吃元素）/ **2-V11**（+70% 與 +200% 等價）
+⚠️ **本批 4 項用戶裁定**：`all_element_damage` 計入 / 資源屬性順手接線 / **普攻物理一律 0**（取 `03 §4.2.3`
+而非 `02 §7.1②`，兩文衝突取更晚更權威）/ 補 `tick_regen`
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → **B3-4 特効總線（核心）** → B3-5 形態 → B3-6 徽記 → B3-7 校驗
 
 （明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
 
@@ -53,7 +63,7 @@
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2 各另起 commit（**最新 `7e24886`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3 各另起 commit（**最新 `f5e51d3`**）。
 
 ---
 
