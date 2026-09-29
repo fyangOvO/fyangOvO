@@ -63,7 +63,7 @@ PHASE2_SKILLS_P2 = 4
 PHASE2_ARENA = ["fire_ring", "shrink_arena"]
 
 # S10
-TARGET_SAVE_VERSION = 6  # B4-4 已占用 5 ⇒ S10 顺延为 6
+TARGET_SAVE_VERSION = 7  # B5-1 占用 5→6 ⇒ B5-3 唯一装备字段再升 v7
 TICKET_KEYS = ["ticket_normal", "key_advanced"]
 
 # S12 新增两档的键

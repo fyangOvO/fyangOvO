@@ -474,9 +474,9 @@ def group_repo(D):
         v = const_of(gc, "RARITY_COUNT")
         ck(v == "10", f"R5 RARITY_COUNT 已為 10（B5-2/S12 落地；實 {v or 'N/A'}）")
         ck("SPECIAL_ABYSS" in read_text(gc), "R6 SPECIAL_ABYSS 已定義（B5-2/S12 落地）")
-        # B5-1 已落地：SAVE_VERSION 5 → 6（S10 落地 v6 = tickets + tower_progress）
+        # B5-1 已落地 v6；B5-3 唯一装备字段再升 v7
         v = const_of(gc, "SAVE_VERSION")
-        ck(v == "6", f"R7 SAVE_VERSION 已為 6（B5-1 / S10 落地；實 {v or 'N/A'}）")
+        ck(v == "7", f"R7 SAVE_VERSION 已為 7（B5-3 唯一装备字段落地；實 {v or 'N/A'}）")
 
     al = os.path.join(REPO, "game", "scripts", "account", "account_level.gd")
     ck(os.path.isfile(al), "R8 account_level.gd 存在")
