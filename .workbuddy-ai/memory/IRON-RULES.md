@@ -199,6 +199,32 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 挑錯就是一次**靜默的口徑分裂**（兩處代碼各按各的理解寫，永遠測不出）。
 ⇒ 裁定後**兩文都要回填結論**（或至少在一處註明「已裁定 X，另一文已作廢」），否則下一批會再撞一次。
 
+### 🆕 2026-09-29（B3-4）新踩三坑
+
+**⑥ 「新建 `class_name` 後 headless 報 `Could not find type`」—— 全局類快取要重建（P0，必踩）**
+新增一個帶 `class_name` 的 `.gd` 後，headless 直接跑驗證/回歸會報
+`Parse Error: Could not find type "Xxx" in the current scope.`
+（`res://...` 檔案明明存在、內容也沒錯）。
+原因：全局類快取 `.godot/global_script_class_cache.cfg` 是**編輯器**維護的，headless 不會自動更新。
+⇒ 修法：新增/重命名 `class_name` 後，**先跑一次**
+`godot --headless --editor --quit --path <game>` 重建快取，再跑驗證。
+（順帶會補上缺失的 `*.gd.uid`，這些 `.uid` 要一起提交。）
+
+**⑦ 「`HitQuery.circle` 排除與圓心距離 ≈ 0 的節點」—— 以目標為圓心的 AoE 會漏掉目標本身**
+`HitQuery.circle` 為防自傷，對 `dist <= 0.001` 的目標直接 `continue`。
+於是「以**命中目標**為圓心」的範圍傷害（如傳奇特效「燼誓·燃魄刃」引爆）**打不到那個目標**。
+⇒ 通則：凡是「範圍傷害的圓心可能就是某個目標本身」的場合，必須**顯式把 `ctx.target` 併回結果**，
+不能只信 `circle()` 的返回。檢測：範圍效果測試要斷言「中心目標**也**掉血」。
+
+**⑧ 「`EventBus.damage_taken` 只有近戰會發」—— 信號覆蓋不全 ⇒ 觸發類特效半死**
+`damage_taken` 只在 `enemy_base._attack_player()`（近戰）emit；**遠程**（`enemy_projectile.gd`）與
+**拋擲**（`_lob_impact`）只發 `damage_dealt`，**漏發 `damage_taken`**。
+⇒ 「玩家受到傷害」類觸發（`on_damage_taken` / 反傷）若掛這個信號，遠程攻擊全部不觸發。
+⇒ 解法：改掛**受擊方自己的鉤子**（`HealthComponent.damaged_hook`，覆蓋全部傷害來源），
+而不是去改公開信號（`damage_taken` 另有 `juice_fx` 在監聽，加發射會連帶改變打擊感）。
+⇒ 通則：**用信號做觸發源前，先 grep 它有幾個發射點、覆蓋幾條路徑** —— 只有 1 個發射點的信號
+大概率漏路徑。
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】

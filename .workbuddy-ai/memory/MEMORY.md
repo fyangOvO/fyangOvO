@@ -6,13 +6,13 @@
 
 ---
 
-## 🔴 當前位置（2026-09-28）
+## 🔴 當前位置（2026-09-29）
 
 | 線 | 狀態 |
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B3-3 傷害與資源接線 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-4 傳奇特效總線（11 工單，核心）** |
+| **工程落地** | 🟡 **B3-4 傳奇特效總線 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-5 技能形態實體（`1-L3`/`1-L4`，2 工單）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -55,7 +55,22 @@
 **2-V10**（元素端到端「+100% ⇒ 傷害翻倍」+ 普攻不吃元素）/ **2-V11**（+70% 與 +200% 等價）
 ⚠️ **本批 4 項用戶裁定**：`all_element_damage` 計入 / 資源屬性順手接線 / **普攻物理一律 0**（取 `03 §4.2.3`
 而非 `02 §7.1②`，兩文衝突取更晚更權威）/ 補 `tick_regen`
-⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → **B3-4 特効總線（核心）** → B3-5 形態 → B3-6 徽記 → B3-7 校驗
+
+⇒ **B3-4 傳奇特效總線 已落地（B3 核心批 / 11 工單 / 8 檔）**：新建 `scripts/legendary/legendary_bus.gd`
+（`class_name LegendaryBus extends Node`，**結算/執行分離**：`LegendaryEffectSystem` 純結算不動狀態、Bus 執行）
+｜ `event_bus.gd` +3 信號（`block_succeeded`/`skill_cast(id,mana_spent)`/`resource_spent(amount)`）
+｜ `health_component.gd` +2 鉤子（`revive_hook`/`damaged_hook`）+ 格擋廣播
+｜ `skill_controller.gd` +`halve_cooldown` + `try_cast` 埋點｜ `game_constants.gd` +3 常量
+｜ `level_scene.gd` 掛載（`equipment_changed` ⇒ register/unregister）｜ 新增 `tools/verify_legendary_bus`（**27 條走生產路徑**）
+**成果**：**10 個 trigger 全通** ｜ 第一期 **15 條特效（7 類執行器）通電**（deal_damage/heal/gain_resource/
+extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.json` `ready_to_wire` 22→**31**
+⚠️ **本批 3 項用戶裁定**：`revive_protect` 走 **Callable 掛鉤**（`HealthComponent.revive_hook`）/ `on_low_hp` 走
+**輪詢玩家 HP**（bus `_process` 讀 `hp_pct`）/ 本批執行器**僅 7 類**（`buff_stat`/`ms_boost`/`damage_reduction`/`summon` 歸 **B4**）
+⚠️ **本批新踩 3 坑**（詳見 `IRON-RULES.md` ⑥⑦⑧）：⑥**新建 `class_name` 必跑 `--editor --quit` 重建全域類快取**
+（否則 `Could not find type`）⑦**`HitQuery.circle` 排除圓心節點** ⇒ 以目標為圓心的 AoE 會漏掉目標本身（顯式補 `ctx.target`）
+⑧**`EventBus.damage_taken` 只有近戰會發** ⇒ 玩家受擊改用 `HealthComponent.damaged_hook` 才覆蓋全
+⚠️ **遺留**：①16 條待 B4 ②`extra_loot` 未強制 `loot_quality` ③套裝特效未接（屬「第 2 塊 套裝機制」）
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → **B3-5 形態** → B3-6 徽記 → B3-7 校驗
 
 （明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
 
@@ -63,7 +78,7 @@
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3 各另起 commit（**最新 `f5e51d3`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3/B3-4 各另起 commit（**最新 `3ed3bd8`**）。
 
 ---
 
