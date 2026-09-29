@@ -472,8 +472,8 @@ def group_repo(D):
         ck(v == "1.12", f"R4 MONSTER_DMG_GROWTH = 1.12（B1 已落地；實 {v or 'N/A'}）")
         # S12 未落地：稀有度仍 8 檔
         v = const_of(gc, "RARITY_COUNT")
-        ck(v == "8", f"R5 RARITY_COUNT 仍為 8（實 {v or 'N/A'}）")
-        ck("SPECIAL_ABYSS" not in read_text(gc), "R6 SPECIAL_ABYSS 尚未定義（S12 未落地）")
+        ck(v == "10", f"R5 RARITY_COUNT 已為 10（B5-2/S12 落地；實 {v or 'N/A'}）")
+        ck("SPECIAL_ABYSS" in read_text(gc), "R6 SPECIAL_ABYSS 已定義（B5-2/S12 落地）")
         # B5-1 已落地：SAVE_VERSION 5 → 6（S10 落地 v6 = tickets + tower_progress）
         v = const_of(gc, "SAVE_VERSION")
         ck(v == "6", f"R7 SAVE_VERSION 已為 6（B5-1 / S10 落地；實 {v or 'N/A'}）")
@@ -496,7 +496,7 @@ def group_repo(D):
     eq = os.path.join(REPO, "game", "data", "equipment")
     if os.path.isdir(eq):
         files = os.listdir(eq)
-        ck(not any("special" in f for f in files), f"R13 尚無 special_*.json 底材（實 {[f for f in files if 'special' in f]}）")
+        ck(any("special" in f for f in files), f"R13 已有 special_*.json 底材（實 {[f for f in files if 'special' in f]}）")
 
     # 塔/深淵關卡不存在
     lv = os.path.join(REPO, "game", "data", "levels")

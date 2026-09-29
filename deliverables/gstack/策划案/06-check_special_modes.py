@@ -705,8 +705,8 @@ def group_e(data, ck, repo):
         return
     m = re.search(r"const RARITY_COUNT:\s*int\s*=\s*(\d+)", gc)
     now_count = int(m.group(1)) if m else -1
-    ck.ok(now_count == RARITY_COUNT_NOW,
-          "E1 RARITY_COUNT 现为 %d（S12 目标 10，属已登记工单）" % now_count)
+    ck.ok(now_count == RARITY_COUNT_TARGET,
+          "E1 RARITY_COUNT 现为 %d（== 目标 %d；S12/B5-2 已落地）" % (now_count, RARITY_COUNT_TARGET))
 
     # E2: SAVE_VERSION 现值（B5-1 已落地 v6 ⇒ 本断言重基线为「== 目标」）
     m = re.search(r"const SAVE_VERSION:\s*int\s*=\s*(\d+)", gc)
@@ -715,29 +715,29 @@ def group_e(data, ck, repo):
           "E2 SAVE_VERSION 现为 %d（== 目标 %d；S10 已落地 v6 = tickets + tower_progress）"
           % (now_sv, TARGET_SAVE_VERSION))
 
-    # E3: 现存 15 个定长数组是否都是 8 项（确认扩容工作量）
+    # E3: 定长数组扩为 10 项（B5-2 已落地 ⇒ 重基线为 TARGET）
     checks = {
-        "RARITY_BEAM_HEIGHTS": BEAM_HEIGHTS_NOW,
-        "RARITY_PREFIX_LIMIT": PREFIX_NOW,
-        "RARITY_SUFFIX_LIMIT": SUFFIX_NOW,
+        "RARITY_BEAM_HEIGHTS": BEAM_HEIGHTS_TARGET,
+        "RARITY_PREFIX_LIMIT": PREFIX_TARGET,
+        "RARITY_SUFFIX_LIMIT": SUFFIX_TARGET,
     }
     for cname, expected in checks.items():
         m = re.search(r"const %s:\s*Array\[\w+\]\s*=\s*\[([^\]]+)\]" % cname, gc)
         if m:
             vals = [int(v) for v in re.findall(r"-?\d+", m.group(1))]
             ck.ok(vals == expected,
-                  "E3 %s 现为 8 项且与策划副本一致" % cname)
+                  "E3 %s 现为 %d 项且与策划副本一致" % (cname, len(expected)))
         else:
             ck.ok(False, "E3 %s 未在 game_constants.gd 找到" % cname)
 
-    # E4: 三处硬编码 8 当前确实存在（确认工单必要）
+    # E4: 三处硬编码 8 已清除（B5-2 改常量 ⇒ 断言翻转为「不再命中」）
     for rel, pattern, desc in HARDCODED_8_SITES:
         txt = read_text(p(rel))
         if txt is None:
             ck.ok(False, "E4 无法读取 %s" % rel)
             continue
         hits = [i + 1 for i, ln in enumerate(txt.splitlines()) if re.search(pattern, ln)]
-        ck.ok(bool(hits), "E4 %s 仍含硬编码 8（%s；命中行 %s）" % (rel, desc, hits))
+        ck.ok(not hits, "E4 %s 已无硬编码 8（%s；残留命中行 %s）" % (rel, desc, hits))
 
     # E5: boss_phase_controller 现为 4 阶段
     bpc = read_text(p("game/scripts/enemies/boss_phase_controller.gd"))
@@ -803,8 +803,8 @@ def group_e(data, ck, repo):
                     rmax = idx_map.get(rmax, -1)
                 if isinstance(rmax, int):
                     max_rmax = max(max_rmax, rmax)
-    ck.ok(max_rmax == 7,
-          "E9 底材 rarity_max 最大仍为 %d（S12 需新增 8/9 档底材，否则空池静默返回 null）" % max_rmax)
+    ck.ok(max_rmax == 9,
+          "E9 底材 rarity_max 最大为 %d（== 9；B5-2 已补 special_abyss/tower 底材，空池已填）" % max_rmax)
 
 
 # =============================================================================
