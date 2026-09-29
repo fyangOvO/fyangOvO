@@ -80,7 +80,8 @@ func _on_damage_dealt(target: Node, amount: float, is_crit: bool, element: Strin
 	else:
 		AudioManager.play("hit_melee")
 	# 飘字是**文本**反馈，贴图替代不了 ⇒ 恒走代码绘制
-	_spawn_damage_number(target, amount, is_crit)
+	# 第四步 B4 3-E7：透传 element ⇒ 非暴击飘字按元素上色（暴击仍用暴击色，暴击优先）。
+	_spawn_damage_number(target, amount, is_crit, element)
 	# 命中特效：元素命中 / 暴击斩弧 / 通用火花，三者按优先级取（无贴图 = 无此效果）
 	_spawn_hit_fx(target.global_position, is_crit, element)
 	if target.has_method("flash"):
@@ -151,7 +152,8 @@ func _on_boss_phase_changed(enemy: Node, _phase: int, _skills: Array) -> void:
 # =============================================================================
 
 ## 目标头顶生成伤害飘字（世界空间，挂目标父节点保持图层）
-func _spawn_damage_number(target: Node, amount: float, is_crit: bool) -> void:
+## `element`（第四步 B4 3-E7）：非暴击飘字按元素上色；缺省空串 ⇒ 回退普通色（旧调用方不变）。
+func _spawn_damage_number(target: Node, amount: float, is_crit: bool, element: String = "") -> void:
 	var num := FALLBACK_DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber
 	var host := target.get_parent() if target.get_parent() != null else get_tree().current_scene
 	if host == null:
@@ -160,7 +162,7 @@ func _spawn_damage_number(target: Node, amount: float, is_crit: bool) -> void:
 	num.global_position = target.global_position + Vector2(
 		randf_range(-GameConstants.DAMAGE_NUMBER_SCATTER, GameConstants.DAMAGE_NUMBER_SCATTER),
 		GameConstants.DAMAGE_NUMBER_OFFSET_Y)
-	num.setup(amount, is_crit)
+	num.setup(amount, is_crit, element)
 
 
 ## 治疗飘字（步骤 8A · 药水回血）：玩家头顶绿色 +数值（贴图/代码统一走 DamageNumber）

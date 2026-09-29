@@ -1071,11 +1071,21 @@ const BLOCK_DAMAGE_REDUCTION: float = 0.5
 ## 基础生命回复（/s）。0；阶段 3 词缀（+生命回复）与局内天赋「再生」（1.5% 最大生命/s）写入。
 const PLAYER_BASE_REGENERATION: float = 0.0
 
-## 异常状态类型（2.6 实现 3 种；雷电异常接口预留）
+## 异常状态类型（2.6 实现 3 种；第四步 B4 `3-E8` 补 lightning / shadow ⇒ 共 5 种）。
+##
+## ⚠️ 命名对齐既有素材与属性键：`ui_skin.ailment_icon` 的键集是
+##    `burn / chill / poison / shock / curse / sunder`，且 `STAT_SHOCK_DAMAGE`（对感电目标增伤）/
+##    `STAT_CURSE_DAMAGE`（对诅咒目标增伤）已存在 ⇒ 新两种取 **`shock`（感电）/ `curse`（诅咒）**，
+##    **不**另造 `weaken` 之名（否则属性键、图标、异常三者对不上）。
+## ⚠️ 既有 `slow`（冰冻）与素材键 `chill` 不一致，属**既有命名漂移**（非本批引入），暂不动。
 const AILMENT_POISON: String = "poison"   ## 中毒：持续伤害（dot）
 const AILMENT_BURN: String = "burn"       ## 燃烧：持续伤害（dot）
 const AILMENT_SLOW: String = "slow"       ## 冰冻：移动减速
-const AILMENTS: Array[String] = [AILMENT_POISON, AILMENT_BURN, AILMENT_SLOW]
+const AILMENT_SHOCK: String = "shock"     ## 感电（3-E8）：受到的**直接伤害** +20%
+const AILMENT_CURSE: String = "curse"     ## 诅咒（3-E8）：**造成的伤害** −20%
+const AILMENTS: Array[String] = [
+	AILMENT_POISON, AILMENT_BURN, AILMENT_SLOW, AILMENT_SHOCK, AILMENT_CURSE,
+]
 
 ## dot 每秒伤害 = 来源攻击力 × DPS_RATIO（来源 = 施加方；无攻击力接口的异常源按 1/s）。
 ## 工程侧默认（GDD 未给统一数值，阶段 3 手感调优可调）：
@@ -1091,14 +1101,29 @@ const AILMENT_SLOW_DURATION: float = 2.0
 ## 冰冻减速乘区（0–1）：生效期间移动速度 × 0.6（= 减速 40%，GDD 霜噬套装）。
 const AILMENT_SLOW_SPEED_FACTOR: float = 0.6
 
-## 元素 → 异常映射：毒→中毒 / 火→燃烧 / 冰→冰冻；物理 / 雷电无异常（返回空串）。
+## 感电易伤（3-E8）：目标处于感电时，受到的**直接伤害** ×(1 + 0.20) = +20%。
+## ⚠️ 只作用于「直接受击」（`HealthComponent.take_damage`）；DoT 逐帧扣血**不**再吃易伤，
+##    否则「感电 + 中毒」会互相放大成乘法雪球。
+const AILMENT_SHOCK_DAMAGE_TAKEN_BONUS: float = 0.20
+const AILMENT_SHOCK_DURATION: float = 3.0
+
+## 诅咒降攻（3-E8）：目标处于诅咒时，其**造成的伤害** ×(1 − 0.20) = −20%。
+## 消费点唯一出口：`PlayerController.get_attack_damage` / `EnemyBase.get_attack_damage`
+##   ⇒ 技能（`SkillController._hit`）/ 普攻（`_perform_attack`）/ 召唤（经 `src` 转发）全路径一次覆盖。
+const AILMENT_CURSE_DAMAGE_DEALT_REDUCTION: float = 0.20
+const AILMENT_CURSE_DURATION: float = 3.0
+
+## 元素 → 异常映射：毒→中毒 / 火→燃烧 / 冰→冰冻 / 雷→感电 / 暗→诅咒；
+## 物理无异常（返回空串）。
 const AILMENT_ELEMENT_MAP: Dictionary = {
 	ELEMENT_POISON: AILMENT_POISON,
 	ELEMENT_FIRE: AILMENT_BURN,
 	ELEMENT_COLD: AILMENT_SLOW,
+	ELEMENT_LIGHTNING: AILMENT_SHOCK,
+	ELEMENT_SHADOW: AILMENT_CURSE,
 }
 
-## 异常类型 → 每秒伤害比例（dot 用；slow 无伤害返回 0）
+## 异常类型 → 每秒伤害比例（dot 用；slow / shock / curse 无 dot 伤害返回 0）
 static func ailment_dps_ratio(ailment: String) -> float:
 	match ailment:
 		AILMENT_POISON: return AILMENT_POISON_DPS_RATIO
@@ -1112,12 +1137,25 @@ static func ailment_duration(ailment: String) -> float:
 		AILMENT_POISON: return AILMENT_POISON_DURATION
 		AILMENT_BURN: return AILMENT_BURN_DURATION
 		AILMENT_SLOW: return AILMENT_SLOW_DURATION
+		AILMENT_SHOCK: return AILMENT_SHOCK_DURATION
+		AILMENT_CURSE: return AILMENT_CURSE_DURATION
 	return 0.0
 
 
 ## 元素 → 异常类型（无异常返回空串）
 static func ailment_from_element(element: String) -> String:
 	return AILMENT_ELEMENT_MAP.get(element, "")
+
+
+## 感电（shock）易伤倍率：1 + AILMENT_SHOCK_DAMAGE_TAKEN_BONUS（未感电时调用方自己短路为 1.0）。
+## 单一来源，避免 `HealthComponent` 与验证脚本各写一份 1.20 而漂移。
+static func shock_damage_taken_multiplier() -> float:
+	return 1.0 + AILMENT_SHOCK_DAMAGE_TAKEN_BONUS
+
+
+## 诅咒（curse）降攻倍率：1 − AILMENT_CURSE_DAMAGE_DEALT_REDUCTION。
+static func curse_damage_dealt_multiplier() -> float:
+	return 1.0 - AILMENT_CURSE_DAMAGE_DEALT_REDUCTION
 
 
 # =============================================================================

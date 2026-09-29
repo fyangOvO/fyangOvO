@@ -4,7 +4,10 @@
 ##   ✅ 最大 / 当前生命：max_hp = 角色裸装 HP 公式（GDD 6.2：150 × 1.11^(L-1)）
 ##   ✅ 减伤链（用户 2.3 拍板顺序）：护甲/抗性 → 减伤% 乘算 → 概率判定（闪避/格挡）
 ##   ✅ 护盾：先吸收再扣血（护盾叠 #3A5FB0 视觉由血条组件负责）
-##   ✅ 异常状态：中毒 / 燃烧（dot 持续伤害）+ 冰冻（移动减速）；同类刷新时长不叠加
+##   ✅ 异常状态：中毒 / 燃烧（dot 持续伤害）+ 冰冻（移动减速）
+##      + 感电（`shock`，受到的直接伤害 +20%，见 `take_damage`）
+##      + 诅咒（`curse`，造成的伤害 −20%，消费点在被诅咒方的 `get_attack_damage`，本组件只存状态）
+##      ；同类刷新时长不叠加
 ##   ✅ 生命回复（基础 0，阶段 3 词缀 / 局内天赋「再生」写入）
 ##   ✅ 死亡：HP ≤ 0 → is_dead + EventBus 广播（unit_died；宿主是玩家时另发 player_died）
 ##   ❌ 玩家输入 / 移动（PlayerController）、敌人状态机（EnemyBase 2.4 简易生命保留，
@@ -163,6 +166,12 @@ func take_damage(amount: float, source: Node) -> void:
 		dmg *= 1.0 - GameConstants.BLOCK_DAMAGE_REDUCTION
 		# 3-BL1：格挡成功广播（`amount` 传格挡前的原始伤害，消费方需要格挡后值自行乘减伤）
 		EventBus.block_succeeded.emit(host, source, amount)
+	# 3.5) 感电易伤（第四步 B4 3-E8）：处于感电时，受到的**直接伤害** ×1.20。
+	#      刻意放在「减伤 / 格挡」**之后**、护盾**之前**：
+	#        · 与「护甲/抗性 → 减伤% → 概率判定」同一乘法链的末端，语义 = 最终受击放大；
+	#        · DoT（`_tick_ailments`）**不走**本函数 ⇒ 感电不会二次放大中毒/燃烧（防乘法雪球）。
+	if _ailments.has(GameConstants.AILMENT_SHOCK):
+		dmg *= GameConstants.shock_damage_taken_multiplier()
 	# 4) 护盾吸收 → 扣血
 	dmg = _absorb_by_shield(dmg)
 	current_hp -= dmg

@@ -157,14 +157,18 @@
    "gap": "lightning 无异常状态",
    "must_fix": false,
    "workorder": "E8(可选)",
-   "impact": "雷属性攻击不产生异常，建议「麻痹」"
+   "impact": "雷属性攻击不产生异常，建议「麻痹」",
+   "resolved_by": "B4-5",
+   "resolution": "实现为 `AILMENT_SHOCK`（感电）而非「麻痹」——对齐既有属性键 `STAT_SHOCK_DAMAGE`（对感电目标增伤）与素材 `ailment_shock`/`status_shock`。效果：受到的直接伤害 ×1.20（`HealthComponent.take_damage`）"
   },
   {
    "id": 5,
    "gap": "shadow 无异常状态",
    "must_fix": false,
    "workorder": "E8(可选)",
-   "impact": "暗影属性攻击不产生异常，建议「虚弱」"
+   "impact": "暗影属性攻击不产生异常，建议「虚弱」",
+   "resolved_by": "B4-5",
+   "resolution": "实现为 `AILMENT_CURSE`（诅咒 = 虚弱）——对齐既有属性键 `STAT_CURSE_DAMAGE`（对诅咒目标增伤）与素材 `ailment_curse`/`status_curse`。效果：造成的伤害 ×0.80（消费点 `get_attack_damage`）"
   }
  ],
  "naming": {
@@ -312,14 +316,18 @@
     "id": "E7",
     "task": "元素伤害飘字配色表",
     "file": "伤害飘字处",
-    "verify": "6 元素各一色"
+    "verify": "6 元素各一色",
+    "done": "B4-5",
+    "landing": "`DamageNumber.setup(amount, is_crit, element)` + `normal_color_for()` 取 `ELEMENT_COLORS`；暴击优先（暴击 ⇒ 暴击色）；`JuiceFX` 透传 element。验证 `verify_element_ext` A 段；目视 `b45_shot/`"
    },
    {
     "id": "E8",
     "task": "（可选）lightning/shadow 异常状态",
     "file": "game_constants.gd AILMENT_*",
     "verify": "2 种新异常",
-    "optional": true
+    "optional": true,
+    "done": "B4-5",
+    "landing": "`AILMENT_SHOCK`（感电，受击 ×1.20，落 `HealthComponent.take_damage`）/ `AILMENT_CURSE`（诅咒，造成伤害 ×0.80，落 `get_attack_damage`）；`AILMENT_ELEMENT_MAP` 补 lightning/shadow。验证 `verify_element_ext` B~H 段"
    }
   ],
   "M": [

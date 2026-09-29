@@ -1651,8 +1651,14 @@ func get_display_color() -> Color:
 
 
 ## 攻击力接口（2.6 异常 dot 来源统一走 get_attack_damage；= 怪物表 DMG × 难度系数）
+## **诅咒降攻**（第四步 B4 3-E8）：被诅咒时结果 ×(1 − `AILMENT_CURSE_DAMAGE_DEALT_REDUCTION`)。
+## 与玩家侧 `PlayerController.get_attack_damage` **同口径**（一处生效、全攻击路径覆盖）；
+## 本批玩家尚不能给怪物施加异常 ⇒ 未诅咒时 ×1.0，与修复前**逐位一致**。
 func get_attack_damage() -> float:
-	return data.get_damage(level, difficulty_tier)
+	var raw := data.get_damage(level, difficulty_tier)
+	if health != null and health.has_ailment(GameConstants.AILMENT_CURSE):
+		raw *= GameConstants.curse_damage_dealt_multiplier()
+	return raw
 
 
 # =============================================================================

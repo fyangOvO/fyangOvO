@@ -463,15 +463,30 @@ func try_dodge() -> bool:
 ## **注入优先**：已注入战斗属性时直接返回 `StatCalculator` 的 `attack`（绝对值，含裸装成长
 ## 与装备/增益）—— 不再叠乘裸装基线（那是双重计入）。
 ## 未注入时回退到修复前的行为：裸装 `Base1 × (1+0.10)^(L-1)`（= 12 @ L1）。
+## **诅咒降攻**（第四步 B4 3-E8）：结果再 ×(1 − `AILMENT_CURSE_DAMAGE_DEALT_REDUCTION`)（无诅咒 = ×1.0）。
 func get_attack_damage() -> float:
+	var raw := 0.0
 	if _combat_stats.has("attack"):
-		return float(_combat_stats["attack"])
-	var base := GameConstants.base_stat_at_level(
-		GameConstants.PLAYER_BASE_ATTACK_AT_L1,
-		GameConstants.BASE_AD_GROWTH,
-		get_player_level(),
-	)
-	return base * _get_attack_multiplier_from_stats()
+		raw = float(_combat_stats["attack"])
+	else:
+		var base := GameConstants.base_stat_at_level(
+			GameConstants.PLAYER_BASE_ATTACK_AT_L1,
+			GameConstants.BASE_AD_GROWTH,
+			get_player_level(),
+		)
+		raw = base * _get_attack_multiplier_from_stats()
+	# 诅咒降攻（第四步 B4 3-E8）：被诅咒时「造成的伤害」×0.8。
+	# 本方法是**玩家一切输出攻击力的唯一出口**（技能 `SkillController._hit` / 普攻
+	# `_perform_attack` / 召唤经 `src` 转发 / 传奇特效取攻击力）⇒ 一处生效即全路径覆盖。
+	# 未诅咒时乘 1.0 ⇒ 与修复前**逐位一致**（既有 `verify_damage` 等断言不受影响）。
+	return raw * _ailment_outgoing_multiplier()
+
+
+## 被诅咒（`curse`）⇒ 0.8；否则 1.0。缺省 1.0 保证「无异常时逐位不变」。
+func _ailment_outgoing_multiplier() -> float:
+	if health != null and health.has_ailment(GameConstants.AILMENT_CURSE):
+		return GameConstants.curse_damage_dealt_multiplier()
+	return 1.0
 
 
 ## 玩家等级。

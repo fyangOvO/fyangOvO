@@ -767,19 +767,27 @@ func _run_self_check() -> void:
 		GameConstants.ailment_from_element(GameConstants.ELEMENT_POISON) == GameConstants.AILMENT_POISON
 		and GameConstants.ailment_from_element(GameConstants.ELEMENT_FIRE) == GameConstants.AILMENT_BURN
 		and GameConstants.ailment_from_element(GameConstants.ELEMENT_COLD) == GameConstants.AILMENT_SLOW
-		and GameConstants.ailment_from_element(GameConstants.ELEMENT_PHYSICAL).is_empty()
-		and GameConstants.ailment_from_element(GameConstants.ELEMENT_LIGHTNING).is_empty())
-	_add_check("元素→异常映射合法（毒/火/冰；物理/雷电无异常）", ailment_map_ok)
+		and GameConstants.ailment_from_element(GameConstants.ELEMENT_LIGHTNING) == GameConstants.AILMENT_SHOCK
+		and GameConstants.ailment_from_element(GameConstants.ELEMENT_SHADOW) == GameConstants.AILMENT_CURSE
+		and GameConstants.ailment_from_element(GameConstants.ELEMENT_PHYSICAL).is_empty())
+	_add_check("元素→异常映射合法（毒/火/冰/雷/暗；物理无异常）", ailment_map_ok)
 	_add_check("异常参数合法（dot 比例 > 0、时长 > 0、冰冻减速 ∈ (0,1)、格挡减伤 ∈ (0,1)）",
 		GameConstants.AILMENT_POISON_DPS_RATIO > 0.0
 		and GameConstants.AILMENT_BURN_DPS_RATIO > 0.0
 		and GameConstants.ailment_duration(GameConstants.AILMENT_POISON) > 0.0
 		and GameConstants.ailment_duration(GameConstants.AILMENT_BURN) > 0.0
 		and GameConstants.ailment_duration(GameConstants.AILMENT_SLOW) > 0.0
+		and GameConstants.ailment_duration(GameConstants.AILMENT_SHOCK) > 0.0
+		and GameConstants.ailment_duration(GameConstants.AILMENT_CURSE) > 0.0
 		and GameConstants.AILMENT_SLOW_SPEED_FACTOR > 0.0
 		and GameConstants.AILMENT_SLOW_SPEED_FACTOR < 1.0
 		and GameConstants.BLOCK_DAMAGE_REDUCTION > 0.0
 		and GameConstants.BLOCK_DAMAGE_REDUCTION < 1.0)
+	# 3-E8：感电易伤 / 诅咒降攻的乘区合法性（>1 易伤 / ∈(0,1) 降攻，防止「感电反成减伤」）
+	_add_check("感电/诅咒乘区合法（易伤 > 1、降攻 ∈ (0,1)）",
+		GameConstants.shock_damage_taken_multiplier() > 1.0
+		and GameConstants.curse_damage_dealt_multiplier() > 0.0
+		and GameConstants.curse_damage_dealt_multiplier() < 1.0)
 
 	# 任务 2.7：掉落与拾取锚点
 	var loot_tables_ok := (
