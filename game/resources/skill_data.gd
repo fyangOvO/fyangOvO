@@ -13,6 +13,11 @@
 ##   · `SkillType` 由 4 值扩到 **7 值**（新增 PROJECTILE / GROUND / BUFF）
 ##   · 新增 13 个字段（持续区域 / 投射物 / 增益 / 召唤 / 眩晕 / 分支）
 ##   · `validate()` 按新形态补分支；`multiplier <= 0` 校验收紧为「仅 BUFF / SUMMON 可为 0」
+##
+## 2026-09-29（第三步 B3-5 · 工单 1-L3）：
+##   · 新增 3 字段：`chain_decay_pct` / `split_count` / `split_damage_pct`
+##     —— 承载 `rune_chain`（连锁衰减）与 `rune_split`（命中分裂）的语义
+##     （此前这两个符文修饰**被 `_apply_rune_modifiers` 静默丢弃**）
 class_name SkillData
 extends Resource
 
@@ -108,6 +113,19 @@ const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "projectile", "ground
 ## 连锁弹射目标数。PROJECTILE / SINGLE 使用；0 = 不连锁。
 @export var chain_count: int = 0
 
+## 连锁每跳的伤害衰减（%）。仅 `chain_count > 0` 生效；0 = 不衰减（每跳全额）。
+## 数据源：`rune_chain` 的 `chain_decay_pct = 25.0`（策划案 §2.2）。
+## 技能自带连锁（`lightning_chain` chain_count=2）未声明 ⇒ 保持 0（全额弹射），
+## 与技能描述「造成 220% 攻击力闪电伤害」一致。
+@export var chain_decay_pct: float = 0.0
+
+## 命中后分裂出的子投射物数量（`rune_split` 的 `on_hit_split.count`）；0 = 不分裂。
+## 子投射物从命中点向四周放射，飞行距离/存活见 `GameConstants.PROJECTILE_SPLIT_*`。
+@export var split_count: int = 0
+
+## 分裂子投射物的伤害占母弹的百分比（`rune_split` 的 `on_hit_split.damage_pct`）。
+@export var split_damage_pct: float = 0.0
+
 ## 召唤物 id（= `assets/pack/creatures/<id>/` 目录名）。仅 SUMMON 使用。
 ## ⚠️ 与技能 `id` **不必相同**（如技能 `spirit_wolf` → 召唤物 `summon_spirit_wolf`）。
 @export var summon_id: String = ""
@@ -166,6 +184,16 @@ func validate() -> Array[String]:
 		errors.append("技能 '%s' 的 pierce_count 必须 >= 0" % id)
 	if chain_count < 0:
 		errors.append("技能 '%s' 的 chain_count 必须 >= 0" % id)
+	if chain_decay_pct < 0.0:
+		errors.append("技能 '%s' 的 chain_decay_pct 必须 >= 0" % id)
+	if split_count < 0:
+		errors.append("技能 '%s' 的 split_count 必须 >= 0" % id)
+	if split_damage_pct < 0.0:
+		errors.append("技能 '%s' 的 split_damage_pct 必须 >= 0" % id)
+	# 分裂若声明了数量却没给伤害占比 ⇒ 子投射物会打出 0 伤害（静默无效果），必须拦。
+	if split_count > 0 and is_zero_approx(split_damage_pct):
+		errors.append("技能 '%s' 的 split_count=%d 但 split_damage_pct 为 0（子投射物无伤害）"
+			% [id, split_count])
 	if stun_duration < 0.0:
 		errors.append("技能 '%s' 的 stun_duration 必须 >= 0" % id)
 	match type:

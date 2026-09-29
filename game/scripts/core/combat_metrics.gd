@@ -209,7 +209,12 @@ static func note_skill_hit() -> void:
 
 ## 一次技能施放结束。`hits == 0` 就是**放空**（whiff）—— 这个数不能丢：
 ## 「AoE 平均命中 3.4」和「AoE 平均命中 3.4 但 40% 的施放打空」是两种完全不同的手感。
-static func end_cast() -> void:
+##
+## `deferred = true`：本次施放的命中**不在同步窗口内**（投射物要飞、持续区域按 tick 分摊）
+## ⇒ **不记 whiff、不采 AoE 样本**（此刻 0 命中 ≠ 打空），命中由 `note_deferred_hit()` 补记。
+## 第三步 B3-5（1-L3/L4）引入：在此之前投射物/地面是「即时一次性结算」，
+## 命中恰好落在窗口内；改成真实实体后若不标记，这两类技能的命中会被**静默漏记**。
+static func end_cast(deferred: bool = false) -> void:
 	if not enabled or not _active or _cast_id.is_empty():
 		return
 	var e: Dictionary = _skills.get(_cast_id, {
@@ -217,15 +222,30 @@ static func end_cast() -> void:
 	})
 	e["casts"] = int(e["casts"]) + 1
 	e["hits"] = int(e["hits"]) + _cast_hits
-	if _cast_hits == 0:
+	if _cast_hits == 0 and not deferred:
 		e["whiffs"] = int(e["whiffs"]) + 1
 	e["max_hits"] = maxi(int(e["max_hits"]), _cast_hits)
 	_skills[_cast_id] = e
-	if _cast_is_aoe:
+	if _cast_is_aoe and not deferred:
 		# 关键采样：这一刀是在「场上还剩几只」的时候放的、打中了几只
 		_aoe_samples.append([_alive, _cast_hits])
 	_cast_id = ""
 	_cast_hits = 0
+
+
+## 延迟命中记账（第三步 B3-5）：投射物 / 持续区域的命中发生在 `end_cast()` **之后**，
+## 落在原「同步窗口」之外。本入口把命中补记到对应技能上。
+##
+## ⚠️ 只能累加 `hits`（总量），**无法**归因到某一次施放 ⇒ `max_hits` 对这两类技能
+##    不维护（聚合时以 `hits / casts` 为准）。
+static func note_deferred_hit(skill_id: String) -> void:
+	if not enabled or not _active or skill_id.is_empty():
+		return
+	var e: Dictionary = _skills.get(skill_id, null)
+	if e == null:
+		# 该技能尚无施放记录（理论上不会发生：施放必先 begin/end_cast）
+		return
+	e["hits"] = int(e["hits"]) + 1
 
 
 ## 击杀一只怪。`kind` ∈ "normal" / "elite" / "boss"。

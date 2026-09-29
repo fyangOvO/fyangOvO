@@ -17,6 +17,13 @@
 ##   ① `_hit()` 乘上**技能等级系数**（`1 + 0.08 × (L-1)`）—— 🔴 复活第二步死钩子 `skill_level`
 ##   ② `try_cast()` 补 4 个新形态的 match 分支（PROJECTILE / GROUND / BUFF）
 ##   ③ 符文修饰器在施放前套用（字段覆盖 / 乘算修饰）
+##
+## 2026-09-29（第三步 B3-5 · 工单 1-L3 / 1-L4）：
+##   ① PROJECTILE / GROUND 由 B0 的**过渡实现**（即时一次性结算）改为**真实实体**
+##      （`Projectile` / `GroundArea`，纯脚本 + 代码生成占位视觉）
+##   ② `_hit()` 增 `raw_multiplier` / `damage_scale` 两参 —— 支撑「每 tick 倍率」与
+##      「连锁衰减 / 分裂占比」（此前只能用 `total_damage_multiplier()` 一种口径）
+##   ③ 符文修饰器支持 `on_hit_split`（嵌套 dict）与 `chain_decay_pct`
 class_name SkillController
 extends Node
 
@@ -42,9 +49,9 @@ var _equipped_runes: Dictionary = {}
 var _pending_form_warned: Dictionary = {}
 
 ## 形态 → 尚未落地的实现工单。落地后从表中删除即可（B0 的过渡实现随之失效）。
+##
+## 2026-09-29（B3-5）：PROJECTILE / GROUND 已由 `Projectile` / `GroundArea` 落地 ⇒ 移除。
 const PENDING_FORM_IMPL: Dictionary = {
-	SkillData.SkillType.PROJECTILE: "1-L3（B3）projectile.gd",
-	SkillData.SkillType.GROUND: "1-L4（B3）ground_area.gd",
 	SkillData.SkillType.BUFF: "3-B1（B4）BuffComponent",
 }
 
@@ -202,11 +209,14 @@ func try_cast(id: String) -> bool:
 		GameConstants.SKILL_MIN_COOLDOWN_SEC)
 
 	# 任务 11.9 埋点：一次施放的命中数 = 这段时间里 `_hit()` 被调了几次。
-	# 七个分支**全部同步**（`perform_skill_dash` 内部直接 `move_and_collide` +
-	# `on_dash_hit`，不跨帧），所以这一对 begin/end 能框住全部命中。
+	# ⚠️ B3-5 起这条「同步窗口」只对**同步结算**的形态成立（单体 / 范围 / 位移 / 召唤 / 增益）；
+	#    投射物（要飞）与持续区域（按 tick 分摊）的命中落在窗口**之外**，走 `deferred_hits`
+	#    ⇒ 此刻 0 命中不等于打空，命中由 `note_deferred_hit()` 补记。
 	# 放空（0 命中）同样记成一次 casts，另计 `whiffs` —— 这个数不能丢：
 	# 「AoE 平均命中 3.4」与「平均 3.4 但 40% 打空」是两种完全不同的手感。
 	CombatMetrics.begin_cast(id, effective.type == SkillData.SkillType.AOE)
+	var deferred_hits := effective.type == SkillData.SkillType.PROJECTILE \
+		or effective.type == SkillData.SkillType.GROUND
 	match effective.type:
 		SkillData.SkillType.SINGLE:
 			_execute_single(effective)
@@ -225,7 +235,7 @@ func try_cast(id: String) -> bool:
 		_:
 			push_warning("[SkillController] 技能 '%s' 的形态 %d 无分派分支（已被静默吞掉）"
 				% [id, effective.type])
-	CombatMetrics.end_cast()
+	CombatMetrics.end_cast(deferred_hits)
 	# 3-X5：施法 / 耗资源埋点（传奇特效 `on_skill_cast` / `on_resource_spend` 的落点）。
 	# ⚠️ 必须放在**扣费 + 写入冷却之后** —— `resource_refund`（终末回响）要用「已扣的实耗」
 	# 返还法力、要「刚写入的冷却」做 `cooldown_half`。放在前面两者都会算错。
@@ -250,29 +260,47 @@ func _execute_aoe(data: SkillData) -> void:
 		_hit(target, data, data.knockback)
 
 
-## 投射物（第一步 §3.2）。
+## 投射物（`01-技能体系.md` §3.2；第三步 B3-5 · 工单 1-L3 起为**真实弹道**）。
 ##
-## ⚠️ **B0 过渡实现**：`1-L3`（B3）会新建 `scripts/combat/projectile.gd` 承载真实飞行弹道
-## （速度 / 射程 / 穿透 / 分裂 / 连锁）。在那之前，这里按**同一伤害口径**即时结算：
-## 沿朝向 `range` 内扇区命中，伤害 = `multiplier × projectile_count`（§5.1 的「全中」口径）
-## ⇒ 伤害期望与真实弹道一致（仅少了飞行时间），不会因过渡而改变数值平衡。
+## 生成 `projectile_count` 枚 `Projectile`，以朝向为中轴、`spread_deg` 扇形**均匀**展开
+## （`projectile_count == 1` ⇒ 正前方直线）。每发**独立**结算 ⇒ 全中 = N × multiplier
+## （§5.1「全中」口径，如 `multishot` 3 发 × 100% = 300%）。
 func _execute_projectile(data: SkillData) -> void:
-	var targets := _player.find_targets_in_arc(data.range, GameConstants.ATTACK_ARC_DEG)
-	if targets.is_empty():
+	var host := _player.get_parent()
+	if host == null:
 		return
-	_hit(targets[0], data, data.knockback)
+	var count := maxi(data.projectile_count, 1)
+	var base_dir := _player.get_facing_vector()
+	if base_dir == Vector2.ZERO:
+		base_dir = Vector2.DOWN
+	var base_angle := base_dir.angle()
+	var spread := deg_to_rad(data.spread_deg)
+	for i in range(count):
+		# 单发 ⇒ 正前方；多发 ⇒ 在 [-spread/2, +spread/2] 内均匀分布
+		var offset := 0.0
+		if count > 1:
+			offset = spread * (float(i) / float(count - 1) - 0.5)
+		var proj := Projectile.new()
+		proj.setup(self, data, Vector2.from_angle(base_angle + offset))
+		host.add_child(proj)
+		proj.global_position = _player.global_position
 
 
-## 持续区域（第一步 §3.2）。
+## 持续区域（`01-技能体系.md` §3.2；第三步 B3-5 · 工单 1-L4 起为**真实区域实体**）。
 ##
-## ⚠️ **B0 过渡实现**：`1-L4`（B3）会新建 `scripts/combat/ground_area.gd` 承载
-## 每 tick 结算与到期释放。在那之前，这里在玩家位置做**一次性结算**，
-## 伤害 = `total_damage_multiplier()`（= 落地爆发 + 全部 tick 之和，口径见 §5.1）
-## ⇒ 总伤害不变，只是从「分摊到 duration」变成「一次打完」。
+## 落点 = **玩家脚下**（用户 2026-09-29 裁定）。区域按 `tick_interval` 周期结算、
+## `duration` 到期释放；总伤害与 `total_damage_multiplier()` 一致（§5.1）。
 func _execute_ground(data: SkillData) -> void:
-	var targets := _player.find_targets_in_radius(data.radius)
-	for target in targets:
-		_hit(target, data, data.knockback)
+	var host := _player.get_parent()
+	if host == null:
+		return
+	var area := GroundArea.new()
+	area.setup(self, data)
+	host.add_child(area)
+	area.global_position = _player.global_position
+	# ⚠️ 必须最后调 `begin()`：`add_child()` 触发的 `_ready()` 里落点还没设，
+	#    落地爆发若在那时结算会打在原点（见 GroundArea.begin 注释）。
+	area.begin()
 
 
 ## 增益（第一步 §3.2）。
@@ -318,6 +346,25 @@ func on_dash_hit(target: Node, data: SkillData) -> void:
 	_hit(target, data, data.knockback)
 
 
+## 投射物命中出口（`Projectile` 调用）：走统一伤害管线。
+## `damage_scale` 承载**连锁衰减**与**分裂占比**（母弹 = 1.0）。
+func on_projectile_hit(target: Node, data: SkillData, damage_scale: float = 1.0) -> void:
+	_hit(target, data, data.knockback, -1.0, damage_scale, data.id)
+
+
+## 持续区域 **每 tick** 命中出口（`GroundArea` 调用）：倍率取 `data.multiplier`（每 tick 值）。
+##
+## ⚠️ 必须显式传 `data.multiplier` —— 默认口径是 `total_damage_multiplier()`（**总量**），
+##    用它会把每个 tick 都算成总量，伤害 = 设计值 × tick 次数。
+func on_ground_tick(target: Node, data: SkillData) -> void:
+	_hit(target, data, 0.0, data.multiplier, 1.0, data.id)
+
+
+## 持续区域 **落地爆发** 命中出口（`GroundArea` 调用）：倍率取 `data.impact_multiplier`。
+func on_ground_impact(target: Node, data: SkillData) -> void:
+	_hit(target, data, data.knockback, data.impact_multiplier, 1.0, data.id)
+
+
 ## 召唤（技能体系 §12）：在玩家脚下生成**友方召唤物**。
 ##
 ## 召唤物 id 取 `data.summon_id`（**不是** `data.id`）——两者不必相同：
@@ -347,7 +394,7 @@ func _execute_summon(data: SkillData) -> void:
 ## 可**直接覆盖字段**的修饰键（runes.json `_meta.modifier_semantics.字段覆盖`）
 const RUNE_FIELD_KEYS: Array[String] = [
 	"type", "element", "pierce_count", "projectile_count", "chain_count",
-	"duration", "tick_interval", "projectile_speed",
+	"duration", "tick_interval", "projectile_speed", "chain_decay_pct",
 ]
 ## **乘算**修饰键（带符号增量：+25 = 放大 25%，-25 = 缩小 25%）
 const RUNE_PCT_KEYS: Array[String] = [
@@ -359,6 +406,10 @@ const RUNE_PCT_KEYS: Array[String] = [
 ##
 ## ⚠️ 只处理「字段覆盖 + 乘算修饰」；`stun_chance` / `life_leech_pct` / `on_hit_slow` 等
 ## **附加效果**需要战斗钩子（`3-B1`/`3-K*`），不在本函数职责内。
+##
+## 2026-09-29（第三步 B3-5 · 1-L3）：新增 `on_hit_split`（`rune_split` 的**嵌套 dict**）
+## 与 `chain_decay_pct`（`rune_chain`）—— 此前两者都被**静默丢弃**（嵌套 dict 不是标量，
+## 落在 `RUNE_FIELD_KEYS`/`RUNE_PCT_KEYS` 之外）。
 func _apply_rune_modifiers(data: SkillData, rune_ids: Array) -> SkillData:
 	if rune_ids.is_empty():
 		return data
@@ -369,11 +420,24 @@ func _apply_rune_modifiers(data: SkillData, rune_ids: Array) -> SkillData:
 		for key in mods:
 			var k := String(key)
 			var v: Variant = mods[key]
-			if k in RUNE_FIELD_KEYS:
+			if k == "on_hit_split":
+				_apply_rune_split(out, v)
+			elif k in RUNE_FIELD_KEYS:
 				_apply_rune_field(out, k, v)
 			elif k in RUNE_PCT_KEYS:
 				_apply_rune_pct(out, k, float(v))
 	return out
+
+
+## `rune_split` 的 `on_hit_split` 是**嵌套 dict**（`{count, damage_pct}`），
+## 不是标量字段覆盖 ⇒ 单独拆解到 `split_count` / `split_damage_pct`。
+func _apply_rune_split(out: SkillData, value: Variant) -> void:
+	if not (value is Dictionary):
+		push_warning("[SkillController] 符文 on_hit_split 不是字典，已忽略")
+		return
+	var d: Dictionary = value
+	out.split_count = int(d.get("count", 0))
+	out.split_damage_pct = float(d.get("damage_pct", 0.0))
 
 
 func _apply_rune_field(out: SkillData, key: String, value: Variant) -> void:
@@ -394,6 +458,8 @@ func _apply_rune_field(out: SkillData, key: String, value: Variant) -> void:
 			out.projectile_count = int(value)
 		"chain_count":
 			out.chain_count = int(value)
+		"chain_decay_pct":
+			out.chain_decay_pct = float(value)
 		"duration":
 			out.duration = float(value)
 		"tick_interval":
@@ -421,22 +487,34 @@ func _apply_rune_pct(out: SkillData, key: String, pct: float) -> void:
 # 命中结算
 # =============================================================================
 
-## 本次命中的**有效倍率** = 技能倍率（GROUND 含全部 tick）× 技能等级系数。
+## 本次命中的**有效倍率** = 命中倍率 × 技能等级系数。
 ##
 ## 🔴 技能等级系数是本项目**第二步死钩子 `skill_level` 的唯一复活点**（策划案 §2.1）。
 ##    公式：`1 + 0.08 × (level - 1)` ⇒ L1 = ×1.00 / L4 = ×1.24 / L7 = ×1.48 / L10 = ×1.72。
 ##    **不影响**冷却 / 蓝耗 / 范围（避免与 `cooldown_reduction` 双重计入）。
-func _effective_multiplier(data: SkillData) -> float:
+##
+## `raw_multiplier < 0` ⇒ 用 `data.total_damage_multiplier()`（单体 / 范围 / 投射物的默认口径）；
+## 显式传入 ⇒ 用该值（**持续区域**专用：tick 传 `data.multiplier`、落地爆发传
+## `data.impact_multiplier`）—— 否则每 tick 会被算成「总量」而严重超伤。
+func _effective_multiplier(data: SkillData, raw_multiplier: float = -1.0) -> float:
 	if _player == null:
 		return data.total_damage_multiplier()
-	return data.total_damage_multiplier() * _player.get_skill_level_multiplier()
+	var mult := raw_multiplier if raw_multiplier >= 0.0 else data.total_damage_multiplier()
+	return mult * _player.get_skill_level_multiplier()
 
 
 ## 统一命中结算：伤害（2.3 完整管线）+ 击退 + 事件
-func _hit(target: Node, data: SkillData, knockback_px: float) -> void:
+##
+## `raw_multiplier`：本次命中的原始倍率（不含等级系数）；`< 0` ⇒ 用 `data` 的默认口径。
+## `damage_scale`：本次命中的伤害系数（连锁衰减 / 分裂子投射物）；默认 1.0 = 全额。
+## `deferred_cast_id`：非空 ⇒ 本次命中**在施放同步窗口之外**（投射物 / 持续区域），
+##   埋点走 `note_deferred_hit()` 补记，而不是 `note_skill_hit()`（后者此时已关窗，会静默丢弃）。
+func _hit(target: Node, data: SkillData, knockback_px: float,
+		raw_multiplier: float = -1.0, damage_scale: float = 1.0,
+		deferred_cast_id: String = "") -> void:
 	if target == null or not is_instance_valid(target):
 		return
-	var base := _player.get_attack_damage() * _effective_multiplier(data)
+	var base := _player.get_attack_damage() * _effective_multiplier(data, raw_multiplier) * damage_scale
 	# 任务 2.3 伤害管线：技能元素（默认物理，词缀/套装可改写）→ 暴击 → 目标减伤
 	var result := DamageCalc.compute_hit(
 		base,
@@ -459,7 +537,10 @@ func _hit(target: Node, data: SkillData, knockback_px: float) -> void:
 		target.take_damage(result.final_damage, _player)
 		# 任务 11.9 埋点：只统计**真的落到目标身上**的那一次
 		# （没有 `take_damage` 的目标不算命中，否则「命中数」会虚高）
-		CombatMetrics.note_skill_hit()
+		if deferred_cast_id.is_empty():
+			CombatMetrics.note_skill_hit()
+		else:
+			CombatMetrics.note_deferred_hit(deferred_cast_id)
 	if knockback_px > 0.0 and target.has_method("apply_knockback"):
 		var dir := _player.get_facing_vector()
 		if dir == Vector2.ZERO:

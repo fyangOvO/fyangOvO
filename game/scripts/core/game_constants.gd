@@ -890,6 +890,23 @@ const SKILL_COST_REDUCTION_CAP_PCT: float = 70.0
 ## 故该下限在**无缩减时不影响任何现有技能**（向后兼容）。
 const SKILL_MIN_COOLDOWN_SEC: float = 0.2
 
+## ── 技能形态实体：投射物 / 持续区域（第三步 B3-5 · 工单 1-L3 / 1-L4）──────
+## 投射物命中判定半径（px）：弹体中心与目标中心距离 ≤ 此值 + 目标半径 即命中。
+## 取 10px ≈ 目标半宽（玩家 11 / 靶子 12）的同一量级；弹体视觉为 16×16（美术规范 §1.1）。
+const PROJECTILE_HIT_RADIUS: float = 10.0
+## 连锁弹射的搜索半径（px）：命中后从**命中点**找最近的「未命中」敌人。
+## 取 140px ≈ 4.4 tile，与投射物射程（130–160）同量级，保证「电弧能跳到隔壁怪」。
+const PROJECTILE_CHAIN_RANGE: float = 140.0
+## 投射物最大存活时间（秒）兜底：防 `range`/`projectile_speed` 配错导致弹道永不消失。
+## 实际存活 = `range / speed + 0.25`，本值只在两者异常（如速度≈0）时兜底。
+const PROJECTILE_MAX_LIFETIME: float = 6.0
+## 分裂子投射物的飞行距离（px）与存活时间（秒）。
+## 子投射物从命中点向四周放射（`rune_split`：3 枚 / 每枚 50% 伤害）。
+const PROJECTILE_SPLIT_RANGE: float = 64.0
+const PROJECTILE_SPLIT_LIFETIME: float = 0.4
+## 地面区域 tick 的最小间隔兜底（秒）：防 `tick_interval` 配成 0/负 导致单帧无限 tick。
+const GROUND_TICK_MIN_INTERVAL: float = 0.05
+
 ## 普攻：基础攻速（次/秒）与基础倍率（100% AD）。
 ## 假连段约定：按住攻击键 → 按此间隔连续挥击（同一段 8 帧动画循环，视觉像连击）；
 ## 美术规范只有 4 方向 × 8 帧攻击动画，**无连段动画**，故不设连段状态机。
@@ -950,6 +967,19 @@ const ELEMENTS: Array[String] = [
 	ELEMENT_PHYSICAL, ELEMENT_FIRE, ELEMENT_COLD, ELEMENT_LIGHTNING, ELEMENT_POISON,
 	ELEMENT_SHADOW,
 ]
+
+## 元素 → 占位配色（投射物 / 地面区域的代码生成精灵用，第三步 B3-5）。
+## 单一来源：`Projectile` 与 `GroundArea` 共用，避免两处各写一份配色而漂移。
+## ⚠️ 这是**占位视觉**（美术 B7 补 16×16 循环帧后由真实素材接管），
+##    颜色只求「一眼能区分元素」，不追求与美术规范完全一致。
+const ELEMENT_COLORS: Dictionary = {
+	ELEMENT_PHYSICAL: Color("E8E8E8"),
+	ELEMENT_FIRE: Color("F08A3C"),
+	ELEMENT_COLD: Color("7FD4F0"),
+	ELEMENT_LIGHTNING: Color("F5E663"),
+	ELEMENT_POISON: Color("8FD14F"),
+	ELEMENT_SHADOW: Color("A97BD8"),
+}
 
 ## 元素抗性减伤系数：与护甲 `ARMOR_DR_CONSTANT_PER_LEVEL`（50）同构，直觉统一。
 const RESIST_DR_CONSTANT_PER_LEVEL: float = 50.0

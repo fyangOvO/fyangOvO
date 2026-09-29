@@ -518,6 +518,10 @@ func _load_skill_dir(dir_path: String) -> void:
 			res.spread_deg = float(raw.get("spread_deg", 0.0))
 			res.pierce_count = int(raw.get("pierce_count", 0))
 			res.chain_count = int(raw.get("chain_count", 0))
+			# 2026-09-29（第三步 B3-5 · 1-L3）：连锁衰减 / 命中分裂
+			res.chain_decay_pct = float(raw.get("chain_decay_pct", 0.0))
+			res.split_count = int(raw.get("split_count", 0))
+			res.split_damage_pct = float(raw.get("split_damage_pct", 0.0))
 			res.summon_id = String(raw.get("summon_id", ""))
 			res.buff_id = String(raw.get("buff_id", ""))
 			res.stun_duration = float(raw.get("stun_duration", 0.0))
