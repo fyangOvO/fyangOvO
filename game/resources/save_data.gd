@@ -82,6 +82,20 @@ extends Resource
 @export var consumables: Dictionary = {}
 
 # =============================================================================
+# 特殊玩法（第六步 S10 · B5-1 / 6-W6-01）
+# =============================================================================
+
+## 门票 / 钥匙。键 = 门票 id（`GameConstants.TICKET_NORMAL` / `TICKET_ADVANCED`），值 = 持有数。
+##
+## ⚠️ 与 `materials` / `consumables` **三套并列独立，禁止混用**（06 校验 TK5 / TK6）。
+##    门票走独立字典而非塞进 materials，是为了让「门票永不为负」「门票不参与材料统计」
+##    等约束有单一落点。
+@export var tickets: Dictionary = {}
+
+## 爬塔进度（S10 连带）。`{highest_unlocked: int, current_layer: int, runs: int, best_layer: int}`
+@export var tower_progress: Dictionary = {}
+
+# =============================================================================
 # 装备
 # =============================================================================
 
@@ -169,6 +183,9 @@ static func create_new(p_slot: int, p_class_id: String = GameConstants.CLASS_DEF
 		"legend_essence": 0,
 	}
 	data.consumables = {}
+	# 门票 / 爬塔进度（第六步 S10 · 6-W6-01）。不预置 0 值键，与 consumables = {} 口径一致。
+	data.tickets = {}
+	data.tower_progress = {}
 	data.unlocked_levels = ["ch1_l01"]
 	data.cleared_levels = []
 	data.unlocked_difficulty_tier = GameConstants.DifficultyTier.NM1
@@ -238,6 +255,25 @@ func add_gold(amount: int) -> bool:
 	return true
 
 
+## 门票持有数（未知 id 返回 0）
+func get_ticket(ticket_id: String) -> int:
+	return int(tickets.get(ticket_id, 0))
+
+
+## 增减门票（不足时不写，返回是否成功）。
+##
+## ⚠️ 风格与 `add_material()` 严格一致（**不足返回 false 且不写入**），
+##    不要用 `MaterialBag.add()` 那套「amount <= 0 直接 return 不报错」——
+##    否则会出现「门票扣成负数但没人发现」（06-tickets.json `_style_warning` / 断言 TK9）。
+##    消耗门票即 `add_ticket(id, -1)`。
+func add_ticket(ticket_id: String, amount: int) -> bool:
+	var next := get_ticket(ticket_id) + amount
+	if next < 0:
+		return false
+	tickets[ticket_id] = next
+	return true
+
+
 ## 背包中的装备总数（含已装备与仓库，用于存档摘要）
 func total_item_count() -> int:
 	var n := inventory.size() + stash.size()
@@ -287,6 +323,8 @@ func to_dict() -> Dictionary:
 		"gold": gold,
 		"materials": materials,
 		"consumables": consumables,
+		"tickets": tickets.duplicate(),
+		"tower_progress": tower_progress.duplicate(true),
 		"inventory": inv,
 		"equipped": eq,
 		"stash": st,
@@ -328,6 +366,8 @@ static func from_dict(data: Dictionary) -> SaveData:
 	out.gold = maxi(int(data.get("gold", 0)), 0)
 	out.materials = data.get("materials", {}) if data.get("materials") is Dictionary else {}
 	out.consumables = data.get("consumables", {}) if data.get("consumables") is Dictionary else {}
+	out.tickets = data.get("tickets", {}) if data.get("tickets") is Dictionary else {}
+	out.tower_progress = data.get("tower_progress", {}) if data.get("tower_progress") is Dictionary else {}
 	out.inventory = _to_item_array(data.get("inventory", []))
 	out.stash = _to_item_array(data.get("stash", []))
 	out.unlocked_levels = _to_string_array(data.get("unlocked_levels", []))
@@ -391,6 +431,14 @@ func migrate() -> bool:
 				skill_branches = {}
 				unlocked_runes = []
 				save_version = 5
+			5:
+				# v6（2026-09-29 · 第六步 S10 · B5-1 / 6-W6-01）：门票 + 爬塔进度。
+				# ⚠️ 必须**显式**写 5: 分支 —— 只改 SAVE_VERSION 会走到 `_:` 兜底「静默跳过」；
+				#    虽然 `from_dict` 的 `.get(..., {})` 也给出 {}，表面上完全正常，
+				#    但后续再引入依赖迁移的字段时会**缺少一次升级**（C7 铁律）。
+				tickets = {}
+				tower_progress = {}
+				save_version = 6
 			_:
 				save_version = GameConstants.SAVE_VERSION
 	save_version = GameConstants.SAVE_VERSION

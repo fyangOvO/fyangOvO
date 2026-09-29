@@ -1431,10 +1431,24 @@ const SKILL_ICON: Dictionary = {
 
 ## 磁盘存档格式版本。**每次改动 SaveData 字段结构必须 +1，并在 `migrate()` 补一条显式分支。**
 ## v2 class_id ｜ v3 skill_bar ｜ v4 consumables ｜ v5 skill_runes + skill_branches（B4-4 / 1-L9）
-const SAVE_VERSION: int = 5
+## v6 tickets + tower_progress（第六步 S10 · B5-1 / 6-W6-01）
+const SAVE_VERSION: int = 6
 const SAVE_DIR: String = "user://saves"
 const SAVE_MAX_SLOTS: int = 8
 const SAVE_BACKUP_ROTATION: int = 3 ## 每槽保留的备份份数
+
+# -----------------------------------------------------------------------------
+# 九·一、门票 / 钥匙（第六步 S10 · B5-1 / 6-W6-01）
+# -----------------------------------------------------------------------------
+#
+# 分级门票（用户拍板）：低层宽松（普通门票）/ 高层稀缺（高级钥匙）。
+# 落点 = `SaveData.tickets` 字典（键 = 门票 id，值 = 持有数），
+# **与 materials / consumables 三套并列独立，禁止混用**（06 校验 TK5 / TK6）。
+#
+# ⚠️ 禁止在业务脚本里硬编码这两个字符串，一律引用本类常量。
+const TICKET_NORMAL: String = "ticket_normal"    ## 普通门票（塔 1–15 / 深渊 1–2）
+const TICKET_ADVANCED: String = "key_advanced"   ## 高级钥匙（塔 16–30 / 深渊 3）
+const TICKET_KEYS: Array[String] = [TICKET_NORMAL, TICKET_ADVANCED]
 
 
 # =============================================================================

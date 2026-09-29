@@ -1565,6 +1565,13 @@ func _drop_loot(killer: Node) -> void:
 		var scatter := Vector2(randf_range(-14.0, 14.0), randf_range(-14.0, 14.0))
 		drop.global_position = global_position + scatter
 		get_parent().add_child(drop)
+		# 稀有掉落广播（第六步 B5-1 · 6-W6-20 补 emit；此前 `rare_loot_spawned` 声明了但 0 个 emit 点）。
+		# 消费点：稀有光柱 / 落地演出 / 镜头（6-W6-19 · `_draw_beam` 按 shape 分支）。
+		# ⚠️ 位置取 `drop.global_position`（**必须**在 add_child 之后读，见坑⑨两段式落点）。
+		var r := int(entry.get("rarity", -1))
+		if r >= GameConstants.Rarity.EPIC and entry.get("instance") is Dictionary:
+			EventBus.rare_loot_spawned.emit(
+				EquipmentInstance.from_dict(entry["instance"]), drop.global_position)
 	if not drops.is_empty():
 		print("[Loot] %s 掉落 %d 件" % [data.display_name, drops.size()])
 

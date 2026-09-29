@@ -708,11 +708,12 @@ def group_e(data, ck, repo):
     ck.ok(now_count == RARITY_COUNT_NOW,
           "E1 RARITY_COUNT 现为 %d（S12 目标 10，属已登记工单）" % now_count)
 
-    # E2: SAVE_VERSION 现值
+    # E2: SAVE_VERSION 现值（B5-1 已落地 v6 ⇒ 本断言重基线为「== 目标」）
     m = re.search(r"const SAVE_VERSION:\s*int\s*=\s*(\d+)", gc)
     now_sv = int(m.group(1)) if m else -1
-    ck.ok(now_sv == 5,
-          "E2 SAVE_VERSION 现为 %d（B4-4 已落地 5；S10 目标改 6，属已登记工单）" % now_sv)
+    ck.ok(now_sv == TARGET_SAVE_VERSION,
+          "E2 SAVE_VERSION 现为 %d（== 目标 %d；S10 已落地 v6 = tickets + tower_progress）"
+          % (now_sv, TARGET_SAVE_VERSION))
 
     # E3: 现存 15 个定长数组是否都是 8 项（确认扩容工作量）
     checks = {
@@ -760,7 +761,8 @@ def group_e(data, ck, repo):
         ck.ok("arena_change" not in bj,
               "E6 bosses.json 尚无 arena_change 字段（S11 需新增）")
 
-    # E7: 门票/爬塔在 scripts 内仍零命中
+    # E7: 门票 / 塔 / 深渊已在 scripts 内落地（B5-1 起；原「零命中」快照已重基线）
+    # B5-1 落地点：game_constants.gd 的 TICKET_* 常量 + save_data.gd 的 tickets / tower_progress
     hits = 0
     for root, _dirs, files in os.walk(p("game/scripts")):
         for fn in files:
@@ -769,7 +771,7 @@ def group_e(data, ck, repo):
             txt = read_text(os.path.join(root, fn)) or ""
             if re.search(r"\btickets?\b|\btower\b|\babyss\b|\bdungeon\b", txt, re.I):
                 hits += 1
-    ck.ok(hits == 0, "E7 scripts 内门票/塔/深渊仍零命中（实得 %d 个文件）" % hits)
+    ck.ok(hits >= 1, "E7 scripts 内门票/塔/深渊已落地（实得 %d 个文件 ≥ 1）" % hits)
 
     # E8: verify_boss63 的 4 阶段断言仍存在
     vb = read_text(p("game/tools/verify_boss63.gd"))

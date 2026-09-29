@@ -474,9 +474,9 @@ def group_repo(D):
         v = const_of(gc, "RARITY_COUNT")
         ck(v == "8", f"R5 RARITY_COUNT 仍為 8（實 {v or 'N/A'}）")
         ck("SPECIAL_ABYSS" not in read_text(gc), "R6 SPECIAL_ABYSS 尚未定義（S12 未落地）")
-        # B4-4 已落地：SAVE_VERSION 4 → 5（S10 順延為 5 → 6）
+        # B5-1 已落地：SAVE_VERSION 5 → 6（S10 落地 v6 = tickets + tower_progress）
         v = const_of(gc, "SAVE_VERSION")
-        ck(v == "5", f"R7 SAVE_VERSION 已為 5（B4-4 落地；實 {v or 'N/A'}）")
+        ck(v == "6", f"R7 SAVE_VERSION 已為 6（B5-1 / S10 落地；實 {v or 'N/A'}）")
 
     al = os.path.join(REPO, "game", "scripts", "account", "account_level.gd")
     ck(os.path.isfile(al), "R8 account_level.gd 存在")
@@ -489,8 +489,8 @@ def group_repo(D):
     ck(os.path.isfile(sd), "R10 save_data.gd 存在")
     if os.path.isfile(sd):
         t = read_text(sd)
-        ck("tickets" not in t, "R11 save_data 尚無 tickets 字段（S10 未落地）")
-        ck("tower_progress" not in t, "R12 save_data 尚無 tower_progress 字段（S10 未落地）")
+        ck("tickets" in t, "R11 save_data 已含 tickets 字段（B5-1 / S10 落地）")
+        ck("tower_progress" in t, "R12 save_data 已含 tower_progress 字段（B5-1 / S10 落地）")
 
     # 目錄級漂移：特殊檔底材不存在
     eq = os.path.join(REPO, "game", "data", "equipment")

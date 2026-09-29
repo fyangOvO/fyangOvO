@@ -9,7 +9,9 @@
 ##    但仍请勿在玩家正在游玩的存档目录上运行。
 ##
 ## 覆盖范围：新建槽位 / 写入 / 逐字段回读 / 引用回填 / 备份轮转 /
-##          主档损坏回滚 / 损坏隔离 / 恢复后主档重建 / 槽位信息 / 删除
+##          主档损坏回滚 / 损坏隔离 / 恢复后主档重建 / 槽位信息 / 删除 /
+##          门票与爬塔进度（第六步 S10 · B5-1：create_new 初始化 / 往返一致 / 门票 API /
+##          门票永不为负 / v5→v6 迁移哨兵反证）
 extends Node
 
 ## 本脚本使用的槽位：取最后一个，避免碰到玩家常用的 0 号槽
@@ -113,6 +115,56 @@ func _ready() -> void:
 	# --- 8) 删除 ---
 	_ok("delete_slot 成功", SaveManager.delete_slot(SLOT))
 	_ok("删除后 slot_exists 为假", not SaveManager.slot_exists(SLOT))
+
+	# --- 9) 门票 / 爬塔进度（第六步 S10 · B5-1 · 6-W6-01 / 6-W6-02）---
+	# 纯内存断言，不落盘（上面第 8 步已把本脚本用的槽位删干净）。
+	_ok("SAVE_VERSION ≥ 6（v6 起 tickets + tower_progress 两字段存在）",
+		GameConstants.SAVE_VERSION >= 6)
+	var nd := SaveData.create_new(0)
+	_ok("create_new 初始化 tickets = {}",
+		nd.tickets is Dictionary and nd.tickets.is_empty())
+	_ok("create_new 初始化 tower_progress = {}",
+		nd.tower_progress is Dictionary and nd.tower_progress.is_empty())
+	# 门票 id 未混入 materials 键集（06 校验 TK5 / TK6：三套并列独立）
+	var leak := false
+	for tk in GameConstants.TICKET_KEYS:
+		if nd.materials.has(tk) or nd.consumables.has(tk):
+			leak = true
+	_ok("门票 id 未混入 materials / consumables 键集", not leak)
+	# 门票 API：get 默认 0 / add 增减 / 不足返回 false 且不写入（TK9 门票永不为负）
+	_ok("get_ticket 未知 id 返回 0", nd.get_ticket(GameConstants.TICKET_NORMAL) == 0)
+	_ok("add_ticket 增加成功",
+		nd.add_ticket(GameConstants.TICKET_NORMAL, 3)
+		and nd.get_ticket(GameConstants.TICKET_NORMAL) == 3)
+	_ok("add_ticket 扣减成功",
+		nd.add_ticket(GameConstants.TICKET_NORMAL, -2)
+		and nd.get_ticket(GameConstants.TICKET_NORMAL) == 1)
+	_ok("add_ticket 不足返回 false 且不写入（门票永不为负）",
+		not nd.add_ticket(GameConstants.TICKET_NORMAL, -5)
+		and nd.get_ticket(GameConstants.TICKET_NORMAL) == 1)
+	# 往返一致（TK4）
+	nd.add_ticket(GameConstants.TICKET_ADVANCED, 2)
+	nd.tower_progress = {"highest_unlocked": 5, "best_layer": 5}
+	var rt := SaveData.from_dict(nd.to_dict())
+	_ok("tickets 往返一致（普通 1 / 高级 2）",
+		rt.get_ticket(GameConstants.TICKET_NORMAL) == 1
+		and rt.get_ticket(GameConstants.TICKET_ADVANCED) == 2)
+	_ok("tower_progress 往返一致（best_layer 5）",
+		int(rt.tower_progress.get("best_layer", -1)) == 5)
+	# 迁移（TK2）：伪造一条 v5 旧档（无两字段）并塞哨兵值。
+	# ⚠️ 哨兵是**反证 `_:` 兜底**的关键 —— 若 `5:` 分支缺失，match 会走 `_`
+	#    只把 save_version 推到 6，哨兵值会**原样留下** ⇒ 本断言转红（防 SF4 伪绿）。
+	var v5 := nd.to_dict()
+	v5["save_version"] = 5
+	v5.erase("tickets")
+	v5.erase("tower_progress")
+	var mig := SaveData.from_dict(v5)
+	mig.tickets = {"__sentinel__": 1}
+	mig.tower_progress = {"__sentinel__": 1}
+	_ok("v5 旧档 migrate 成功", mig.migrate())
+	_ok("migrate 后 save_version = 6", mig.save_version == GameConstants.SAVE_VERSION)
+	_ok("5: 分支确实执行（哨兵被清空，非 `_:` 兜底静默跳过）",
+		mig.tickets.is_empty() and mig.tower_progress.is_empty())
 
 	_finish()
 

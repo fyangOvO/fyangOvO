@@ -225,6 +225,10 @@ func _test_enemy_drop_and_pickup() -> void:
 	_player.gold = 0
 	_player.materials = 0
 	_player.inventory.clear()
+	# 6-W6-20：稀有掉落广播（此前 `rare_loot_spawned` 声明了但 0 个 emit 点）。
+	var rare_emits := [0]
+	var cb := func(_item, _pos): rare_emits[0] += 1
+	EventBus.rare_loot_spawned.connect(cb)
 	var boss := _spawn_enemy("boss_ember_lord", Vector2(0, 120))
 	await get_tree().physics_frame  # _refresh_player 拿到玩家引用
 	boss.take_damage(999999.0, _player)  # 秒杀 → 组件死亡 → unit_died → 掉落 + 移除
@@ -232,6 +236,15 @@ func _test_enemy_drop_and_pickup() -> void:
 	_ok("BOSS 死亡后节点已移除", not is_instance_valid(boss))
 	var drops := get_tree().get_nodes_in_group(&"loot_drops")
 	_ok("BOSS 必掉 2–4 件地面掉落物", drops.size() >= 2 and drops.size() <= 4)
+	# emit 数应逐件等于「地面稀有(≥史诗)掉落数」—— 与 RNG 结果无关，故不 flaky。
+	var rare_on_ground := 0
+	for d in drops:
+		if (d as LootDrop).rarity >= GameConstants.Rarity.EPIC:
+			rare_on_ground += 1
+	EventBus.rare_loot_spawned.disconnect(cb)
+	_ok("rare_loot_spawned emit 数 == 地面稀有(≥史诗)掉落数（6-W6-20）",
+		rare_emits[0] == rare_on_ground)
+	_info("      本局稀有(≥史诗)掉落 %d 件 / 广播 %d 次" % [rare_on_ground, rare_emits[0]])
 	# 走近拾取（掉落物撒在死亡点 ±14px）
 	_player.global_position = Vector2(0, 120)
 	await _step_physics(0.3)

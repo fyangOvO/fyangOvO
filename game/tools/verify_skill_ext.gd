@@ -533,12 +533,13 @@ func _test_save_v5_sanitize() -> void:
 		and String(out.skill_branches.get("a", "")) == "single_focus")
 	_ok("图鉴解锁列表容错（非字符串元素转字符串）",
 		out.unlocked_runes.size() == 2 and out.unlocked_runes.has("rune_swift"))
-	# v4 → v5 迁移补三项
+	# v4 → 当前版本迁移补三项
+	# ⚠️ 版本号**不可硬编码**（B5-1 升 v6 时此处曾转红）⇒ 断言「升到当前 SAVE_VERSION」。
 	var v4 := {"save_version": 4, "slot": 0, "class_id": "warrior"}
 	var mig := SaveData.from_dict(v4)
 	var mig_ok := mig.migrate()
-	_ok("v4 旧档迁移 ⇒ v5：三项新字段补空 + 版本升 5",
-		mig_ok and mig.save_version == 5
+	_ok("v4 旧档迁移 ⇒ 当前版本：三项新字段补空 + 版本升到 SAVE_VERSION",
+		mig_ok and mig.save_version == GameConstants.SAVE_VERSION
 		and mig.skill_runes.is_empty() and mig.skill_branches.is_empty()
 		and mig.unlocked_runes.is_empty())
 	_ok("SAVE_VERSION ≥ 5（B4-4 起符文/分支/图鉴三字段存在）",
