@@ -26,7 +26,11 @@ static var _registry: Dictionary = {}
 
 
 static func get_effect(id: String) -> Dictionary:
-	return ConfigLoader.get_legendary_effect(id)
+	# 先查传奇特效池，再兜底套装机制特效池（第四步 B4 3-S1：两者同结构、共用本引擎结算）。
+	var fx := ConfigLoader.get_legendary_effect(id)
+	if fx.is_empty():
+		fx = ConfigLoader.get_set_effect(id)
+	return fx
 
 
 ## 某部位的全部特效（同部位特效池，3.4 橙装重铸抽取用）
@@ -74,6 +78,27 @@ static func unregister(item: EquipmentInstance) -> void:
 	_registry.erase(item.instance_id)
 
 
+## 按 **effect_id 直接注册**（第四步 B4 3-S1：套装机制特效不绑 `EquipmentInstance`）。
+## `key` 由调用方给（`LegendaryBus` 用 `"set::<effect_id>"` 合成）—— 同 key 重复注册幂等。
+## 只注册**存在**的 effect_id（传奇 / 套装池任一）⇒ 未定义 id 不会污染注册表。
+static func register_effect_id(effect_id: String, key: String, now: float = -1.0) -> bool:
+	if effect_id.is_empty() or key.is_empty():
+		return false
+	if get_effect(effect_id).is_empty():
+		return false
+	_registry[key] = {
+		"effect_id": effect_id,
+		"stacks": 0,
+		"cooldown_until": now if now >= 0.0 else Time.get_ticks_msec() / 1000.0,
+		"limit_used": 0,
+	}
+	return true
+
+
+static func unregister_key(key: String) -> void:
+	_registry.erase(key)
+
+
 static func clear() -> void:
 	_registry.clear()
 
@@ -116,6 +141,10 @@ static func on_event(trigger_type: String, ctx: Dictionary, now: float = -1.0) -
 		if trigger_type == "on_resource_spend" and trigger.has("amount"):
 			if float(ctx.get("amount_spent", 0.0)) < float(trigger["amount"]):
 				continue
+		# 目标增益前置（第四步 B4 3-S1：`frostbite_burst` 要求目标已中「霜噬·减速」）
+		var req_buff := String(trigger.get("require_target_buff", ""))
+		if not req_buff.is_empty() and not _target_has_buff(ctx, req_buff):
+			continue
 		# 执行
 		var effect: Dictionary = fx.get("effect", {})
 		var etype := String(effect.get("type", ""))
@@ -139,6 +168,18 @@ static func _apply_cooldown(state: Dictionary, fx: Dictionary) -> void:
 	var cd := float(fx.get("cooldown", 0.0))
 	if cd > 0.0:
 		state["cooldown_until"] = Time.get_ticks_msec() / 1000.0 + cd
+
+
+## `require_target_buff` 判定：`ctx.target` 是否带有 `source_id == buff_id` 的激活增益。
+## 目标无 `BuffComponent`（验证靶 / 无增益系统实体）⇒ 视为**不满足**（不触发）。
+static func _target_has_buff(ctx: Dictionary, buff_id: String) -> bool:
+	var t: Node = ctx.get("target", null)
+	if t == null or not is_instance_valid(t) or not t.has_method("get_buff_component"):
+		return false
+	var bc = t.call("get_buff_component")
+	if bc == null:
+		return false
+	return bool(bc.call("has_source", buff_id))
 
 
 static func _make_result(fx: Dictionary, trigger_type: String, phase: String, payload: Dictionary) -> Dictionary:

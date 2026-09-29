@@ -31,6 +31,7 @@ const DIR_EQUIPMENT: String = DATA_ROOT + "/equipment"
 const DIR_AFFIXES: String = DATA_ROOT + "/affixes"
 const DIR_AFFIX_POOLS: String = DATA_ROOT + "/affix_pools"
 const DIR_LEGENDARY_EFFECTS: String = DATA_ROOT + "/legendary_effects"
+const DIR_SET_EFFECTS: String = DATA_ROOT + "/set_effects"
 const DIR_MONSTERS: String = DATA_ROOT + "/monsters"
 const DIR_BOSSES: String = DATA_ROOT + "/bosses"
 const DIR_LEVELS: String = DATA_ROOT + "/levels"
@@ -56,6 +57,8 @@ var equipment_templates: Dictionary = {} ## String → EquipmentData
 var affixes: Dictionary = {}             ## String → AffixData
 var affix_pools: Dictionary = {}         ## String → {display_name: String, affix_ids: Array[String]}
 var legendary_effects: Dictionary = {}   ## String → Dictionary（传奇特效定义，任务 3.5）
+var set_effects: Dictionary = {}         ## String → Dictionary（套装机制特效，第四步 B4 · 3-S1）
+
 var monsters: Dictionary = {}            ## String → MonsterData
 var bosses: Dictionary = {}              ## String → Dictionary（BOSS 阶段机制，任务 6.3）
 var levels: Dictionary = {}              ## String → LevelData
@@ -94,6 +97,7 @@ func load_all() -> void:
 	affixes.clear()
 	affix_pools.clear()
 	legendary_effects.clear()
+	set_effects.clear()
 	monsters.clear()
 	bosses.clear()
 	levels.clear()
@@ -123,6 +127,7 @@ func load_all() -> void:
 	_load_affix_dir(DIR_AFFIXES)
 	_load_affix_pool_dir(DIR_AFFIX_POOLS)
 	_load_legendary_effect_dir(DIR_LEGENDARY_EFFECTS)
+	_load_set_effect_dir(DIR_SET_EFFECTS)
 	_load_monster_dir(DIR_MONSTERS)
 	_load_boss_dir(DIR_BOSSES)
 	_load_level_dir(DIR_LEVELS)
@@ -163,6 +168,7 @@ func get_entry_counts() -> Dictionary:
 		"affixes": affixes.size(),
 		"affix_pools": affix_pools.size(),
 		"legendary_effects": legendary_effects.size(),
+		"set_effects": set_effects.size(),
 		"monsters": monsters.size(),
 		"bosses": bosses.size(),
 		"levels": levels.size(),
@@ -278,6 +284,85 @@ func _load_legendary_effect_dir(dir_path: String) -> void:
 					load_errors.append("传奇特效 ID 重复：'%s'" % eid)
 					continue
 				legendary_effects[eid] = effect_raw.duplicate(true)
+
+
+## 套装机制特效池：`data/set_effects/*.json`（第四步 B4 · 工单 3-S1）
+##
+## 结构与传奇特效**同形**（`trigger` / `effect` / `cooldown` 三要素），由同一个
+## `LegendaryEffectSystem` 结算 —— 但**独立字典**：套装特效没有 `slot` / `rarity_min`
+## （不绑部位），混入 `legendary_effects` 会让 `for_slot()`（橙装重铸抽取池）把它们
+## 当部位特效返回，并触发 `_validate_legendary_effects` 的 slot 校验误报。
+func _load_set_effect_dir(dir_path: String) -> void:
+	for entry in _scan_data_files(dir_path):
+		for raw in _read_entries(entry):
+			var effect_array: Array = raw.get("effects", [])
+			if effect_array.is_empty():
+				load_errors.append("套装特效文件 '%s' 缺少 effects 数组" % entry)
+				continue
+			for effect_raw in effect_array:
+				if not effect_raw is Dictionary:
+					continue
+				var eid := String(effect_raw.get("id", ""))
+				if eid.is_empty():
+					load_errors.append("套装特效文件 '%s' 中存在缺少 id 的特效" % entry)
+					continue
+				if set_effects.has(eid):
+					load_errors.append("套装特效 ID 重复：'%s'" % eid)
+					continue
+				set_effects[eid] = effect_raw.duplicate(true)
+	_validate_set_effects()
+
+
+## 套装特效定义校验（同 `_validate_legendary_effects` 的口径，但**不查 slot / rarity_min**）。
+func _validate_set_effects() -> void:
+	for eid in set_effects:
+		var fx: Dictionary = set_effects[eid]
+		if not fx.has("trigger") or not fx.get("trigger") is Dictionary:
+			load_errors.append("套装特效 '%s' 缺少 trigger（触发条件）" % eid)
+			continue
+		if not fx.has("effect") or not fx.get("effect") is Dictionary:
+			load_errors.append("套装特效 '%s' 缺少 effect（效果）" % eid)
+			continue
+		if String(fx.get("description", "")).is_empty():
+			load_errors.append("套装特效 '%s' 缺少 description" % eid)
+		if float(fx.get("cooldown", 0.0)) < 0.0:
+			load_errors.append("套装特效 '%s' 的 cooldown 为负" % eid)
+		var trigger: Dictionary = fx["trigger"]
+		var ttype := String(trigger.get("type", ""))
+		if not LEGENDARY_TRIGGER_TYPES.has(ttype):
+			load_errors.append("套装特效 '%s' 的 trigger 类型 '%s' 非法" % [eid, ttype])
+		else:
+			if ttype == "on_low_hp" and not trigger.has("hp_below_pct"):
+				load_errors.append("套装特效 '%s' 的 on_low_hp 缺少 hp_below_pct" % eid)
+		var effect: Dictionary = fx["effect"]
+		var etype := String(effect.get("type", ""))
+		if not LEGENDARY_EFFECT_TYPES.has(etype):
+			load_errors.append("套装特效 '%s' 的 effect 类型 '%s' 非法" % [eid, etype])
+
+
+## 套装特效 ↔ `sets.json` 档位绑定一致性（T7b 的工程侧同源断言）。
+## ⚠️ **必须在 `_load_set_dir` 之后调用**（依赖 `sets` 表已加载）⇒ 挂在 `_cross_validate()`。
+func _validate_set_effect_bindings() -> void:
+	for eid in set_effects:
+		var fx: Dictionary = set_effects[eid]
+		var set_id := String(fx.get("set_id", ""))
+		if set_id.is_empty():
+			load_errors.append("套装特效 '%s' 缺少 set_id" % eid)
+			continue
+		if not sets.has(set_id):
+			load_errors.append("套装特效 '%s' 的 set_id '%s' 不存在" % [eid, set_id])
+			continue
+		var set_data: SetData = sets[set_id]
+		var want_pieces := int(fx.get("pieces", -1))
+		var found := false
+		for tier in set_data.tier_bonuses:
+			if int(tier.get("pieces", -1)) == want_pieces \
+					and String(tier.get("effect_id", "")) == eid:
+				found = true
+				break
+		if not found:
+			load_errors.append("套装特效 '%s'（%s · %d 件）未在 sets.json 对应档位声明"
+				% [eid, set_id, want_pieces])
 
 
 func _load_monster_dir(dir_path: String) -> void:
@@ -707,6 +792,9 @@ func _cross_validate() -> void:
 	# 2.8) 传奇特效定义校验（范式三要素 + 类型枚举 + 参数齐全）
 	_validate_legendary_effects()
 
+	# 2.9) 套装机制特效 ↔ sets.json 档位绑定（第四步 B4 · 3-S1；依赖 sets 已加载）
+	_validate_set_effect_bindings()
+
 	# 3) 掉落表引用
 	for monster_key in monsters:
 		var monster: MonsterData = monsters[monster_key]
@@ -879,6 +967,11 @@ func get_affix(id: String) -> AffixData:
 ## 传奇特效定义（任务 3.5）。返回 Dictionary（id/name/slot/rarity_min/trigger/effect/cooldown/description）。
 func get_legendary_effect(id: String) -> Dictionary:
 	return legendary_effects.get(id, {})
+
+
+## 套装机制特效定义（第四步 B4 · 3-S1）。结构与传奇特效同形，但无 slot / rarity_min。
+func get_set_effect(id: String) -> Dictionary:
+	return set_effects.get(id, {})
 
 
 func get_monster(id: String) -> MonsterData:

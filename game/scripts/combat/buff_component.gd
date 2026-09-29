@@ -26,9 +26,17 @@ signal changed
 
 ## effect JSON 的 `stat` 名 → StatCalculator 键（别名表）。
 ## ⚠️ 这是**规范**（对齐 `02-装备属性.md` §8.2 / 特效数据），不是从被检数据反推。
+##
+## 两类条目：
+##   ① **改写名**（effect 数据用的口语名 → 引擎规范键）：`armor_pct` / `enemy_armor_reduction`
+##   ② **同名直通**（数据里就写 StatCalculator 规范键）：`move_speed` / `crit_chance` / `pct_armor` …
+## 同名直通必须**显式列出**——`resolve_key` 用 `STAT_ALIAS.get(stat, "")` 取键，
+## 表里没有就直接返回空串（调用方记日志后跳过）。漏列 ⇒ 「数据里写了、代码零消费」的死钩子。
 const STAT_ALIAS: Dictionary = {
+	# ① 改写名
 	"armor_pct": "pct_armor",
 	"enemy_armor_reduction": "pct_armor",  # 挂敌人，值为正 ⇒ 内部取负（护甲降低）
+	# ② 同名直通（StatCalculator 规范键）
 	"all_damage": "all_damage",            # 通用伤害加成（物理 + 元素，见 compute_hit 的 element_bonus_pct）
 	"move_speed": "move_speed",
 	"attack_speed": "attack_speed",
@@ -36,6 +44,11 @@ const STAT_ALIAS: Dictionary = {
 	"all_attributes": "all_attributes",
 	"gold_gain": "gold_gain",
 	"damage_reduction": "damage_reduction",  # 非 StatCalculator 键：HealthComponent 直接消费
+	"pct_armor": "pct_armor",                # pct 乘算输入键（主属性三件套）
+	"pct_attack": "pct_attack",
+	"pct_hp": "pct_hp",
+	"crit_chance": "crit_chance",
+	"elemental_damage": "elemental_damage",
 }
 
 ## 由 `HealthComponent` 直接消费、**不**并入 StatCalculator 的键（防双重计入）
@@ -161,6 +174,17 @@ func active_count() -> int:
 func has_key(key: String) -> bool:
 	for b in _buffs:
 		if String(b["key"]) == key:
+			return true
+	return false
+
+
+## 是否带有指定 `source_id` 的增益（第四步 B4 3-S1：`require_target_buff` 条件判定用）。
+## `source_id` = 施加者身份（特效取 `effect_id`）⇒ 「目标是否中了霜噬·减速」即查此。
+func has_source(source_id: String) -> bool:
+	if source_id.is_empty():
+		return false
+	for b in _buffs:
+		if String(b["source_id"]) == source_id:
 			return true
 	return false
 

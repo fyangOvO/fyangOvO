@@ -10,8 +10,8 @@
 		],
 		"tier_bonuses": [
 			{ "pieces": 2, "description": "+15% 冰霜伤害", "stats": { "cold_resist": 0.0, "elemental_damage": 15.0 } },
-			{ "pieces": 4, "description": "攻击 25% 概率使目标减速 40%，持续 2 秒", "stats": {}, "effect_id": "frostbite_slow" },
-			{ "pieces": 6, "description": "对减速目标暴击率 +20%，暴击附加「霜爆」造成 200% 攻击力冰霜范围伤害", "stats": { "crit_chance": 20.0 }, "effect_id": "frostbite_burst" }
+			{ "pieces": 4, "description": "攻击命中使目标移速 -20%，持续 2 秒（可刷新）", "stats": {}, "effect_id": "frostbite_slow" },
+			{ "pieces": 6, "description": "对已减速目标暴击时引发霜爆：200% 攻击力冰霜范围伤害（冷却 3 秒）", "stats": { "crit_chance": 20.0 }, "effect_id": "frostbite_burst" }
 		]
 	},
 	{
@@ -25,8 +25,8 @@
 		],
 		"tier_bonuses": [
 			{ "pieces": 2, "description": "+12% 火焰伤害", "stats": { "elemental_damage": 12.0 } },
-			{ "pieces": 4, "description": "击杀后 5 秒内攻速 +15%", "stats": {}, "effect_id": "emberpath_frenzy" },
-			{ "pieces": 6, "description": "每次击杀叠 1 层「燃」，每层 +2% 攻击力（上限 10 层），持续至出关", "stats": { "pct_attack": 20.0 }, "effect_id": "emberpath_ember" }
+			{ "pieces": 4, "description": "连续命中叠「焰」，满 5 层后下次攻击必定暴击", "stats": {}, "effect_id": "emberpath_frenzy" },
+			{ "pieces": 6, "description": "击杀点燃周围敌人：150% 攻击力火焰范围伤害 + 3 跳持续灼烧", "stats": { "pct_attack": 20.0 }, "effect_id": "emberpath_ember" }
 		]
 	},
 	{
@@ -40,8 +40,8 @@
 		],
 		"tier_bonuses": [
 			{ "pieces": 2, "description": "+15% 护甲", "stats": { "pct_armor": 15.0 } },
-			{ "pieces": 4, "description": "格挡成功后回复 5% 最大生命", "stats": {}, "effect_id": "oathkeeper_block_heal" },
-			{ "pieces": 6, "description": "生命 <30% 时获得 40% 减伤（冷却 60 秒）", "stats": {}, "effect_id": "oathkeeper_last_stand" }
+			{ "pieces": 4, "description": "受到伤害时 25% 概率回复 4% 最大生命", "stats": {}, "effect_id": "oathkeeper_block_heal" },
+			{ "pieces": 6, "description": "濒死（生命 <30%）获得 +50% 护甲，持续 5 秒（冷却 75 秒）", "stats": {}, "effect_id": "oathkeeper_last_stand" }
 		]
 	}
 ]

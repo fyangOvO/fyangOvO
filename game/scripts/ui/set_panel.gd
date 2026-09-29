@@ -71,12 +71,34 @@ func _make_set_row(entry: Dictionary) -> VBoxContainer:
 	vb.add_child(bar)
 
 	# 档位文案（激活高亮）
+	# 第四步 B4 3-S4：机制型档位在**同一行**用独立颜色显示机制名（非仅数值）。
+	# ⚠️ 不另起一行 —— 3 套 × (2 数值档 + 4 机制行) 会把面板撑出 640×360 视口（预览已实测溢出）。
+	var green := Color(0.6, 0.85, 0.65)
+	var grey := GameConstants.PALETTE_NEUTRAL[6]
 	for tier in tiers:
-		var row := Label.new()
-		row.add_theme_font_size_override("font_size", 10)
 		var active: bool = tier["active"]
-		row.add_theme_color_override("font_color",
-			Color(0.6, 0.85, 0.65) if active else GameConstants.PALETTE_NEUTRAL[6])
-		row.text = "%s件%s：%s" % ["✓ " if active else "○ ", tier["pieces"], tier["description"]]
-		vb.add_child(row)
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 4)
+
+		var piece_lbl := Label.new()
+		piece_lbl.add_theme_font_size_override("font_size", 10)
+		piece_lbl.add_theme_color_override("font_color", green if active else grey)
+		piece_lbl.text = "%s件" % tier["pieces"]
+		line.add_child(piece_lbl)
+
+		var effect_name := String(tier.get("effect_name", ""))
+		if not effect_name.is_empty():
+			var mech := Label.new()
+			mech.add_theme_font_size_override("font_size", 10)
+			mech.add_theme_color_override("font_color",
+				Color(0.45, 0.78, 1.0) if active else Color(0.38, 0.42, 0.5))
+			mech.text = "【%s】" % effect_name
+			line.add_child(mech)
+
+		var desc := Label.new()
+		desc.add_theme_font_size_override("font_size", 10)
+		desc.add_theme_color_override("font_color", green if active else grey)
+		desc.text = "：%s" % tier["description"]
+		line.add_child(desc)
+		vb.add_child(line)
 	return vb

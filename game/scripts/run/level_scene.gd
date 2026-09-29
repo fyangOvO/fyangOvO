@@ -533,10 +533,15 @@ func _setup_legendary_bus() -> void:
 	var data := SaveManager.current_data
 	if data != null:
 		_legendary_bus.register_equipped(data.equipped)
+		# 第四步 B4 3-S3：套装机制特效与装备特效一起注册（穿满 4/6 件才生效）
+		_legendary_bus.sync_set_effects(data.equipped)
 
 
 ## 3-K3：装备变更（穿上 / 脱下 / 替换）→ 注销旧件、注册新件。
 ## `equipment_changed(slot, new_item, old_item)` 的 `old_item` 可能为 null（首次穿上）。
+##
+## 第四步 B4 3-S3：装备件数变化会**跨档位**（4 件→3 件套裝特效必须失效）⇒ 每次变更后
+## 都要用**完整穿戴列表**重算套装特效的注册集合（差分在 `sync_set_effects` 内部做）。
 func _on_equipment_changed(_slot: int, new_item: EquipmentInstance, old_item: EquipmentInstance) -> void:
 	if _legendary_bus == null:
 		return
@@ -544,6 +549,9 @@ func _on_equipment_changed(_slot: int, new_item: EquipmentInstance, old_item: Eq
 		_legendary_bus.unregister_item(old_item)
 	if new_item != null:
 		_legendary_bus.register_item(new_item)
+	var data := SaveManager.current_data
+	if data != null:
+		_legendary_bus.sync_set_effects(data.equipped)
 
 
 ## 注入给总线的掉落生成器（`extra_loot` 效果用）：在指定位置放一件额外掉落。

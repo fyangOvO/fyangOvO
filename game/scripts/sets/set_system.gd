@@ -5,8 +5,9 @@
 ##   - `get_set_of(item)`：装备所属套装 id（来自底材 set_id）
 ##   - `count_pieces(equipped, set_id)`：已穿件数
 ##   - `get_active_tiers(equipped, set_id)`：达标档位（pieces ≤ 计数）
-##   - `get_bonus_stats(equipped)`：全部激活套装的数值加成（stats 字段并入最终属性；
-##     effect_id 机制类仅文案展示——触发逻辑属战斗层，3.11/战斗接入时由调用方处理）
+##   - `get_bonus_stats(equipped)`：全部激活套装的数值加成（stats 字段并入最终属性）
+##   - `get_active_effects(equipped)`：全部激活套装的**机制型** effect_id（第四步 B4 3-S2，
+##     交给 `LegendaryBus` 与装备传奇特效一起 register / unregister）
 ##   - `get_progress(equipped)`：每套进度（供 SetPanel 6 段进度条渲染，GDD 0.3 节 3.7）
 class_name SetSystem
 extends RefCounted
@@ -61,6 +62,45 @@ static func get_bonus_stats(equipped: Array[EquipmentInstance]) -> Dictionary:
 	return out
 
 
+## 已激活的**套装机制特效**（第四步 B4 · 工单 3-S2）。
+##
+## 返回 `[{set_id, pieces, effect_id, name}]` —— 仅含**已达标**且档位声明了非空 `effect_id` 的条目。
+## 关键约束（§3.2）：
+##   · **每套最多 2 条**（4 件 / 6 件档；2 件档为纯数值，无 effect_id）
+##   · **同套装内 effect_id 去重** —— 防同一条特效被 register 两次
+##   · **档位回退即消失** —— 从 4 件降到 3 件时该档不再出现在结果里（调用方据此注销）
+static func get_active_effects(equipped: Array[EquipmentInstance]) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var seen_sets: Dictionary = {}
+	for item in equipped:
+		var set_id := get_set_of(item)
+		if set_id.is_empty() or seen_sets.has(set_id):
+			continue
+		seen_sets[set_id] = true
+		var seen_effects: Dictionary = {}
+		for tier in get_active_tiers(equipped, set_id):
+			var eid := String(tier.get("effect_id", ""))
+			if eid.is_empty() or seen_effects.has(eid):
+				continue
+			seen_effects[eid] = true
+			out.append({
+				"set_id": set_id,
+				"pieces": int(tier.get("pieces", 0)),
+				"effect_id": eid,
+				"name": effect_display_name(eid),
+			})
+	return out
+
+
+## 套装机制特效的显示名（数据缺失时回退为 id 本身，不返回空串）。
+static func effect_display_name(effect_id: String) -> String:
+	if effect_id.is_empty():
+		return ""
+	var fx := ConfigLoader.get_set_effect(effect_id)
+	var n := String(fx.get("name", ""))
+	return n if not n.is_empty() else effect_id
+
+
 ## 每套进度（SetPanel 渲染）：[{set_id, display_name, emblem_path, pieces, piece_total, tiers}]
 ## tiers = [{pieces, description, active, stats, effect_id}]
 ## emblem_path：套装徽记贴图（完整 res:// 路径，UI 侧走 ContentLoader.load_icon 加载）
@@ -73,12 +113,15 @@ static func get_progress(equipped: Array[EquipmentInstance]) -> Array[Dictionary
 		var count := count_pieces(equipped, set_id)
 		var tiers: Array[Dictionary] = []
 		for tier in info["tier_bonuses"]:
+			var eid := String(tier.get("effect_id", ""))
 			tiers.append({
 				"pieces": int(tier["pieces"]),
 				"description": String(tier.get("description", "")),
 				"active": int(tier["pieces"]) <= count,
 				"stats": tier.get("stats", {}),
-				"effect_id": String(tier.get("effect_id", "")),
+				"effect_id": eid,
+				# 第四步 B4 3-S4：机制名（非数值）—— 面板要显示「已激活机制」而非只有数值
+				"effect_name": effect_display_name(eid),
 			})
 		out.append({
 			"set_id": set_id,

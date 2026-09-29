@@ -2,9 +2,11 @@
 ##
 ## 职责（`03-装备特色玩法.md` §2.2 写死，不得越界）：
 ##   ① 关卡进入时 `register()` 全部已穿装备的传奇特效（`register_equipped`）
-##   ② 监听事件点，把信号/钩子翻译成 `ctx` 字典（§2.3 契约）
-##   ③ 调 `LegendaryEffectSystem.on_event()` 拿结算结果
-##   ④ **执行**结果 —— 数值已由 `on_event` 算好，本类**不自己算伤害**
+##   ② **套装机制特效**与装备特效共用本总线的注册表与执行器（第四步 B4 3-S3：
+##      `sync_set_effects` 按当前穿戴差分注册 / 注销，key 前缀 `set::`）
+##   ③ 监听事件点，把信号/钩子翻译成 `ctx` 字典（§2.3 契约）
+##   ④ 调 `LegendaryEffectSystem.on_event()` 拿结算结果
+##   ⑤ **执行**结果 —— 数值已由 `on_event` 算好，本类**不自己算伤害**
 ##
 ## ⚠️ 禁止：自己算伤害 / 直接改玩家 HP 字段（一律走 `health.restore()` / `mana.restore()`
 ## 等正规接口）。
@@ -113,11 +115,55 @@ func clear() -> void:
 	LegendaryEffectSystem.clear()
 	_extra_loot_used.clear()
 	_warned_types.clear()
+	_set_keys.clear()
 	_last_hp_pct = 1.0
 
 
 func registered_count() -> int:
 	return LegendaryEffectSystem.registered_count()
+
+
+# =============================================================================
+# 套装机制特效注册（第四步 B4 · 3-S3）
+# =============================================================================
+
+## 套装特效在注册表里的 key 前缀（与装备的 `instance_id` 区分开）。
+const SET_KEY_PREFIX: String = "set::"
+
+## 当前已注册的套装特效 key（`{key: effect_id}`）—— 用于 sync 时做增删差分
+var _set_keys: Dictionary = {}
+
+
+## 按当前穿戴重算套装机制特效的注册集合（关卡进入 / 装备变更时调用）。
+##
+## 差分语义（§3.2 三条约束的落点）：
+##   · 新激活 ⇒ `register_effect_id`（同 key 幂等，不重置已注册项的叠层 / 冷却）
+##   · 已失效（档位回退 / 脱下）⇒ `unregister_key` —— **必须注销**，否则套装效果永久生效
+##   · 同套装 effect_id 去重由 `SetSystem.get_active_effects` 保证
+func sync_set_effects(equipped: Array[EquipmentInstance]) -> void:
+	var want: Dictionary = {}
+	for e in SetSystem.get_active_effects(equipped):
+		var eid := String(e.get("effect_id", ""))
+		if eid.is_empty():
+			continue
+		want[SET_KEY_PREFIX + eid] = eid
+	# ① 注销不再激活的
+	for k in _set_keys.keys():
+		if not want.has(k):
+			LegendaryEffectSystem.unregister_key(String(k))
+	# ② 注册新增的
+	for k in want.keys():
+		if not _set_keys.has(k):
+			LegendaryEffectSystem.register_effect_id(String(want[k]), String(k))
+	_set_keys = want
+
+
+## 当前注册中的套装特效 id（验证 / 面板用，按注册表顺序）
+func active_set_effect_ids() -> Array[String]:
+	var out: Array[String] = []
+	for k in _set_keys:
+		out.append(String(_set_keys[k]))
+	return out
 
 
 # =============================================================================

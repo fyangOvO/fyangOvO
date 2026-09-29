@@ -1,0 +1,107 @@
+{
+	"_meta": {
+		"version": 1,
+		"step": 4,
+		"date": "2026-09-29",
+		"purpose": "6 个套装 effect_id 的机制定义（第四步 B4 · 工单 3-S1）",
+		"docs": "03-装备特色玩法.md §3.1 / 03-set-effects.json",
+		"structure": "复用传奇特效三要素结构（trigger / effect / cooldown），由同一套 LegendaryEffectSystem 结算",
+		"why_separate_dir": "与 data/legendary_effects/ 分离：套装特效无 slot / rarity_min（不是部位绑定特效），若混入会让 for_slot() 把它们当橙装重铸抽取池返回，且触发 _validate_legendary_effects 的 slot 校验报错",
+		"consumers": "ConfigLoader.set_effects → SetSystem.get_active_effects → LegendaryBus.register_set_effects"
+	},
+	"effects": [
+		{
+			"id": "frostbite_slow",
+			"name": "霜噬·减速",
+			"set_id": "frostbite",
+			"pieces": 4,
+			"trigger": { "type": "on_hit" },
+			"effect": {
+				"type": "buff_stat",
+				"stat": "move_speed",
+				"value": -20.0,
+				"duration": 2.0,
+				"target": "enemy"
+			},
+			"cooldown": 0.0,
+			"description": "攻击命中使目标移速 -20%，持续 2 秒（可刷新）"
+		},
+		{
+			"id": "frostbite_burst",
+			"name": "霜噬·霜爆",
+			"set_id": "frostbite",
+			"pieces": 6,
+			"trigger": { "type": "on_crit", "require_target_buff": "frostbite_slow" },
+			"effect": {
+				"type": "deal_damage",
+				"damage_pct": 2.0,
+				"element": "cold",
+				"area": true
+			},
+			"cooldown": 3.0,
+			"description": "对已减速（霜噬·减速）目标暴击时引发霜爆：200% 攻击力冰霜范围伤害，冷却 3 秒"
+		},
+		{
+			"id": "emberpath_frenzy",
+			"name": "烬途·狂焰",
+			"set_id": "emberpath",
+			"pieces": 4,
+			"trigger": { "type": "on_hit", "stacks_until": 5 },
+			"effect": {
+				"type": "stack",
+				"on_full": {
+					"type": "buff_stat",
+					"stat": "crit_chance",
+					"value": 100.0,
+					"duration": 1.0,
+					"target": "self"
+				}
+			},
+			"cooldown": 0.0,
+			"description": "连续命中叠「焰」，满 5 层后下次攻击必定暴击（暴击率 +100%，持续 1 秒）"
+		},
+		{
+			"id": "emberpath_ember",
+			"name": "烬途·余烬",
+			"set_id": "emberpath",
+			"pieces": 6,
+			"trigger": { "type": "on_kill" },
+			"effect": {
+				"type": "deal_damage",
+				"damage_pct": 1.5,
+				"element": "fire",
+				"area": true,
+				"dot": 0.5,
+				"dot_ticks": 3
+			},
+			"cooldown": 1.0,
+			"description": "击杀点燃周围敌人：150% 攻击力火焰范围伤害 + 3 跳持续灼烧，冷却 1 秒"
+		},
+		{
+			"id": "oathkeeper_block_heal",
+			"name": "守誓·回春",
+			"set_id": "oathkeeper",
+			"pieces": 4,
+			"trigger": { "type": "on_damage_taken", "pct": 0.25 },
+			"effect": { "type": "heal", "heal_pct": 0.04 },
+			"cooldown": 0.0,
+			"description": "受到伤害时 25% 概率回复 4% 最大生命"
+		},
+		{
+			"id": "oathkeeper_last_stand",
+			"name": "守誓·背水",
+			"set_id": "oathkeeper",
+			"pieces": 6,
+			"trigger": { "type": "on_low_hp", "hp_below_pct": 0.3 },
+			"effect": {
+				"type": "buff_stat",
+				"stat": "pct_armor",
+				"value": 50.0,
+				"duration": 5.0,
+				"target": "self"
+			},
+			"cooldown": 75.0,
+			"description": "濒死（生命 <30%）获得 +50% 护甲，持续 5 秒，冷却 75 秒"
+		}
+	]
+}
