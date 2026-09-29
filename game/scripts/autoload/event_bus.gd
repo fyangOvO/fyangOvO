@@ -93,6 +93,21 @@ signal damage_dealt(target: Node, amount: float, is_crit: bool, element: String)
 ## 受到伤害
 signal damage_taken(source: Node, amount: float, element: String)
 
+## 格挡成功（第三步 3-BL1）。格挡系统本已存在（`HealthComponent._roll_block()`），
+## 此前**只减伤、不广播** ⇒ 传奇特效 `on_block`（守护·坚壁）无落点。
+## `amount` 为**格挡前**的伤害值（调用方如需格挡后值自行乘 `1 - BLOCK_DAMAGE_REDUCTION`）。
+signal block_succeeded(blocker: Node, source: Node, amount: float)
+
+## 技能施放成功（第三步 3-X5 · `on_skill_cast` 落点）。在 `SkillController.try_cast()`
+## 扣费 + 进冷却**之后**广播。
+## `mana_spent` = 本次**实扣**法力（已过技能减耗）—— 供 `resource_refund` 类特效
+## （终末回响 / 凝神·专注坠）算返还额，避免总线再回头去问 SkillController。
+signal skill_cast(skill_id: String, mana_spent: float)
+
+## 资源被消耗（第三步 3-X5 · `on_resource_spend` 落点）。`amount` = **实扣**的法力值
+## （已过技能减耗）。消费点：传奇特效「每消耗 N 点资源」类阈值判定（ctx.amount_spent）。
+signal resource_spent(amount: float)
+
 ## 单位死亡
 signal unit_died(unit: Node, killer: Node)
 

@@ -155,6 +155,14 @@ func tick_cooldowns(delta: float) -> void:
 			_cooldowns[id] = maxf(float(_cooldowns[id]) - delta, 0.0)
 
 
+## 冷却减半（传奇特效 `resource_refund.cooldown_half`，第三步 3-K5 的消费点）。
+## 下限仍守 `SKILL_MIN_COOLDOWN_SEC`（0.2s）—— 防「多次减半」穿透零冷却兜底。
+func halve_cooldown(id: String) -> void:
+	if not _cooldowns.has(id):
+		return
+	_cooldowns[id] = maxf(float(_cooldowns[id]) * 0.5, GameConstants.SKILL_MIN_COOLDOWN_SEC)
+
+
 # =============================================================================
 # 施放
 # =============================================================================
@@ -218,6 +226,12 @@ func try_cast(id: String) -> bool:
 			push_warning("[SkillController] 技能 '%s' 的形态 %d 无分派分支（已被静默吞掉）"
 				% [id, effective.type])
 	CombatMetrics.end_cast()
+	# 3-X5：施法 / 耗资源埋点（传奇特效 `on_skill_cast` / `on_resource_spend` 的落点）。
+	# ⚠️ 必须放在**扣费 + 写入冷却之后** —— `resource_refund`（终末回响）要用「已扣的实耗」
+	# 返还法力、要「刚写入的冷却」做 `cooldown_half`。放在前面两者都会算错。
+	# 顺序：先 `resource_spent`（资源在施放前就已扣）再 `skill_cast`（施放成立）。
+	EventBus.resource_spent.emit(real_cost)
+	EventBus.skill_cast.emit(id, real_cost)
 	return true
 
 

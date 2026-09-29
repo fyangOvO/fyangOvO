@@ -51,6 +51,17 @@ var host: Node = null
 ## 玩家保持 0 走 GDD 玩家公式（150 × 1.11^(L-1)）。
 var max_hp_override: float = 0.0
 
+## 濒死拦截钩子（可选，第三步 3-K7）：传奇特效总线注入，参数 `(source: Node) -> bool`。
+## 返回 `true` = 已拦截（免死，**不**广播 `unit_died`）；组件本身不实现任何免死逻辑。
+## 在 `current_hp <= 0` 判定处调用，此时 `current_hp` 已归零、`is_dead` 仍为 false，
+## 钩子内部应通过 `restore()` 回血。
+var revive_hook: Callable = Callable()
+
+## 受击钩子（可选，第三步 3-K6/K9）：传奇特效总线注入，参数 `(amount: float, source: Node)`。
+## 在**扣血之后、死亡判定之前**调用（致命一击同样触发 —— 反伤/受击类特效不受生死影响）。
+## 只覆盖「直接受击」；异常状态（DOT）逐帧扣血**不**走此钩子（「受到攻击」≠「持续掉血」）。
+var damaged_hook: Callable = Callable()
+
 
 func _ready() -> void:
 	if host == null:
@@ -125,17 +136,25 @@ func take_damage(amount: float, source: Node) -> void:
 	if apply_mitigation:
 		# 2) 减伤：护甲 DR（物理路径；元素抗性阶段 3 前 = 0）
 		dmg = amount * _damage_reduction_multiplier()
-		# 3) 概率判定（闪避 → 免疫；格挡 → 减伤）
-		if _roll_dodge():
-			return
-		if _roll_block():
-			dmg *= 1.0 - GameConstants.BLOCK_DAMAGE_REDUCTION
+	# 3) 概率判定（闪避 → 免疫；格挡 → 减伤）
+	if _roll_dodge():
+		return
+	if _roll_block():
+		dmg *= 1.0 - GameConstants.BLOCK_DAMAGE_REDUCTION
+		# 3-BL1：格挡成功广播（`amount` 传格挡前的原始伤害，消费方需要格挡后值自行乘减伤）
+		EventBus.block_succeeded.emit(host, source, amount)
 	# 4) 护盾吸收 → 扣血
 	dmg = _absorb_by_shield(dmg)
 	current_hp -= dmg
 	EventBus.health_changed.emit(current_hp, get_max_hp())
+	# 3-K6/K9：受击钩子（扣血后、死亡判定前；致命一击同样触发）
+	if damaged_hook.is_valid():
+		damaged_hook.call(dmg, source)
 	if current_hp <= 0.0:
 		current_hp = 0.0
+		# 3-K7：濒死拦截（传奇特效 `revive_protect`）。钩子返回 true = 免死，不广播 unit_died。
+		if revive_hook.is_valid() and bool(revive_hook.call(source)):
+			return
 		_die(source)
 
 

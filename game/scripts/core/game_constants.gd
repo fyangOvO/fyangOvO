@@ -1274,6 +1274,30 @@ static func forge_success_chance(target_level: int) -> float:
 
 
 # =============================================================================
+# 八·十五、传奇特效接线（第三步 3-K1~K9 · `legendary_bus.gd`）
+# =============================================================================
+#
+# 数据在 `game/data/legendary_effects/legendary_effects.json`（31 条），结算在
+# `LegendaryEffectSystem.on_event()`（纯函数，不改状态），**执行**在 `LegendaryBus`。
+# 本节只放「执行侧」需要的数值常量。
+
+## `deal_damage` 且 `area=true` 时的范围半径（px）。
+## ⚠️ 设计文档（`03-装备特色玩法.md` §2.6）只写「area 需找范围内敌人」，**未指定半径**
+## ⇒ 本工程取值与近战 AOE 技能（旋刃 `spin_slash` radius=48）同量级，保证「范围伤害」
+## 的观感与技能一致（技能半径区间实测为 40–80）。
+const LEGENDARY_AREA_RADIUS: float = 48.0
+
+## `extra_loot` 无 `limit_per_run` 字段时的单局上限兜底（防无限掉）
+const LEGENDARY_EXTRA_LOOT_LIMIT_DEFAULT: int = 5
+
+## 低血轮询的「濒死带」：`hp_pct ≤ 此值` 视为濒死，只由**死亡钩子**消费（3-K7）。
+## `LegendaryBus` 的低血轮询会**跳过**该带 —— 否则「活着但 HP 极低」的瞬间会白耗
+## `revive_protect` 的冷却（不朽者 90s），真正的致命一击反而救不回来。
+## 取值与 `bu_xiu_zhe_de_can_qu` 的 `trigger.hp_below_pct = 0.01` 一致。
+const LEGENDARY_REVIVE_BAND_HP_PCT: float = 0.01
+
+
+# =============================================================================
 # 九、存档
 # =============================================================================
 ## 默认职业 ID（旧档 / 未选职业时使用）

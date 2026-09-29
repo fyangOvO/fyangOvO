@@ -100,6 +100,8 @@ var _layout: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
 var _player: PlayerController = null
+## 传奇特效总线（第三步 3-K2/K3）：关卡进入时注册已穿装备特效，脱装时注销，离场时清空。
+var _legendary_bus: LegendaryBus = null
 ## 存活敌人（死亡时移出；用数组而非计数，方便断言「谁还在」）
 var _alive: Array[EnemyBase] = []
 var _boss_total: int = 0
@@ -192,6 +194,8 @@ func _ready() -> void:
 	EventBus.damage_dealt.connect(_on_damage_dealt)
 	# 8C BOSS 阶段切换 → 顶部阶段横幅（觉醒卡只覆盖开战第 1 阶段）
 	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
+	# 3-K3：脱装 / 换装时同步传奇特效注册表（否则脱下的装备特效会永久生效）
+	EventBus.equipment_changed.connect(_on_equipment_changed)
 	_progression = RunProgression.new(_on_run_level_up)
 	# 相机缩放：全项目唯一来源是 GameConstants.CAMERA_ZOOM_BASE，不在 .tscn 里硬编码
 	_camera.zoom = GameConstants.CAMERA_ZOOM_BASE
@@ -400,6 +404,9 @@ func _build() -> void:
 	_actors.add_child(_player)
 	_player.global_position = _cell_to_world(spawn_cell)
 	_apply_account_stats()
+	# 3-K1/K2：挂载传奇特效总线（必须在玩家 + 属性就绪**之后** —— 总线要读玩家攻击力 /
+	# 生命上限，并把死亡钩子 / 受击钩子注入玩家的 HealthComponent）。
+	_setup_legendary_bus()
 	_hp_bar.target = _player
 	_mp_bar.target = _player
 	_camera.global_position = _player.global_position
@@ -472,6 +479,56 @@ func _apply_account_stats(refill_hp: bool = true) -> void:
 		else:
 			# 保留当前血量，只把超出新上限的部分削掉（升级加血上限不自动补满）
 			_player.health.current_hp = minf(_player.health.current_hp, max_hp)
+
+
+# =============================================================================
+# 传奇特效总线（第三步 3-K1~K3）
+# =============================================================================
+
+## 建总线 → 注入依赖 → 注册全部已穿装备的传奇特效。
+##
+## 注入两个 Callable 而不是让总线直接操作场景：
+##   · `_spawn_legendary_loot` —— 总线的 `extra_loot` 效果需要生成掉落物，
+##     但总线**不该认识** `LOOT_SCENE` / `_actors`（保持「不碰场景结构」）。
+##   · `_is_elite` —— 精英判定的**唯一口径**在关卡里（meta `lv_kind` 或 `data.tier`），
+##     复用同一个方法避免双口径漂移。
+func _setup_legendary_bus() -> void:
+	if _player == null:
+		return
+	_legendary_bus = LegendaryBus.new()
+	_legendary_bus.name = "LegendaryBus"
+	add_child(_legendary_bus)
+	_legendary_bus.setup(_player, _spawn_legendary_loot, _is_elite)
+	var data := SaveManager.current_data
+	if data != null:
+		_legendary_bus.register_equipped(data.equipped)
+
+
+## 3-K3：装备变更（穿上 / 脱下 / 替换）→ 注销旧件、注册新件。
+## `equipment_changed(slot, new_item, old_item)` 的 `old_item` 可能为 null（首次穿上）。
+func _on_equipment_changed(_slot: int, new_item: EquipmentInstance, old_item: EquipmentInstance) -> void:
+	if _legendary_bus == null:
+		return
+	if old_item != null:
+		_legendary_bus.unregister_item(old_item)
+	if new_item != null:
+		_legendary_bus.register_item(new_item)
+
+
+## 注入给总线的掉落生成器（`extra_loot` 效果用）：在指定位置放一件额外掉落。
+func _spawn_legendary_loot(entry: Dictionary, pos: Vector2) -> void:
+	if entry.is_empty():
+		return
+	var drop := LOOT_SCENE.instantiate() as LootDrop
+	drop.setup(entry)
+	_actors.add_child(drop)
+	drop.global_position = pos
+
+
+func _exit_tree() -> void:
+	# 3-K2：离开关卡清空注册表（静态注册表跨场景共享，不清会污染下一局）
+	if _legendary_bus != null:
+		_legendary_bus.clear()
 
 
 func _spawn_monsters() -> void:
