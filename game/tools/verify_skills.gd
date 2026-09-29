@@ -49,6 +49,21 @@ const DPS_RANGE_DAMAGE := [0.40, 0.70] ## 單體 / 範圍 / 投射物
 const DPS_RANGE_GROUND := [0.45, 0.75] ## 持續區域（含全部 tick）
 const DPS_RANGE_DASH := [0.10, 0.20]   ## 位移（價值在位移，傷害為輔）
 
+## 形態鍵 → 設計區間（`1-V8` 全量掃描用）。`buff` / `summon` 無傷害 ⇒ 不在此表（單獨斷言 dps == 0）。
+## 鍵取自 `SkillData.TYPE_KEYS`（與 skills.json 的 `type` 字串同源）。
+const DPS_RANGE_BY_TYPE := {
+	"single": DPS_RANGE_DAMAGE,
+	"aoe": DPS_RANGE_DAMAGE,
+	"projectile": DPS_RANGE_DAMAGE,
+	"ground": DPS_RANGE_GROUND,
+	"dash": DPS_RANGE_DASH,
+}
+
+## 邊界技能（`arrow_rain` / `frost_nova` / `hunters_mark` / `shield_bash` = 0.400；
+## `poison_field` / `shadow_volley` = 0.700）恰好落在區間端點 ⇒ 比較時留 1e-6 容差，
+## 否則 float 表示誤差會把**合法值**判成越界（假紅）。
+const DPS_EPSILON := 0.000001
+
 var _fail: int = 0
 var _player: PlayerController = null
 var _mana: ManaPool = null
@@ -93,6 +108,7 @@ func _ready() -> void:
 	await _test_attack_combo()
 	await _test_skill_effects()
 	await _test_regression()
+	await _test_dps_full_scan()
 	_finish()
 
 
@@ -525,6 +541,62 @@ func _test_regression() -> void:
 
 	_ok("闪避回归：闪避成功开启无敌帧", _player.try_dodge() and _player.is_invulnerable())
 	await _step_physics(1.0)
+
+
+# =============================================================================
+# G. DPS 全量扫描（1-V8）：36 技能 × §5.1 设计区间
+# =============================================================================
+# 与 A 段的 11 条**单点**断言并存的理由：单点断言信息更细（失败一眼定位到技能），
+# 本段保证**无遗漏**（日后新增技能忘了加单点断言时，本段仍会扫到）。
+# 口径与区间来源：`01-技能体系.md` §5.1「统一标尺：DPS 系数」；
+# 模型由 `SkillData.dps_coefficient()` 承担（GROUND 含全部 tick / PROJECTILE 按全中计）。
+
+func _test_dps_full_scan() -> void:
+	print("--- G. DPS 全量扫描（1-V8 · 36 技能 × 设计区间）---")
+	var scanned := 0
+	var damaging := 0
+	var non_damaging := 0
+	var bad: Array[String] = []
+	var margin_lo := 1e9
+	var margin_hi := 1e9
+	var margin_lo_id := ""
+	var margin_hi_id := ""
+	for sid in DESIGN_SKILL_IDS:
+		var data := ConfigLoader.get_skill(sid)
+		if data == null:
+			bad.append("%s(缺数据)" % sid)
+			continue
+		scanned += 1
+		var type_key: String = SkillData.TYPE_KEYS[data.type]
+		if data.is_non_damaging():
+			non_damaging += 1
+			if not is_zero_approx(data.dps_coefficient()):
+				bad.append("%s(%s 非伤害形态 dps != 0)" % [sid, type_key])
+			continue
+		damaging += 1
+		var rng: Array = DPS_RANGE_BY_TYPE.get(type_key, [])
+		if rng.is_empty():
+			bad.append("%s(形态 %s 无区间定义)" % [sid, type_key])
+			continue
+		var dps := data.dps_coefficient()
+		var lo: float = rng[0]
+		var hi: float = rng[1]
+		if dps < lo - DPS_EPSILON or dps > hi + DPS_EPSILON:
+			bad.append("%s(%s %.3f ∉ %.2f–%.2f)" % [sid, type_key, dps, lo, hi])
+		if dps - lo < margin_lo:
+			margin_lo = dps - lo
+			margin_lo_id = "%s %.3f" % [sid, dps]
+		if hi - dps < margin_hi:
+			margin_hi = hi - dps
+			margin_hi_id = "%s %.3f" % [sid, dps]
+	_ok("扫描覆盖全表 %d 条（伤害 %d / 非伤害 %d）"
+		% [scanned, damaging, non_damaging],
+		scanned == DESIGN_SKILL_IDS.size() and damaging + non_damaging == scanned)
+	_ok("全部伤害技能 DPS 系数落在 §5.1 区间内（越界 %d 条%s）"
+		% [bad.size(), "" if bad.is_empty() else "：" + str(bad)],
+		bad.is_empty())
+	_info("距下界最近：%s（余量 %.3f）" % [margin_lo_id, margin_lo])
+	_info("距上界最近：%s（余量 %.3f）" % [margin_hi_id, margin_hi])
 
 
 func _step_physics(seconds: float) -> void:

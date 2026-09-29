@@ -1,5 +1,5 @@
-## 技能扩展体系实测（第四步 B4-4 · 工单 1-L8 / 1-L9 / 1-L10 / 1-L11 / 1-L13 / 1-L14 ·
-## 2026-09-29 · 开发用，不属于游戏玩法）
+## 技能扩展体系实测（第四步 B4-4 · 工单 1-L8 / 1-L9 / 1-L10 / 1-L11 / 1-L13 / 1-L14
+## ＋ B4-6 · 工单 1-V7 / 1-V9 · 2026-09-29 · 开发用，不属于游戏玩法）
 ##
 ## 用法：
 ##   godot --headless --path "D:/七傳說/game" res://tools/verify_skill_ext.tscn
@@ -18,7 +18,7 @@
 ##   ② 分支 modifier 的期望值取自**策划案 §2.3 的文字描述**（+40% / ×1.5 / 3 枚扇形），
 ##      不从 `branches.json` 反读 —— 数据被改坏时测试必须红。
 ##
-## 覆盖（A~I）：
+## 覆盖（A~K）：
 ##   A. 技能解锁判定（1-L11）：双轨门槛 / 边界等级 / 未注册 id / 不改出战栏
 ##   B. 等级公式（1-L2）：L1/L4/L7/L10 四点 + 不影响冷却 / 蓝耗 / 范围
 ##   C. 符文表自洽（1-D3）：槽位 / 解锁等级 / 互斥组 / 适用形态 / 修饰非空
@@ -28,6 +28,8 @@
 ##   G. 天赋「技之极意」（1-L10）：flat 桶 +1 技能等级
 ##   H. 存档 v5 清洗：符文槽截断 / 脏值丢弃 / 图鉴数组
 ##   I. 符文图鉴面板（1-L12）：24 格 / 解锁态 / 详情钩子
+##   J. DPS 扫描（1-V9）：§5.1 公式**独立重算** × 与 `dps_coefficient()` 交叉比对 + 区间 + 两个易错点
+##   K. 形态覆盖齐备（1-V7）：全表 7 形态均被承载（形态实体的弹道/tick 见 `verify_skill_forms`）
 extends Node2D
 
 ## 等级系数期望值（硬编码，见头注释 ①）
@@ -71,7 +73,7 @@ func _same_ints(a: Variant, b: Array) -> bool:
 
 func _ready() -> void:
 	VerifyWatchdog.arm(get_tree())
-	print("===== 技能扩展体系实测（B4-4）=====")
+	print("===== 技能扩展体系实测（B4-4 / B4-6）=====")
 	_setup()
 	_test_skill_unlock()
 	await _test_level_formula()
@@ -83,6 +85,8 @@ func _ready() -> void:
 	_test_talent_insight()
 	_test_save_v5_sanitize()
 	await _test_codex_panel()
+	_test_dps_cross_check()
+	_test_form_coverage()
 	for i in range(GameConstants.SAVE_MAX_SLOTS):
 		if SaveManager.slot_exists(i):
 			SaveManager.delete_slot(i)
@@ -569,3 +573,139 @@ func _test_codex_panel() -> void:
 	_ok("已解锁格子无锁标记",
 		panel.find_child("RuneLock_rune_swift", true, false) == null)
 	panel.queue_free()
+
+
+# =============================================================================
+# J. DPS 扫描（1-V9）：§5.1 公式独立重算 × 与引擎交叉比对
+# =============================================================================
+# 防 SF4（自洽式伪校验）的关键：本段**不调用** `SkillData.dps_coefficient()` /
+# `total_damage_multiplier()`，而是直接从 raw 字段（multiplier / projectile_count /
+# impact_multiplier / duration / tick_interval / cooldown）按 §5.1 公式**独立算一遍**，
+# 再与引擎口径逐条比对 —— 两条独立实现互为校验（跨模块恒等式）。
+#
+# 工单 1-V9 note 点名的两个易错处，各配一条**定点**断言：
+#   · GROUND 的 `impact_multiplier` 只算**一次**（不是每 tick）⇒ 误乘 tick 数会显著偏大；
+#   · PROJECTILE 必须乘 `projectile_count`（不是单发）⇒ 漏乘会显著偏小。
+
+## §5.1 设计区间（**硬编码自策划文檔**，不从 SkillData 反读 —— 否则区间改错时测试照样通过）
+const DPS_RANGE_BY_TYPE := {
+	"single": [0.40, 0.70],
+	"aoe": [0.40, 0.70],
+	"projectile": [0.40, 0.70],
+	"ground": [0.45, 0.75],
+	"dash": [0.10, 0.20],
+}
+## 边界技能（arrow_rain / frost_nova / hunters_mark / shield_bash = 0.400；
+## poison_field / shadow_volley = 0.700）恰好落在区间端点 ⇒ 留 1e-6 容差防假红。
+const DPS_EPSILON := 0.000001
+## 全表技能数（三职业各 12；01-技能体系.md §4）
+const DESIGN_SKILL_COUNT := 36
+
+
+## 独立实现：按 §5.1 公式从 raw 字段算「单次施放总伤害倍率」。
+## ⚠️ 刻意**不**复用 `SkillData.total_damage_multiplier()`：那是被校驗对象，同源即失效。
+func _raw_total_damage(d: SkillData) -> float:
+	match SkillData.TYPE_KEYS[d.type]:
+		"ground":
+			if d.tick_interval <= 0.0:
+				return d.multiplier
+			return d.impact_multiplier + d.multiplier * (d.duration / d.tick_interval)
+		"projectile":
+			return d.multiplier * float(maxi(d.projectile_count, 1))
+		_:
+			return d.multiplier
+
+
+func _test_dps_cross_check() -> void:
+	print("--- J. DPS 扫描（1-V9 · 独立重算 × 交叉比对）---")
+	_ok("技能表 = %d 条（三职业各 12）" % DESIGN_SKILL_COUNT,
+		ConfigLoader.skills.size() == DESIGN_SKILL_COUNT)
+	var scanned := 0
+	var mismatched: Array[String] = []
+	var bad: Array[String] = []
+	for sid in ConfigLoader.skills.keys():
+		var d := ConfigLoader.get_skill(String(sid))
+		if d == null:
+			mismatched.append("%s(缺数据)" % sid)
+			continue
+		scanned += 1
+		if d.is_non_damaging():
+			# 非伤害形态（buff / summon）：两条口径都必须为 0
+			if not is_zero_approx(d.dps_coefficient()) or not is_zero_approx(_raw_total_damage(d)):
+				mismatched.append("%s(%s 非伤害形态 dps != 0)"
+					% [sid, SkillData.TYPE_KEYS[d.type]])
+			continue
+		var type_key: String = SkillData.TYPE_KEYS[d.type]
+		var raw_dps := _raw_total_damage(d) / d.cooldown
+		var engine_dps := d.dps_coefficient()
+		if absf(raw_dps - engine_dps) > DPS_EPSILON:
+			mismatched.append("%s(%s 独立 %.4f vs 引擎 %.4f)"
+				% [sid, type_key, raw_dps, engine_dps])
+		var rng: Array = DPS_RANGE_BY_TYPE.get(type_key, [])
+		if rng.is_empty():
+			bad.append("%s(形态 %s 无区间定义)" % [sid, type_key])
+		elif raw_dps < float(rng[0]) - DPS_EPSILON or raw_dps > float(rng[1]) + DPS_EPSILON:
+			bad.append("%s(%s %.3f ∉ %.2f–%.2f)"
+				% [sid, type_key, raw_dps, rng[0], rng[1]])
+	_ok("扫描覆盖全表 %d 条" % scanned, scanned == DESIGN_SKILL_COUNT)
+	_ok("独立重算 == SkillData.dps_coefficient()（不一致 %d 条%s）"
+		% [mismatched.size(), "" if mismatched.is_empty() else "：" + str(mismatched)],
+		mismatched.is_empty())
+	_ok("独立重算的 DPS 落在 §5.1 区间内（越界 %d 条%s）"
+		% [bad.size(), "" if bad.is_empty() else "：" + str(bad)],
+		bad.is_empty())
+
+	# ---- 易错点①：GROUND 的 impact_multiplier 只计一次 ----
+	# ⚠️ 必须挑**唯一带落地爆发**的地面技（全表仅 `meteor` 的 impact_multiplier > 0；
+	#    其余地面技 impact = 0 ⇒ 用它们做定点断言「乘错 tick 数」也照样通过 = 无意义）。
+	var ground := ConfigLoader.get_skill("meteor")
+	if ground == null:
+		_ok("meteor 存在（GROUND 落地爆发代表技）", false)
+	else:
+		_ok("meteor 确为「落地爆发 + 多 tick」（impact %.1f > 0 / duration %.1f > tick %.1f）⇒ 下条断言有意义"
+			% [ground.impact_multiplier, ground.duration, ground.tick_interval],
+			ground.tick_interval > 0.0 and ground.impact_multiplier > 0.0
+			and ground.duration > ground.tick_interval)
+		# 若 impact 被误乘 tick 数：独立值会从 6.0 膨胀到 21.0 ⇒ 这条必红
+		_ok("GROUND 易错点：impact_multiplier 只计一次（独立总伤 %.3f == 引擎 %.3f）"
+			% [_raw_total_damage(ground), ground.total_damage_multiplier()],
+			absf(_raw_total_damage(ground) - ground.total_damage_multiplier()) < DPS_EPSILON)
+
+	# ---- 易错点②：PROJECTILE 必须乘 projectile_count ----
+	var multi := ConfigLoader.get_skill("multishot")
+	if multi == null:
+		_ok("multishot 存在（PROJECTILE 代表技）", false)
+	else:
+		_ok("multishot 确为多发（count = %d ≥ 2）⇒ 下条断言有意义" % multi.projectile_count,
+			multi.projectile_count >= 2)
+		var engine_total := multi.total_damage_multiplier() * float(maxi(multi.projectile_count, 1))
+		_ok("PROJECTILE 易错点：projectile_count 已计入（独立总伤 %.3f == 引擎 %.3f）"
+			% [_raw_total_damage(multi), engine_total],
+			absf(_raw_total_damage(multi) - engine_total) < DPS_EPSILON)
+
+
+# =============================================================================
+# K. 形态覆盖齐备（1-V7）
+# =============================================================================
+# 与 `verify_skill_forms.gd` 的分工（防重复维护）：
+#   · 那边测**形态实体的真实弹道 / tick / 连锁 / 分裂**（PROJECTILE / GROUND 的运行时行为）；
+#   · 本段只测**覆盖齐备性** —— 全表 36 技能的 `type` 必须都落在 7 个已定义形态内，
+#     且 7 个形态**都有技能承载**（防新增技能用了未定义形态 / 某形态被清空）。
+
+func _test_form_coverage() -> void:
+	print("--- K. 形态覆盖齐备（1-V7 · 7 形态 × 全表）---")
+	var counts := {}
+	for sid in ConfigLoader.skills.keys():
+		var d := ConfigLoader.get_skill(String(sid))
+		if d == null:
+			continue
+		counts[d.type] = int(counts.get(d.type, 0)) + 1
+	_ok("全表 %d 条技能的形态均已定义（落在 7 个 TYPE_KEYS 内）"
+		% ConfigLoader.skills.size(),
+		counts.size() == SkillData.TYPE_KEYS.size())
+	for i in SkillData.TYPE_KEYS.size():
+		var key: String = SkillData.TYPE_KEYS[i]
+		_ok("形态 %s（%s）有技能承载（%d 条）"
+			% [key, SkillData.TYPE_NAMES[i], int(counts.get(i, 0))],
+			counts.has(i) and int(counts[i]) > 0)
+	_info("形态分布：%s" % str(counts))

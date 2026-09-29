@@ -92,8 +92,14 @@ func _test_damage_number() -> void:
 		var n := nums[nums.size() - 1] as DamageNumber
 		_ok("飘字显示金额 42", n.get_node("Label").text == "42")
 		_ok("飘字位置在目标头顶上方", n.global_position.y < target.global_position.y)
-		_ok("普通飘字为亮白色",
-			(n.get_node("Label") as Label).get_theme_color("font_color") == GameConstants.COLOR_DAMAGE_NORMAL)
+		# 第四步 B4 `3-E7`：非暴击 + 有元素 ⇒ 走 `ELEMENT_COLORS[element]`（物理 E8E8E8）。
+		# 此处以同一发色口径的 `normal_color_for()` 作期望值，避免断言与实现各写一份常量而漂移。
+		_ok("普通飘字为元素色（物理 ⇒ 银白）",
+			(n.get_node("Label") as Label).get_theme_color("font_color")
+				== DamageNumber.normal_color_for(GameConstants.ELEMENT_PHYSICAL))
+		# 向后兼容：空元素（旧调用方不传 element）⇒ 回退 `COLOR_DAMAGE_NORMAL`。
+		_ok("空元素飘字回退普通亮白",
+			DamageNumber.normal_color_for("") == GameConstants.COLOR_DAMAGE_NORMAL)
 	EventBus.damage_dealt.emit(target, 99.0, true, GameConstants.ELEMENT_PHYSICAL)
 	await get_tree().process_frame
 	nums = get_tree().get_nodes_in_group(&"juice_numbers")

@@ -936,7 +936,7 @@ godot --headless --path "D:/七傳說/game" \
 | 段 | 覆盖 |
 |---|---|
 | A | 参数与接入：打击感常量合法、JuiceFX Autoload 存在 |
-| B | 飘字：damage_dealt 生成飘字、金额 / 位置 / 普通亮白 / 暴击橙红大字 |
+| B | 飘字：damage_dealt 生成飘字、金额 / 位置 / 普通元素色（物理银白） / 暴击橙红大字 |
 | C | 飘字生命周期：0.6s 后自动消失（真实时间，顿帧不加速老化） |
 | D | 顿帧：hit_stop 后 time_scale 短暂 <1 并恢复 1.0 |
 | E | 震屏：shake 后相机 offset 抖动、按 40px/s 衰减归零 |
