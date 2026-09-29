@@ -278,6 +278,8 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 ⇒ 只要走 `_warn()`（print `[WARN]`、**不** `_fail += 1`），既保留可見性又不污染回歸。
 （體例：`02-check_affix_pool.py` 的 `warn()` ↔ GDScript `_warn()`，兩側對稱。）
 
+### 🆕 2026-09-29（B4-1）新踩三坑
+
 **⑮ 「測試殘留狀態污染」—— 同一實例上疊時長類狀態 ⇒ 邊界測試假紅**
 `HealthComponent.grant_shield(amount, duration)` 的到期時刻是 **`maxf(舊, 新)`**（疊盾語義，
 後授予的短盾不會縮短先授予的長盾）。於是「先給 8 秒盾 → 手動 `shield = 0` → 再給 0.2 秒盾
@@ -298,6 +300,8 @@ GDScript 的 `%` 是格式化運算符 ⇒ `"20% 減傷（%.2f）" % [x]` 直接
 `if not Summon.DEFS.has(creature): _warn_once(...); return`。
 **通則：凡是「帶缺省值的字典查表」，都要問一句「查不到時會發生什麼、誰看得見」。**
 
+### 🆕 2026-09-29（B4-2）新踩兩坑
+
 **⑱ 「協程中 `SCRIPT ERROR` 會靜默跳過後續斷言，`_fail` 仍為 0」—— 最隱蔽的偽綠**
 `verify_*.gd` 是 `await` 串起來的協程。任一 `SCRIPT ERROR`（如調了不存在的方法
 `health.set_current(...)`）會**中斷當前協程函數**，`_ready()` 的後續 `await _test_xxx()`
@@ -316,6 +320,38 @@ GDScript 的 `%` 是格式化運算符 ⇒ `"20% 減傷（%.2f）" % [x]` 直接
 腳本後，**必須真跑一次該場景**才算驗過。（同型：`class_name` 解析失敗會連鎖成
 「Could not resolve class X, because of a parser error」—— 看到這句要去找**被依賴腳本**的錯，
 不是引用方的錯。）
+
+### 🆕 2026-09-29（B4-3）新踩四坑
+
+**⑳ 「已釋放的節點被當參數傳進帶型別標註的方法」⇒ `previously freed` 執行期型別錯（真實產品 bug，非測試問題）**
+`EnemyProjectile._physics_process` 命中時呼叫 `player.take_damage(_damage, _source)`，
+而 `take_damage(amount: float, source: Node)` **有型別標註**。當發射者（BOSS）先被殺、
+它生前射出的投射物仍在飛時，`_source` 已是 freed object ⇒
+`SCRIPT ERROR: Invalid type in function 'take_damage' ... argument 2 (previously freed) is not a subclass of the expected argument class`。
+⇒ **凡是「延遲存活的實體持有『發射者/召喚者』引用並在命中/到期時回傳」的路徑，都要先判活**：
+`var src: Node = _source if is_instance_valid(_source) else null`（GDScript 的 `null` 可傳進 `Node` 形參，freed 對象不行）。
+同型高危：投射物、DoT tick、地面區域、召喚物死亡回調、反傷/反射。
+（本批首見於測試，但**產品路徑同樣會炸** —— 玩家殺 BOSS 後火球命中即復現。）
+
+**㉑ 「headless 下『等 N 幀』不是時間單位」⇒ 計時器 / 特效淡出斷言假紅**
+`await get_tree().process_frame` × N 在 headless 下**不受 vsync 限制**，30 幀可能只有幾十毫秒。
+任何依賴**真實秒數**的邏輯（`create_timer` 冷卻、`FxSprite` 的 `fade` 生命週期、buff 到期）都**不能用幀數等**。
+⇒ **一律 `await get_tree().create_timer(真實秒數).timeout`**（要留餘量：淡出 0.5s 就等 1.2s）。
+（同型：`_process`/`_physics_process` 的 delta 累加在 headless 下節奏與真機不同。）
+
+**㉒ 「`z_index` 為負（`z: below_actors`）的精靈會被 `z_index = 0` 的背景整層蓋住」⇒ 抓圖/目視假陰性**
+`tile_exit_portal` 的 `z: below_actors` ⇒ 實例 `z_index = -1`；若抓圖場景的背景 `ColorRect` 留在預設 0 層，
+就會**完整蓋住**出口傳送門 —— 程式全綠、圖上一片空白，極易誤判「精靈沒生成」。
+⇒ **凡 `below_actors` / `background` 類素材，抓圖前必須把背景層壓到更低（`bg.z_index = -10`）**；
+或把目標物擺到無遮擋的乾淨區域。（判據：先查 `FxTable.spec(id)["z"]`，再定背景層級。）
+
+**㉓ 「`match` 的 `_:` 兜底分支會把無關類型的目標錯誤賦值」⇒ `reach_exit` 殺 1 隻怪即過關**
+`LevelScene._sync_objective_counter()` 由 `_on_unit_died()` 每次擊殺呼叫，其 `match _objective_kind`
+對 `CLEAR_ALL`/`KILL_ELITE`/`KILL_BOSS` 賦 `_objective_current = _kills`（或 BOSS 數），
+其餘落 `_:`。新增 `REACH_EXIT` 時若**不顯式 `pass`**，就會落到 `_:` 被賦成擊殺數 ⇒ **殺 1 隻怪直接達標過關**。
+⇒ **通則：擴充帶 `_:` 兜底的 `match`/枚舉分支時，逐一列出「新成員落到 `_:` 會發生什麼」**；
+「無關」的分支要**顯式 `pass` + 註解**，不要依賴兜底。
+（同源於「全案最高危項 3：`migrate()` 的 `_:` 兜底」—— 同一類陷阱，只是換了場景。）
 
 ---
 

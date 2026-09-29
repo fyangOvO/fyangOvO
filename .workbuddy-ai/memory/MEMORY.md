@@ -12,7 +12,28 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益系統 ✅**（`3-B1`~`3-B4`）+ **B4-2 套裝機制特效 ✅**（`3-S1`~`3-S4`）⇒ 下一步 **B4-3 BOSS + 關卡目標（`5-W5-5`~`5-W5-7`）** |
+| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益 ✅**（`3-B1`~`3-B4`）+ **B4-2 套裝機制特效 ✅**（`3-S1`~`3-S4`）+ **B4-3 BOSS 技能 + 關卡目標 ✅**（`5-W5-5`~`5-W5-7`）⇒ 下一步 **B4-4 技能擴展 UI（`1-L8`~`1-L14`）** |
+
+⇒ **B4-3 已落地**（3 工單）：BOSS 三標誌性技能**全部通電**（`05-check` **C7 4/7 → 7/7**）——
+`bone_slam`（前方 **120° 扇形** / 範圍 `attack_range × 1.6` / **0.4s 預警**→延遲命中 / ×1.4 傷害 / `fx_bone_slam`）·
+`fireball`（**1–3 發**扇形散開 / 速度 140 / 壽命 3s / `bolt_fire` 精靈 / 命中**燃燒**）·
+`enrage`（**全屏紅閃一次性**，`_enrage_fx_played` 旗標）
+｜**掛載點刻意分化**：`bone_slam`→`_cast_boss_skill()`（近戰）· `fireball`→`_tick_state()`（遠程，`state != PATROL`）·
+`enrage`→`_apply_boss_phase()`（一次性事件）
+｜`BossPhaseController` 加 **`enrage_phase` 配置化**（骸骨 4 / 熔心 **3**）+ `validate()` 1–4 範圍報錯 +
+`is_enraged(config, phase)`（**簽名變更**）｜召喚差異化：骸骨 `[0,3,5,7]`（召喚流）/ 熔心 `[0,1,2,2]`（法術流）
+｜**兩 BOSS 等級區間放開**（骸骨 `6–20` / 熔心 `13–20`）⇒ **C19 轉綠**
+｜**關卡目標 6 種全實現**：`survive`（計時 + 每 12s 刷 3–5 隻、距玩家 ≥140px + 整秒 HUD）/
+`reach_exit`（最遠地面格 + `tile_exit_portal` loop 精靈 + 24px 觸碰）
+｜**9 關目標再平衡** ⇒ 20 關分布 == `levels_target`（`clear_all 5 / kill_elite 4 / kill_boss 3 / survive 3 / collect 3 / reach_exit 2`）
+⚠️ **本批新踩 4 坑**（詳見 `IRON-RULES.md` ⑳㉑㉒㉓）：⑳**已釋放節點傳進帶型別標註方法 ⇒ `previously freed` 執行期錯**
+（**真實產品 bug**：玩家殺 BOSS 後其火球命中即炸）㉑**headless「等 N 幀」不是時間單位**（計時/淡出須 `create_timer`）
+㉒**`z: below_actors` 精靈被 `z_index=0` 背景整層蓋住**（抓圖假陰性）㉓**`match` 的 `_:` 兜底錯誤賦值**
+（`reach_exit` 若不顯式 `pass` ⇒ 殺 1 隻怪即過關）
+⚠️ **遺留待裁定**：**`boss_ember_lord.level_min 19 → 13` 刻意偏離策劃 §1.1 等級帶表**（表寫 19–20），為讓 C19 轉綠
+⇒ 需裁定「改表 or 改回並放寬 C19」；`05-check` **C17**（`ch1_l03/l04` 空 layout，屬 `5-W5-9`）/ **C20**（creatures 目錄數，素材側）仍紅（非本批）
+**⇒ 驗收**：`verify_boss_skills`（新建，7 段）· `verify_objectives`（新建，9 段）**皆 0 失敗**；
+全量回歸 **74 腳本（+2）/ 254.2s 零新增失敗**；`05 --repo` **84/2**（C7/C19 轉綠）；`b43_shot/` 3 張目視確認。
 
 ⇒ **B4-2 已落地**（4 工單）：新建 `data/set_effects/set_effects.json`（**6 條**，與傳奇特効同形但**無 slot/rarity_min**）
 ｜`ConfigLoader.set_effects` + `_load_set_effect_dir` + `_validate_set_effects`（不查 slot）+ `_validate_set_effect_bindings`（掛 `_cross_validate` §2.9，**依賴 sets 已載入**）
@@ -142,9 +163,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 **⇒ 驗收**：`verify_buff`（新建，7 段 72 條）**0 失敗**；全量回歸 **71 腳本（+1）/ 零新增失敗**；
 `buff_shot/` 4 張目視確認（與技能欄不重疊）；策劃 7 校驗器與 B3-7 基線逐條一致。
 
-⇒ **B4 分 6 小批**（用戶裁定，逐批驗收）：**B4-1 ✅** → **B4-2 套裝特效 ✅** → **B4-3 BOSS+關卡目標（`5-W5-5`~`5-W5-7`）** → B4-4 技能擴展 UI（`1-L8`~`1-L14`） → B4-5 元素深化（`3-E7`/`3-E8`） → B4-6 校驗補齊（`1-V7`~`1-V9`）
-（`5-W5-5`~`5-W5-7`）→ B4-4 技能擴展 UI（`1-L8`~`1-L14`）→ B4-5 元素深化（`3-E7`/`3-E8`）
-→ B4-6 校驗補齊（`1-V7`/`1-V8`/`1-V9` + 坐實 5 條已落地）。
+⇒ **B4 分 6 小批**（用戶裁定，逐批驗收）：**B4-1 ✅** → **B4-2 套裝特效 ✅** → **B4-3 BOSS+關卡目標 ✅** → **B4-4 技能擴展 UI（`1-L8`~`1-L14`）** → B4-5 元素深化（`3-E7`/`3-E8`） → B4-6 校驗補齊（`1-V7`~`1-V9` + 坐實 5 條已落地）。
 
 ⚠️ **B4 摸底結論（28 工單，**5 條已落地**，勿重做）**：`1-L5`（`summon.gd` 完整）/ `1-L6`（`target_group`）/
 `1-L7`（`hit_query` 跳過 `summons`）/ `3-E6`（`get_element_damage_bonus`）/ `3-B2`（介面已備，B4-1 已補產出方）。
@@ -155,7 +174,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1 各另起 commit（**最新 `1799432`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1/B4-2/B4-3 各另起 commit（**最新 `ba42462`**）。
 
 ---
 
