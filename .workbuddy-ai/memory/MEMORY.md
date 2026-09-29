@@ -12,7 +12,17 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益系統 ✅**（`3-B1`~`3-B4`，解鎖第二期 16 條特效）⇒ 下一步 **B4-2 套裝特效（`3-S1`~`3-S4`）** |
+| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益系統 ✅**（`3-B1`~`3-B4`）+ **B4-2 套裝機制特效 ✅**（`3-S1`~`3-S4`）⇒ 下一步 **B4-3 BOSS + 關卡目標（`5-W5-5`~`5-W5-7`）** |
+
+⇒ **B4-2 已落地**（4 工單）：新建 `data/set_effects/set_effects.json`（**6 條**，與傳奇特効同形但**無 slot/rarity_min**）
+｜`ConfigLoader.set_effects` + `_load_set_effect_dir` + `_validate_set_effects`（不查 slot）+ `_validate_set_effect_bindings`（掛 `_cross_validate` §2.9，**依賴 sets 已載入**）
+｜`BuffComponent.STAT_ALIAS` 補**同名直通** 5 鍵（`pct_armor`/`pct_attack`/`pct_hp`/`crit_chance`/`elemental_damage`）+ `has_source()`
+｜`LegendaryEffectSystem` 加 `register_effect_id()/unregister_key()` + `get_effect()` 兜底 `set_effects` + `on_event` 的 **`require_target_buff`** 條件
+｜`SetSystem.get_active_effects()` + `get_progress` tier 補 `effect_name`
+｜`LegendaryBus.sync_set_effects()`（差分註冊/註銷，key 前綴 **`set::`**）+ `level_scene` 兩處接線
+｜`set_panel.gd` 檔位行改 **HBox 三色**（件數/`【機制名】`/描述，**不另起一行**防溢出）
+｜`sets.json` 6 條 description 回填與定義一致
+⚠️ **口徑**：套裝特效與裝備特效**共用同一個 `_registry` 與執行器**（不另起總線）；`SetPanel` **尚未掛進真實 UI**（只有工具在用）
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -127,11 +137,12 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 ⇒ 同實例疊時長會假紅，邊界測試須用獨立實例）⑯**格式化字串裡的 `%` 要寫 `%%`**（否則
 `unsupported format character`）⑰**`Dict.get(id, default)` 的缺省兜底會掩蓋 id 拼錯**（消費端須先 `has()` 守門）
 ⚠️ **遺留**：①`ms_boost.element_attach`（裂界指環附元素）未接線 ②`ghost`/`echo_copy` 無精靈素材（走佔位）
-③增益圖標 12 張仍為 0（設計案 §六 P0）④`extra_loot` 未強制 `loot_quality`（B3-4 遺留）⑤套裝特效未接（→ B4-2）
+③增益圖標 12 張仍為 0（設計案 §六 P0）④`extra_loot` 未強制 `loot_quality`（B3-4 遺留）⑤~~套裝特效未接~~（**B4-2 已接**）
+⑥**`SetPanel` 尚未掛進真實 UI**（全庫只有 `set_preview`/`capture_set_panel` 兩個工具在用）⑦套裝專屬特效視覺 6 套未生產（設計案 §六 P1）
 **⇒ 驗收**：`verify_buff`（新建，7 段 72 條）**0 失敗**；全量回歸 **71 腳本（+1）/ 零新增失敗**；
 `buff_shot/` 4 張目視確認（與技能欄不重疊）；策劃 7 校驗器與 B3-7 基線逐條一致。
 
-⇒ **B4 分 6 小批**（用戶裁定，逐批驗收）：**B4-1 ✅** → **B4-2 套裝特效（`3-S1`~`3-S4`）** → B4-3 BOSS+關卡目標
+⇒ **B4 分 6 小批**（用戶裁定，逐批驗收）：**B4-1 ✅** → **B4-2 套裝特效 ✅** → **B4-3 BOSS+關卡目標（`5-W5-5`~`5-W5-7`）** → B4-4 技能擴展 UI（`1-L8`~`1-L14`） → B4-5 元素深化（`3-E7`/`3-E8`） → B4-6 校驗補齊（`1-V7`~`1-V9`）
 （`5-W5-5`~`5-W5-7`）→ B4-4 技能擴展 UI（`1-L8`~`1-L14`）→ B4-5 元素深化（`3-E7`/`3-E8`）
 → B4-6 校驗補齊（`1-V7`/`1-V8`/`1-V9` + 坐實 5 條已落地）。
 

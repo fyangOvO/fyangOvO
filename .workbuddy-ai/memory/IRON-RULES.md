@@ -298,6 +298,25 @@ GDScript 的 `%` 是格式化運算符 ⇒ `"20% 減傷（%.2f）" % [x]` 直接
 `if not Summon.DEFS.has(creature): _warn_once(...); return`。
 **通則：凡是「帶缺省值的字典查表」，都要問一句「查不到時會發生什麼、誰看得見」。**
 
+**⑱ 「協程中 `SCRIPT ERROR` 會靜默跳過後續斷言，`_fail` 仍為 0」—— 最隱蔽的偽綠**
+`verify_*.gd` 是 `await` 串起來的協程。任一 `SCRIPT ERROR`（如調了不存在的方法
+`health.set_current(...)`）會**中斷當前協程函數**，`_ready()` 的後續 `await _test_xxx()`
+**照常繼續**、`_finish()` 照常印「0 項失敗 / exit 0」⇒ **一半斷言根本沒跑，卻報全綠**。
+**修法（B4-2 已落地）：加「段完成標記」守門** ——
+`const SECTIONS := ["A".."G"]` + 每段末尾 `_sections_done.append("X")`，
+`_finish()` 校驗 `_sections_done.size() == SECTIONS.size()`，缺段直接 `_fail += 1` 並印
+「測試段未跑完（缺 …）—— 上方有 SCRIPT ERROR，結果不可信」。
+⇒ **新建任何協程式驗證腳本，必須自帶這道守門**（純同步腳本不需要）。
+
+**⑲ 「`--editor --quit` 預檢不覆蓋所有腳本 ⇒ 解析錯誤靜默通過」**
+本批把 `set_panel.gd` 改壞（`_make_set_row` 內層 `var head` 與外層標題行 `head` 重名），
+`godot --headless --editor --quit` **零報錯**，直到真跑 `verify_set_effects.tscn` 才炸
+`Parse Error: There is already a variable named "head" declared in this scope`。
+⇒ **預檢只能證明「被引用到的腳本」沒問題**；新建 / 改動 `tools/*.gd` 或任何未被場景引用的
+腳本後，**必須真跑一次該場景**才算驗過。（同型：`class_name` 解析失敗會連鎖成
+「Could not resolve class X, because of a parser error」—— 看到這句要去找**被依賴腳本**的錯，
+不是引用方的錯。）
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
