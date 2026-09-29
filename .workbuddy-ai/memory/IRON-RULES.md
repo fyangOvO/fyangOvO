@@ -412,6 +412,38 @@ and GameConstants.ailment_from_element(GameConstants.ELEMENT_LIGHTNING).is_empty
 兩者都保證「無異常 = ×1.0」⇒ 既有傷害斷言逐位不變（零回歸）。易傷刻意**只作用於直接受擊**，
 DoT 不走 `take_damage` ⇒ 不會出現「感電 + 中毒」乘法雪球。
 
+### 🆕 2026-09-29（B4-6）新踩四坑
+
+**㉜ 「驗一個計算函數，絕不能拿被測函數自己算期望值」—— 必須獨立重算 × 交叉比對**
+要驗 `SkillData.dps_coefficient()`，若斷言寫成 `assert(d.dps_coefficient() in 區間)`，那是**自洽式偽校驗（SF4）**：
+函數改壞了，斷言跟著一起錯，永遠綠。
+正解（本批 `verify_skill_ext` J 段）：
+- **獨立實現**一遍規格公式（§5.1 `單次施放總傷害 ÷ 冷卻`）—— 直接讀 `multiplier` / `projectile_count` /
+  `impact_multiplier` / `duration` / `tick_interval` / `cooldown` 等 **raw 欄位**，**不調用** `total_damage_multiplier()`；
+- 再與引擎值**逐條比對**（`DPS_EPSILON = 1e-6` 容差）；
+- **加證偽測試**：故意把被測函數改壞（本批把 `projectile_count` 乘數改成 `1.0`），確認斷言**真的轉紅**
+  （本批如實報「不一致 2 條：[multishot / shadow_volley]」）⇒ 證明斷言非空轉；驗完**立刻還原**並 `git status` 確認無殘留。
+
+**㉝ 「定點易錯點斷言，必須先確認該樣本真的走那條分支」**
+`1-V9` note 點名「GROUND 的 `impact_multiplier` 與 PROJECTILE 的 `projectile_count` 最易算錯」。
+但想驗「落地爆發只計一次」時，若挑了 `impact_multiplier == 0` 的地面技（如 `poison_cloud`），
+斷言 `總傷 == impact + mult×(dur/tick)` 會因 `impact=0` **恆真 = 無意義**。
+⇒ **全表只有 `meteor` 的 `impact_multiplier = 3.0 > 0`**（其餘地面技皆 0）。
+**通則：定點斷言前，先 grep 目標欄位在候選子集裡的分佈，挑真正觸發分支的樣本；並補一條「前提斷言」**
+（本批：`_ok("meteor 確有落地爆發", d.impact_multiplier > 0)`），否則樣本漂移後斷言會靜默失效。
+
+**㉞ 策劃校驗器 `06/07-check_*.py` 的 `--repo` 必須帶路徑參數**
+`06-check_special_modes.py` / `07-check_dev_tasks.py` **不帶 `--repo "D:/七傳說"` 會少跑 E 組**，
+計數直接少 16（`06` 186↔**202**、`07` 196↔**212**）⇒ **靜默漏檢**（看起來「全綠」其實漏了一批斷言）。
+（`01-check_skill_dps.py` / `02-check_affix_pool.py` **不接受** `--repo`，帶了反而報錯。）
+
+**㉟ 改「配色 / 口徑」後，必須 grep 全倉斷言同步 —— 否則延遲紅**
+B4-5 `3-E7` 把「非暴擊 + 有元素」的飄字色從 `COLOR_DAMAGE_NORMAL(DCE2E8)` 改為 `ELEMENT_COLORS[element]`
+（物理 = `E8E8E8`）。`verify_juice.gd` 的舊斷言仍寫 `== COLOR_DAMAGE_NORMAL` ⇒ **延遲紅**（B4-6 全量回歸才暴露）。
+兩色皆銀白、肉眼不可分辨 ⇒ 屬「測試與實現各寫一份常量」的漂移，**非行為 bug**。
+修法：期望值改**引用同一來源**（`DamageNumber.normal_color_for(ELEMENT_PHYSICAL)`），並補一條空元素回退斷言。
+**通則：改任何「會外洩到斷言」的常量 / 口徑後，立刻 grep 該常量的全部消費點（含 `tools/verify_*.gd`）。**
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】

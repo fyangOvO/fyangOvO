@@ -12,7 +12,24 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 ✅** + **B4-2 ✅** + **B4-3 ✅** + **B4-4 技能擴展 UI ✅**（`1-L8`~`1-L14`）+ **B4-5 元素深化 ✅**（`3-E7`/`3-E8`）⇒ 下一步 **B4-6 校驗補齊（`1-V7`~`1-V9`）** |
+| **工程落地** | 🟢 **B4 玩法擴展 全批收線（28 條）**：B4-1 臨時增益 ✅ / B4-2 套裝機制特效 ✅ / B4-3 BOSS+關卡目標 ✅ / B4-4 技能擴展 UI ✅（`1-L8`~`1-L14`）/ B4-5 元素深化 ✅（`3-E7`/`3-E8`）/ **B4-6 校驗補齊 ✅**（`1-V7`~`1-V9`）⇒ 下一步 **B5 特殊玩法（第六步，28 條，🔴 極高）** |
+
+⇒ **B4-6 已落地**（3 工單，**純驗證批 / 不動生產代碼**）：
+**`1-V8`** `verify_skills` 新增 **G 段** `_test_dps_full_scan()` —— 36 條技能 × DPS 係數區間全量掃描
+（`DPS_RANGE_BY_TYPE` 5 形態映射 + `DPS_EPSILON` 容差；非傷害形態斷言 `dps_coefficient()==0`；越界 0）**2 斷言全綠**
+｜**`1-V9`** `verify_skill_ext` 新增 **J 段** `_test_dps_cross_check()` —— **獨立重算 × 交叉比對**
+（`_raw_total_damage()` 直接讀 raw 欄位按 §5.1 重算，**不調用** `dps_coefficient()`）+ 兩定點易錯點
+（`meteor` GROUND impact 只計一次 / `multishot` PROJECTILE count 已計入）**8 斷言全綠**
+｜**`1-V7`** `verify_skill_ext` 新增 **K 段** `_test_form_coverage()` —— 7 形態 × 全表齊備
+（single 4/aoe 4/dash 3/projectile 9/ground 7/summon 2/buff 7 = 36）**8 斷言全綠**
+（「4 新形態」實測已由 `verify_skill_forms.gd` 覆蓋，本批不重複）
+⚠️ **本批新踩四坑**（詳見 `IRON-RULES.md` ㉜㉝㉞㉟）：㉜**驗計算函數必須「獨立重算 × 交叉比對」**（拿被測函數自算期望值 = SF4 偽綠）
+㉝**定點易錯點斷言須先確認樣本真的走那條分支**（全表**僅 `meteor`** 的 `impact_multiplier > 0`）
+㉞**策劃 `06/07-check_*.py` 的 `--repo` 必須帶路徑**（否則少跑 E 組、計數少 16：186↔202 / 196↔212）
+㉟**改配色/口徑後須 grep 全倉斷言同步**（B4-5 `3-E7` 改飄字色致 `verify_juice` **延遲紅**，本批暴露並修正）
+**⇒ 驗收**：`verify_skills` G 段 / `verify_skill_ext` J+K 段全綠；證偽測試（改壞 `projectile_count` 乘數 ⇒ 兩段精準轉紅，已還原）；
+`verify_juice` 延遲紅修正後 **0 失敗**；全量回歸 **76 腳本 / 225.1s 零新增失敗**（殘餘 3 檔 4 項與基線逐條一致）；
+策劃 `06 --repo` 202/0 · `07 --repo` 212/0（本批無策劃側變更）。
 
 ⇒ **B4-5 已落地**（2 工單，**元素深化閉環**）：
 **`3-E7` 元素飄字配色**：`DamageNumber.setup(amount, is_crit, element)` + `static normal_color_for(element)`
@@ -207,11 +224,12 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 
 （明細見 `.workbuddy-ai/memory/2026-09-29.md` §五）
 
-⚠️ **留給各自批次的預存回歸紅**（用戶已裁定本輪不動）：4 條**無工單**（`verify_choice_panel` 裸 Color
-／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
-怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
+⚠️ **留給各自批次的預存回歸紅**（用戶已裁定本輪不動）：**3 檔 4 項** —— `verify_choice_panel` 裸 Color 1
+（命中在 `level_scene.gd`，非驗證批所引入）／`verify_player` 手柄映射 1 ／`self_check` 怪物 L20 舊值 2
+（→ B6 `4-W5-e`）。`verify_skill_panel` 的 `save_version==3` 殘餘**已隨 B4-4 升版消失**。
+（另：`verify_juice` 的「普通飄字亮白」1 項已於 **B4-6** 修正，見上方㉟。）
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1/B4-2/B4-3/B4-4/B4-5 各另起 commit（**最新 `459fcb3`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1…B4-5 各另起 commit（**最新 `9436788`**，B4-6 待提交）。
 
 ---
 
