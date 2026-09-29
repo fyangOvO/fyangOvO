@@ -37,6 +37,18 @@ extends Resource
 ## 出战技能栏（3 个技能 id，按栏位 1/2/3 顺序；2026-09-22 步骤 3：职业专属技能池 + 重排）
 @export var skill_bar: Array[String] = []
 
+## 技能已装配符文（第四步 B4-4 · 1-L9）。`{skill_id: [rune_id, ...]}`，每技能最多 3 槽。
+## 符文是**图鉴式解锁**（非消耗品），可自由拆装（零成本）；同一符文可被多技能共用。
+@export var skill_runes: Dictionary = {}
+
+## 技能已选形态分支（第四步 B4-4 · 1-L9）。`{skill_id: branch_id}`，空 = 尚未选择。
+## 分支在技能等级达 5 时二选一（模板见 `data/skills/branches.json`）；可在据点免费切换。
+@export var skill_branches: Dictionary = {}
+
+## 已解锁的符文 id（第四步 B4-4 · 1-L12 符文图鉴）。**图鉴式解锁**：首次获得即永久解锁。
+## 获取途径 = 精英 8% / BOSS 25% 掉落（`01-技能体系.md` §11.4）；掉落接线见 B6 `2-L12`。
+@export var unlocked_runes: Array[String] = []
+
 # =============================================================================
 # 角色与成长（局外，永久）
 # =============================================================================
@@ -143,6 +155,9 @@ static func create_new(p_slot: int, p_class_id: String = GameConstants.CLASS_DEF
 	data.updated_at = now
 	data.class_id = p_class_id
 	data.skill_bar = ConfigLoader.class_default_skill_bar(p_class_id)
+	data.skill_runes = {}
+	data.skill_branches = {}
+	data.unlocked_runes = []
 	data.display_name = "%s · Lv.1" % ConfigLoader.class_display_name(p_class_id)
 	data.account_level = 1
 	data.account_xp = 0.0
@@ -261,6 +276,9 @@ func to_dict() -> Dictionary:
 		"display_name": display_name,
 		"class_id": class_id,
 		"skill_bar": skill_bar.duplicate(),
+		"skill_runes": skill_runes.duplicate(true),
+		"skill_branches": skill_branches.duplicate(true),
+		"unlocked_runes": unlocked_runes.duplicate(),
 		"account_level": account_level,
 		"account_xp": account_xp,
 		"total_xp": total_xp,
@@ -298,6 +316,9 @@ static func from_dict(data: Dictionary) -> SaveData:
 	out.class_id = String(data.get("class_id", GameConstants.CLASS_DEFAULT))
 	for sid in data.get("skill_bar", []):
 		out.skill_bar.append(String(sid))
+	out.skill_runes = _to_rune_map(data.get("skill_runes", {}))
+	out.skill_branches = _to_branch_map(data.get("skill_branches", {}))
+	out.unlocked_runes = _to_string_array(data.get("unlocked_runes", []))
 	out.account_level = clampi(int(data.get("account_level", 1)),
 		GameConstants.ACCOUNT_LEVEL_MIN, GameConstants.ACCOUNT_LEVEL_MAX)
 	out.account_xp = float(data.get("account_xp", 0.0))
@@ -363,6 +384,13 @@ func migrate() -> bool:
 			3:
 				consumables = {}
 				save_version = 4
+			4:
+				# v5（2026-09-29 · B4-4 / 1-L9 + 1-L12）：技能符文装配 + 形态分支选择 + 符文图鉴解锁。
+				# ⚠️ 旧档无这三项 ⇒ 补空（符文/分支缺省 = 「无符文、未选分支」；图鉴缺省 = 全部未解锁）。
+				skill_runes = {}
+				skill_branches = {}
+				unlocked_runes = []
+				save_version = 5
 			_:
 				save_version = GameConstants.SAVE_VERSION
 	save_version = GameConstants.SAVE_VERSION
@@ -377,7 +405,39 @@ static func _to_string_array(value: Variant) -> Array[String]:
 	var out: Array[String] = []
 	if value is Array:
 		for v in value:
-			out.append(String(v))
+			# ⚠️ 必须用 `str(v)` 而非 `String(v)`：`String()` 只接受 NodePath/String/StringName，
+			#    脏档里的数字元素会抛 `Invalid call 'String' constructor` ⇒ 读档直接失败。
+			out.append(str(v))
+	return out
+
+
+## `{skill_id: [rune_id, ...]}` —— 非字典 / 非数组元素一律丢弃（防脏档炸运行时）。
+static func _to_rune_map(value: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if not (value is Dictionary):
+		return out
+	for k in value:
+		var arr: Variant = value[k]
+		if not (arr is Array):
+			continue
+		var runes: Array[String] = []
+		for r in arr:
+			if runes.size() >= 3:
+				break
+			runes.append(String(r))
+		out[String(k)] = runes
+	return out
+
+
+## `{skill_id: branch_id}` —— 只收 String 值（防脏档把 dict 当分支 id）。
+static func _to_branch_map(value: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if not (value is Dictionary):
+		return out
+	for k in value:
+		var v: Variant = value[k]
+		if v is String:
+			out[String(k)] = String(v)
 	return out
 
 

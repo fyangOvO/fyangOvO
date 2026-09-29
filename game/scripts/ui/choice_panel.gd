@@ -181,6 +181,7 @@ func _cat_label(cat: String) -> String:
 		"attack": return "攻击"
 		"defense": return "防御"
 		"resource": return "资源"
+		"growth": return "成长"
 	return cat
 
 

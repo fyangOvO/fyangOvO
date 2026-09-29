@@ -50,6 +50,15 @@ const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "projectile", "ground
 ## 6.4 扩充：slot 0 = 备选技能（入库但不占出战栏位，供局内成长替换选择）。
 @export var slot: int = 0
 
+## 解鎖門檻 · 賬號等級（第一步 B4 · 工单 1-L11）。`0` = 無等級門檻。
+## 数据源 `skills.json`；節奏表见 `01-技能体系.md` §9.2（L3/L5/L7/L9/L12/L15/L18/L22）。
+## ⚠️ 解鎖狀態**不進存檔**：由「賬號等級 + 已通關關卡」推導（见 `UnlockSystem`）。
+@export var unlock_level: int = 0
+
+## 解鎖門檻 · 需**首通**的關卡 id（如 `ch1_l06`）。空串 = 無 BOSS 門檻。
+## 数据源 `skills.json`；每職 1 個招牌技綁定章節 BOSS 首通（§9.2）。
+@export var unlock_boss: String = ""
+
 ## 技能形态 —— SkillType
 @export var type: int = SkillType.SINGLE
 
@@ -155,6 +164,11 @@ func validate() -> Array[String]:
 		errors.append("技能 '%s' 缺少 display_name" % id)
 	if slot < 0 or slot > 3:
 		errors.append("技能 '%s' 的 slot 非法：%d（须 0–3，0 = 备选）" % [id, slot])
+	# 解鎖門檻（1-L11）：等級門檻不可為負；BOSS 門檻（若有）不可與等級門檻同時缺省
+	if unlock_level < 0:
+		errors.append("技能 '%s' 的 unlock_level 不能为负：%d" % [id, unlock_level])
+	if unlock_level <= 0 and unlock_boss.is_empty():
+		errors.append("技能 '%s' 既无等级门槛也无 BOSS 门槛（会永久锁死）" % id)
 	if type < 0 or type > SkillType.BUFF:
 		errors.append("技能 '%s' 的 type 非法：%d" % [id, type])
 	# ⚠️ multiplier 校验收紧（原为「必须 > 0」）：BUFF / SUMMON 无直接伤害倍率，合法为 0。

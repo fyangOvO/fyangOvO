@@ -113,6 +113,29 @@ func _test_tree_bonus() -> void:
 	_ok("2 小 + 1 大 = +12% 攻击", absf(float(bonus["stats"].get("pct_attack", 0.0)) - 12.0) < 0.01)
 	_ok("大节点机制列表非空", bonus["mechanics"].size() >= 1)
 
+	# 第四步 B4-4 · 1-L10：大节点「技之极意」（绑定 might.big.2）+ 天赋→属性接线
+	var tree2 := TalentTree.new()
+	tree2.update_unlocks(30)
+	_ok("「技之极意」在机制池中", TalentTree.BIG_NODE_MECHANICS.has(TalentTree.MECHANIC_SKILL_INSIGHT))
+	_ok("绑定节点 might.big.2 与面板显示的大节点一致",
+		TalentTree.SKILL_INSIGHT_NODE == "might.big.2")
+	var before_flat := tree2.get_bonus_stats()
+	_ok("未点「技之极意」时 flat_stats 无 skill_level",
+		not (before_flat["flat_stats"] as Dictionary).has(GameConstants.STAT_SKILL_LEVEL))
+	tree2.learn(TalentTree.SKILL_INSIGHT_NODE, 30)
+	var after_flat := tree2.get_bonus_stats()
+	_ok("点了「技之极意」⇒ flat_stats.skill_level = +1（不是塞进 stats 的 pct 桶）",
+		absf(float(after_flat["flat_stats"].get(GameConstants.STAT_SKILL_LEVEL, 0.0)) - 1.0) < 0.01
+		and not (after_flat["stats"] as Dictionary).has(GameConstants.STAT_SKILL_LEVEL))
+	_ok("机制列表含「技之极意」", (after_flat["mechanics"] as Array).has(TalentTree.MECHANIC_SKILL_INSIGHT))
+	# 接线入口：calc_buff 分桶且未点时返回空
+	_ok("calc_buff 未点任何节点 ⇒ 返回 {}（不污染 buffs）",
+		TalentTree.calc_buff([], 30).is_empty())
+	var cb := TalentTree.calc_buff([TalentTree.SKILL_INSIGHT_NODE], 30)
+	_ok("calc_buff 已分桶（flat 有 skill_level / pct 有 pct_attack）",
+		absf(float((cb.get("flat", {}) as Dictionary).get(GameConstants.STAT_SKILL_LEVEL, 0.0)) - 1.0) < 0.01
+		and float((cb.get("pct", {}) as Dictionary).get("pct_attack", 0.0)) > 0.0)
+
 
 # =============================================================================
 # D. 解锁系统

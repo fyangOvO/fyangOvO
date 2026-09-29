@@ -219,7 +219,7 @@ const _WIRED_GETTER_IDS: Array[String] = ["fury", "gale", "lethal", "rend", "ten
 
 
 func _test_all_options_observable() -> void:
-	print("--- G. 15 个选项逐个「属性真的变」---")
+	print("--- G. 16 个选项逐个「属性真的变」---")
 	var checked := 0
 	for opt in RunePool.OPTIONS:
 		var id := str(opt["id"])
@@ -256,7 +256,7 @@ func _test_all_options_observable() -> void:
 			"bulwark":
 				_ok("   └ 真实 getter get_armor = %.2f > 6" % _player.get_armor(),
 					_player.get_armor() > 6.0)
-	_ok("15 个选项全部纳入逐项断言（实际 %d）" % checked, checked == 15)
+	_ok("16 个选项全部纳入逐项断言（实际 %d）" % checked, checked == 16)
 	# 复位
 	_level._buff_system.reset()
 	_level._apply_account_stats(false)

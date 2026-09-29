@@ -6,9 +6,9 @@
 ##
 ## 覆盖范围：
 ##   A. 职业专属技能池 + 默认出战栏（数据层）
-##   B. 存档 v3：skill_bar 字段落盘 / 读档 / v2→v3 迁移补默认栏
-##   C. 据点技能面板：懒建 / 打开 / 结构（标题 / 池卡 / 出战槽）
-##   D. 交互：池卡装配 / 出战槽卸下 / 栏满提示 / 重排（卸下重装）/ 保存落盘 / 恢复默认
+##   B. 存档 v5：skill_bar / skill_runes / skill_branches / unlocked_runes 落盘 + v2→v5 迁移
+##   C. 据点技能面板：懒建 / 打开 / 结构（标题 / 池卡 / 出战槽 / 符文图鉴）
+##   D. 交互：池卡装配 / 详情卸下 / 栏满提示 / 重排（卸下重装）/ 保存落盘 / 恢复默认
 ##   E. 控制器联动：skill_controller 读档出战栏（职业专属 + 顺序生效）
 extends Node2D
 
@@ -33,7 +33,7 @@ func _ready() -> void:
 	print("===== 技能管理面板实测（步骤 3）=====")
 	SceneManager.fade_duration = 0.0
 	_test_class_data()
-	await _test_save_v3()
+	await _test_save_v5()
 	await _test_hub_panel()
 	await _test_interactions()
 	await _test_controller_wiring()
@@ -81,11 +81,11 @@ func _test_class_data() -> void:
 
 
 # =============================================================================
-# B. 存档 v3
+# B. 存档 v5
 # =============================================================================
 
-func _test_save_v3() -> void:
-	print("--- B. 存档 v3（skill_bar 落盘 / 迁移）---")
+func _test_save_v5() -> void:
+	print("--- B. 存档 v5（skill_bar / 符文 / 分支 / 图鉴落盘 + 迁移）---")
 	var slot := 0
 	if SaveManager.slot_exists(slot):
 		SaveManager.delete_slot(slot)
@@ -93,14 +93,27 @@ func _test_save_v3() -> void:
 	_ok("新建弓箭手档：skill_bar = 职业默认栏", data != null
 		and data.skill_bar == ["piercing_shot", "arrow_rain", "venom_shot"]
 		and data.save_version == GameConstants.SAVE_VERSION)
+	_ok("新建档：符文/分支/图鉴三项均为空（v5 新字段有落点）", data != null
+		and data.skill_runes.is_empty()
+		and data.skill_branches.is_empty()
+		and data.unlocked_runes.is_empty())
 	if data != null:
 		data.skill_bar = ["venom_shot", "piercing_shot", "arrow_rain"]
-		_ok("改栏后重存并重读：顺序保留（重排落盘）",
+		data.skill_runes = {"venom_shot": ["rune_swift", "rune_fire"]}
+		data.skill_branches = {"venom_shot": "poison_cloud"}
+		data.unlocked_runes = ["rune_swift", "rune_fire"]
+		_ok("改栏 + 装配符文/分支/图鉴后重存并重读：全部保留",
 			SaveManager.save_to_slot(slot, data)
 			and SaveManager.load_from_slot(slot) != null
 			and SaveManager.load_from_slot(slot).skill_bar
-				== ["venom_shot", "piercing_shot", "arrow_rain"])
-	# v2 → v3 迁移：旧档无 skill_bar → 补职业默认栏
+				== ["venom_shot", "piercing_shot", "arrow_rain"]
+			and SaveManager.load_from_slot(slot).skill_runes
+				== {"venom_shot": ["rune_swift", "rune_fire"]}
+			and SaveManager.load_from_slot(slot).skill_branches
+				== {"venom_shot": "poison_cloud"}
+			and SaveManager.load_from_slot(slot).unlocked_runes
+				== ["rune_swift", "rune_fire"])
+	# v2 → v5 迁移：旧档无 skill_bar / skill_runes / skill_branches / unlocked_runes
 	var legacy := {
 		"save_version": 2, "slot": 1, "class_id": "mage",
 		"account_level": 1, "gold": 0, "inventory": [], "stash": [],
@@ -109,10 +122,14 @@ func _test_save_v3() -> void:
 	}
 	var migrated := SaveData.from_dict(legacy)
 	var mig_ok := migrated != null and migrated.migrate()
-	_ok("v2 旧档迁移：skill_bar 补法师默认栏 + 版本升 3", mig_ok
+	_ok("v2 旧档迁移：skill_bar 补法师默认栏 + 三项新字段补空 + 版本升到 %d"
+		% GameConstants.SAVE_VERSION, mig_ok
 		and migrated != null
 		and migrated.skill_bar == ["fireball", "frost_nova", "lightning_chain"]
-		and migrated.save_version == 3)
+		and migrated.skill_runes.is_empty()
+		and migrated.skill_branches.is_empty()
+		and migrated.unlocked_runes.is_empty()
+		and migrated.save_version == GameConstants.SAVE_VERSION)
 	if SaveManager.slot_exists(slot):
 		SaveManager.delete_slot(slot)
 
@@ -129,6 +146,9 @@ func _test_hub_panel() -> void:
 	SaveManager.current_data = null
 	SaveManager.current_slot = -1
 	var data := SaveManager.create_new_slot(0, "warrior")
+	# 账号等级抬到 20 ⇒ 技能解锁闸门全开（B4-4 / 1-L11 起，技能按 `unlock_level` 灰显）。
+	# 否则 L1 账号下除前 3 个初始技能外全被锁，D 段的装配/重排断言全部失效。
+	data.account_level = 20
 	SaveManager.current_data = data
 	SaveManager.current_slot = 0
 	# 手动实例化据点场景（不换 current_scene，避免工具脚本根节点随场景替换被释放）
@@ -160,8 +180,30 @@ func _test_hub_panel() -> void:
 	var slot_names := _bar_slot_names(sp)
 	_ok("出战槽 3 个 = 裂斩 / 旋刃 / 突进（默认栏）",
 		slot_names.size() == 3 and slot_names == ["裂斩", "旋刃", "突进"])
-	_ok("「恢复默认」「保存技能栏」按钮存在",
-		_find_button(sp, "恢复默认") != null and _find_button(sp, "保存技能栏") != null)
+	_ok("「恢复默认」「保存配置」按钮存在",
+		_find_button(sp, "恢复默认") != null and _find_button(sp, "保存配置") != null)
+	# 符文图鉴（第 7 项）
+	var codex_btn := _find_button(_hub, "符文图鉴")
+	_ok("据点半按钮条含「符文图鉴」（第 7 项）", codex_btn != null)
+	_ok("符文图鉴面板已构建（据点 _enter 预建全部面板）",
+		_hub.get_panel("rune_codex") != null)
+	if codex_btn != null:
+		codex_btn.pressed.emit()
+		await _wait_frames(2)
+		_ok("符文图鉴已打开（is_panel_visible）",
+			_hub.is_panel_visible("rune_codex"))
+		var cp := _hub.get_panel("rune_codex") as RuneCodexPanel
+		_ok("面板类型 RuneCodexPanel", cp != null)
+		if cp != null:
+			var grid := cp.find_child("RuneGrid", true, false)
+			_ok("符文图鉴网格 24 格（6×4）",
+				grid != null and grid.get_child_count() == 24)
+			_ok("符文图鉴进度 = 0 / 24（新档未解锁任何符文）",
+				cp.unlock_progress() == Vector2i(0, 24))
+			cp.select_rune("rune_swift")
+			await _wait_frames(1)
+			_ok("选中符文后详情可渲染（selected_rune 钩子）",
+				cp.selected_rune() == "rune_swift")
 
 
 func _bar_slot_names(sp: SkillPanel) -> Array:
@@ -190,10 +232,16 @@ func _test_interactions() -> void:
 	_ok("出战栏满时装配被拒（提示 + 栏不变）",
 		sp.bar == ["cleave", "spin_slash", "dash_strike"]
 		and sp._info.text.contains("已满"))
-	# 2) 卸下 1 号位（裂斩）→ 栏变 [旋刃, 突进]
+	# 2) 点击出战槽 1 → 打开详情（v5 起不再直接卸下）→ 详情里「从出战栏卸下」
 	sp._bar_row.get_child(0).get_node("BarBtn0").pressed.emit()
 	await _wait_frames(1)
-	_ok("点击出战槽 1 → 卸下裂斩", sp.bar == ["spin_slash", "dash_strike"]
+	_ok("点击出战槽 1 → 打开技能详情浮层（不是直接卸下）",
+		sp.is_detail_open() and sp.detail_skill_id() == "cleave"
+		and sp.bar == ["cleave", "spin_slash", "dash_strike"])
+	_find_button_by_name(_hub, "DetailUnequip").pressed.emit()
+	await _wait_frames(1)
+	_ok("详情里「从出战栏卸下」→ 卸下裂斩",
+		sp.bar == ["spin_slash", "dash_strike"]
 		and sp._info.text.contains("已卸下"))
 	# 3) 装配蓄力斩 → 自动补到末尾
 	_find_button_by_name(sp, "PoolBtn_power_strike").pressed.emit()
@@ -202,21 +250,24 @@ func _test_interactions() -> void:
 		sp.bar == ["spin_slash", "dash_strike", "power_strike"])
 	# 4) 重排：卸下旋刃 → 重装裂斩 → [突进, 蓄力斩, 裂斩]
 	sp._bar_row.get_child(0).get_node("BarBtn0").pressed.emit()
+	await _wait_frames(1)
+	_find_button_by_name(_hub, "DetailUnequip").pressed.emit()
 	_find_button_by_name(sp, "PoolBtn_cleave").pressed.emit()
 	await _wait_frames(1)
 	_ok("重排生效（卸旋刃 → 装裂斩 → [突进,蓄力斩,裂斩]）",
 		sp.bar == ["dash_strike", "power_strike", "cleave"])
 	# 5) 保存 → 内存 + 落盘
-	var save_btn := _find_button(sp, "保存技能栏")
+	var save_btn := _find_button(sp, "保存配置")
 	save_btn.pressed.emit()
 	await _wait_frames(2)
 	_ok("保存后存档 skill_bar = [突进,蓄力斩,裂斩]",
 		SaveManager.current_data != null
 		and SaveManager.current_data.skill_bar == ["dash_strike", "power_strike", "cleave"])
 	var reloaded := SaveManager.load_from_slot(0)
-	_ok("重新读档：技能栏仍在磁盘（v3）", reloaded != null
+	_ok("重新读档：技能栏仍在磁盘（v%d）" % GameConstants.SAVE_VERSION,
+		reloaded != null
 		and reloaded.skill_bar == ["dash_strike", "power_strike", "cleave"]
-		and reloaded.save_version == 3)
+		and reloaded.save_version == GameConstants.SAVE_VERSION)
 	# 6) 恢复默认（不落盘）
 	_find_button(sp, "恢复默认").pressed.emit()
 	await _wait_frames(1)

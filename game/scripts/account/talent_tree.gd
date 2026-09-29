@@ -18,7 +18,23 @@ const BIG_BONUS := 8.0     # +8% 属性
 const BRANCH_STAT := {"might": "pct_attack", "guardian": "pct_armor", "arcane": "resource_regen"}
 const BIG_NODE_MECHANICS := [
 	"护甲转护盾", "暴击溢出转伤害", "格挡后反击", "击杀叠攻（本局）", "拾取范围翻倍",
+	"技之极意",
 ]
+
+## 「技之极意」—— 第一步 B4-4 · 1-L10 新增的**第 6 个大节点机制**。
+##
+## ⚠️ 与其余 5 条机制的区别：**只有它有真实消费端**（产出 `skill_level` flat 键，
+##    经 `calc_buff()` → `StatCalculator` → `PlayerController.get_skill_level()`）。
+##    其余 5 条仍是**展示字符串**（用户裁定「单点接线」，不整棵天赋树接线）。
+const MECHANIC_SKILL_INSIGHT := "技之极意"
+
+## 「技之极意」绑定的**具体大节点 id**（显式、确定性）。
+##
+## ⚠️ 原实现按「累计已点大节点数」`slice` 顺序分配机制 ⇒ 同一节点在不同学习顺序下
+##    拿到不同机制（不确定）；且 3 个分支各只显示 1 个大节点（`branch.big.2`，见
+##    `talent_panel.gd`），累计最多 3 ⇒ **永远够不到第 6 项**。故改为按 node id 显式绑定。
+## 绑在 `might`（武力，账号 L1 解锁）以保证可达。
+const SKILL_INSIGHT_NODE := "might.big.2"
 
 var unlocked := {}          # branch -> bool（L1/L15/L30）
 var points_spent: Dictionary = {}  # node_id -> bool
@@ -82,9 +98,15 @@ static func _available_points(account_level: int) -> int:
 	return int(floor(float(account_level) / 2.0))
 
 
-## 已激活加成汇总：{stat_key: 百分数} + 大节点机制列表
+## 已激活加成汇总：`{stats: {pct 键}, flat_stats: {flat 键}, mechanics: [...]}`。
+##
+## ⚠️ `stats` 只放**百分数键**（`pct_attack` 等），`flat_stats` 只放**固定值键**
+##    （如 `skill_level`）—— 两者**必须分桶**：`StatCalculator` 只从 flat 汇总固定值键，
+##    把 `skill_level` 塞进 `stats`（再由调用方包成 `{"pct": ...}`）会**静默失效**。
+##    调用方请直接用 `calc_buff()`，不要手工包桶。
 func get_bonus_stats() -> Dictionary:
 	var out := {}
+	var flat := {}
 	var mechanics: Array[String] = []
 	var big_index := 0
 	for branch in BRANCHES:
@@ -106,7 +128,30 @@ func get_bonus_stats() -> Dictionary:
 	if big_index > 0:
 		for m in BIG_NODE_MECHANICS.slice(0, mini(big_index, BIG_NODE_MECHANICS.size())):
 			mechanics.append(str(m))
-	return {"stats": out, "mechanics": mechanics}
+	# ---- 1-L10：唯一有真实消费端的大节点机制（产出 skill_level 固定值）----
+	if points_spent.get(SKILL_INSIGHT_NODE, false):
+		if not mechanics.has(MECHANIC_SKILL_INSIGHT):
+			mechanics.append(MECHANIC_SKILL_INSIGHT)
+		flat[GameConstants.STAT_SKILL_LEVEL] = \
+			float(flat.get(GameConstants.STAT_SKILL_LEVEL, 0.0)) + 1.0
+	return {"stats": out, "flat_stats": flat, "mechanics": mechanics}
+
+
+## 从存档的「已点节点」构造可直接并入 `StatCalculator` 的 buff 条目。
+##
+## 返回 `{"pct": {...}, "flat": {...}}`；**未点任何节点时返回 `{}`**（不污染 buffs 字典）。
+## 这是天赋 → 属性的**唯一接线入口**（hub 据点面板 / LevelScene 局内共用）。
+static func calc_buff(learned_nodes: Array, account_level: int) -> Dictionary:
+	var tree := TalentTree.new()
+	tree.update_unlocks(account_level)
+	for n in learned_nodes:
+		tree.points_spent[String(n)] = true
+	var b := tree.get_bonus_stats()
+	var pct: Dictionary = b["stats"]
+	var flat: Dictionary = b.get("flat_stats", {})
+	if pct.is_empty() and flat.is_empty():
+		return {}
+	return {"pct": pct, "flat": flat}
 
 
 ## 进度 0–1（UI 用）

@@ -505,6 +505,11 @@ func _apply_account_stats(refill_hp: bool = true) -> void:
 	#   **并入** 临时增益（第四步 B4 3-B1/B2，由玩家 `BuffComponent` 产出；不是取代）。
 	# ⚠️ 此前传的是**空字典** ⇒ 面板接上后选了增益也不生效（第 9 个「生成没人消费」）。
 	var buffs := _buff_system.to_calculator_buffs()
+	# 天赋加成（第四步 B4-4 · 1-L10）：**必须与据点面板同源**，否则面板显示 +12% 攻击
+	#   而实战不生效（自洽式假象）。`calc_buff()` 已分 pct / flat 桶。
+	var tb := TalentTree.calc_buff(data.unlocked_talent_nodes, data.account_level)
+	if not tb.is_empty():
+		buffs["talent"] = tb
 	var bc := _player.get_buff_component()
 	if bc != null:
 		buffs = _merge_calc_buffs(buffs, bc.to_calculator_buffs())
@@ -526,18 +531,23 @@ func _on_player_buff_changed() -> void:
 	_apply_account_stats(false)
 
 
-## 合并两份 `{buff_id: {"pct": {stat_key: value}}}`；同名 id 的 pct 键**相加**（不覆盖）。
+## 合并两份 `{buff_id: {"pct": {...}, "flat": {...}}}`；同名 id 的 pct / flat 键**分别相加**（不覆盖）。
+##
+## ⚠️ 必须同时合并 `flat` 桶：天赋「技之极意」的 `skill_level` 走 flat，
+##    只合并 pct 会在 id 撞名时**静默丢掉**固定值加成（同型于「String 字段静默脱钩」）。
 static func _merge_calc_buffs(a: Dictionary, b: Dictionary) -> Dictionary:
 	var out := a.duplicate(true)
 	for id in b.keys():
 		if not out.has(id):
 			out[id] = b[id]
 			continue
-		var pa: Dictionary = out[id].get("pct", {})
-		var pb: Dictionary = b[id].get("pct", {})
-		for k in pb.keys():
-			pa[k] = float(pa.get(k, 0.0)) + float(pb[k])
-		out[id]["pct"] = pa
+		for bucket in ["pct", "flat"]:
+			var ba: Dictionary = out[id].get(bucket, {})
+			var bb: Dictionary = b[id].get(bucket, {})
+			for k in bb.keys():
+				ba[k] = float(ba.get(k, 0.0)) + float(bb[k])
+			if not ba.is_empty():
+				out[id][bucket] = ba
 	return out
 
 

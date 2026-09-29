@@ -59,13 +59,14 @@
       { "seq": 1, "target": "create_new()  (save_data.gd:151-178)", "action": "初始化 tickets = {} / tower_progress = {}（不预置 0 值键，与 consumables = {} 口径一致）", "risk": "🟡" },
       { "seq": 2, "target": "to_dict()  (save_data.gd:255-286)", "action": "加 \"tickets\": tickets 与 \"tower_progress\": tower_progress", "risk": "🟡" },
       { "seq": 3, "target": "from_dict()  (save_data.gd:290-335)", "action": "加 out.tickets = data.get(\"tickets\", {}) if data.get(\"tickets\") is Dictionary else {}（同 tower_progress）", "risk": "🟡" },
-      { "seq": 4, "target": "migrate()  (save_data.gd:347-369)", "action": "加 4: 分支：tickets = {} / tower_progress = {} → save_version = 5", "risk": "🟠" },
-      { "seq": 5, "target": "SAVE_VERSION  (game_constants.gd:1289)", "action": "4 → 5", "risk": "🟠" }
+      { "seq": 4, "target": "migrate()  (save_data.gd:347-369)", "action": "加 5: 分支：tickets = {} / tower_progress = {} → save_version = 6", "risk": "🟠" },
+      { "seq": 5, "target": "SAVE_VERSION  (game_constants.gd:1289)", "action": "5 → 6（v5 已被 B4-4 占用，见下方 _renumber_note）", "risk": "🟠" }
     ],
     "migration_warning": {
       "_critical": true,
-      "text": "migrate() 是 while save_version < SAVE_VERSION: match save_version: 结构。若只改 SAVE_VERSION=5 而不加 4: 分支，旧档会走到 _: 兜底分支静默跳过 —— from_dict() 的 .get(\"tickets\", {}) 会给出 {} 默认值，【表面上完全正常】。但后续再引入依赖迁移的字段时会缺少一次升级 ⇒ 必须显式写 4: 分支。"
+      "text": "migrate() 是 while save_version < SAVE_VERSION: match save_version: 结构。若只改 SAVE_VERSION 而不加对应的 5: 分支，旧档会走到 _: 兜底分支静默跳过 —— from_dict() 的 .get(\"tickets\", {}) 会给出 {} 默认值，【表面上完全正常】。但后续再引入依赖迁移的字段时会缺少一次升级 ⇒ 必须显式写 5: 分支。"
     },
+    "_renumber_note": "2026-09-29 · B4-4（1-L9 符文/分支/图鉴）先行落地 SAVE_VERSION 4 → 5，故本批（S10）顺延为 5 → 6。原 ticket 写的 4 → 5 已作废。",
     "read_write_api": {
       "code": [
         "func get_ticket(ticket_id: String) -> int:",
@@ -183,8 +184,8 @@
   ],
 
   "assertions_for_checker": [
-    { "id": "TK1", "desc": "SAVE_VERSION == 5" },
-    { "id": "TK2", "desc": "migrate() 含显式 4: 分支（非仅靠 _: 兜底）" },
+    { "id": "TK1", "desc": "SAVE_VERSION == 6" },
+    { "id": "TK2", "desc": "migrate() 含显式 5: 分支（非仅靠 _: 兜底）" },
     { "id": "TK3", "desc": "create_new() 初始化 tickets 与 tower_progress 为 {}" },
     { "id": "TK4", "desc": "to_dict() / from_dict() 均含两字段且往返一致" },
     { "id": "TK5", "desc": "tickets 与 materials / consumables 无键名重叠" },

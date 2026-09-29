@@ -26,9 +26,11 @@ const PANEL_EQUIP := "equip"
 const PANEL_TALENT := "talent"
 const PANEL_FORGE := "forge"
 const PANEL_SKILLS := "skills"
+const PANEL_RUNE_CODEX := "rune_codex"
 
 const PANEL_IDS: Array[String] = [
 	PANEL_INVENTORY, PANEL_CHARACTER, PANEL_EQUIP, PANEL_TALENT, PANEL_FORGE, PANEL_SKILLS,
+	PANEL_RUNE_CODEX,
 ]
 const PANEL_TITLES := {
 	PANEL_INVENTORY: "背包 / 仓库",
@@ -37,6 +39,7 @@ const PANEL_TITLES := {
 	PANEL_TALENT: "天赋树",
 	PANEL_FORGE: "锻造台",
 	PANEL_SKILLS: "技能",
+	PANEL_RUNE_CODEX: "符文图鉴",
 }
 
 ## 背包 / 仓库网格（工程侧默认，见 Inventory 头注释）
@@ -306,6 +309,8 @@ func _ensure_panel(panel_id: String) -> bool:
 			panel = ForgePanel.new()
 		PANEL_SKILLS:
 			panel = SkillPanel.new()
+		PANEL_RUNE_CODEX:
+			panel = RuneCodexPanel.new()
 	if panel == null:
 		return false
 
@@ -328,6 +333,12 @@ func _ensure_panel(panel_id: String) -> bool:
 	_holders[panel_id] = holder
 	_panels[panel_id] = panel
 	_ui_layer.add_child(holder) # ← 入树：panel._ready() 在此触发
+
+	# 技能面板的「详情浮层」是**第二层**，必须挂在 UI 层而非面板容器内
+	# （否则被 PanelContainer 拉伸 + 被 holder 的 visible=false 连带隐藏）。
+	# ⚠️ 必须在入树之后调用：`_detail_holder` 是在 `_ready()` 里建的。
+	if panel is SkillPanel:
+		(panel as SkillPanel).attach_overlay_host(_ui_layer)
 
 	_bind_panel(panel_id, panel)
 	return true
@@ -363,7 +374,24 @@ func _bind_panel(panel_id: String, panel: Control) -> void:
 				data.class_id,
 				ConfigLoader.class_skill_ids(data.class_id),
 				data.skill_bar,
-				_on_skill_bar_saved)
+				_on_skill_bar_saved,
+				_skill_panel_ctx(data))
+		PANEL_RUNE_CODEX:
+			(panel as RuneCodexPanel).bind(
+				data.unlocked_runes,
+				int(last_stats.get("skill_level", GameConstants.SKILL_LEVEL_BASE)))
+
+
+## SkillPanel 的第二层上下文（符文 / 分支 / 解锁 / 等级 / 落盘回调）
+func _skill_panel_ctx(data: SaveData) -> Dictionary:
+	return {
+		"runes": data.skill_runes,
+		"branches": data.skill_branches,
+		"account_level": data.account_level,
+		"cleared_levels": data.cleared_levels,
+		"skill_level": int(last_stats.get("skill_level", GameConstants.SKILL_LEVEL_BASE)),
+		"on_config_saved": _on_skill_config_saved,
+	}
 
 
 func _refresh_panel(panel_id: String) -> void:
@@ -384,6 +412,19 @@ func _on_skill_bar_saved(bar: Array[String]) -> void:
 		_toast_msg("技能栏保存失败：%s" % SaveManager.last_error)
 
 
+## 符文 / 分支保存（SkillPanel 的 `on_config_saved`）：写内存 + 落盘 + 提示
+func _on_skill_config_saved(runes: Dictionary, branches: Dictionary) -> void:
+	var data := SaveManager.current_data
+	if data == null:
+		return
+	data.skill_runes = runes.duplicate(true)
+	data.skill_branches = branches.duplicate(true)
+	if SaveManager.save_to_slot(data.slot, data):
+		_toast_msg("技能配置已保存（符文 %d · 分支 %d）" % [runes.size(), branches.size()])
+	else:
+		_toast_msg("技能配置保存失败：%s" % SaveManager.last_error)
+
+
 # =============================================================================
 # 属性结算（StatCalculator.calculate 的唯一生产调用点）
 # =============================================================================
@@ -391,8 +432,16 @@ func _on_skill_bar_saved(bar: Array[String]) -> void:
 ## 据点没有局内 Buff，`buffs` 传空字典。
 ## 结果通过 `EventBus.stats_recalculated` 广播，StatPanel 由监听者刷新。
 func _recalculate_stats(data: SaveData) -> void:
+	# 天赋加成并入结算（第四步 B4-4 · 1-L10 单点接线）。
+	# ⚠️ 此前恒传**空 buffs** ⇒ 天赋树的 `stats`（小 +2% / 大 +8%）与「技之极意」
+	#    （+1 技能等级）从未进入 `StatCalculator` —— 整棵天赋树是死钩子。
+	#    `calc_buff()` 返回 `{"pct":..., "flat":...}` 已分桶，直接作 buff 条目用。
+	var buffs := {}
+	var tb := TalentTree.calc_buff(data.unlocked_talent_nodes, data.account_level)
+	if not tb.is_empty():
+		buffs["talent"] = tb
 	EventBus.stats_recalculated.emit(
-		StatCalculator.calculate(data.account_level, data.equipped, {}))
+		StatCalculator.calculate(data.account_level, data.equipped, buffs))
 
 
 func _on_stats_recalculated(final_stats: Dictionary) -> void:

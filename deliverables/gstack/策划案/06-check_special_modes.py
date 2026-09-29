@@ -63,7 +63,7 @@ PHASE2_SKILLS_P2 = 4
 PHASE2_ARENA = ["fire_ring", "shrink_arena"]
 
 # S10
-TARGET_SAVE_VERSION = 5
+TARGET_SAVE_VERSION = 6  # B4-4 已占用 5 ⇒ S10 顺延为 6
 TICKET_KEYS = ["ticket_normal", "key_advanced"]
 
 # S12 新增两档的键
@@ -192,11 +192,11 @@ def group_b(data, ck):
     seqs = sorted(p["seq"] for p in t["save_integration"]["patch_items"])
     ck.ok(seqs == [1, 2, 3, 4, 5], "B4 补丁项编号为 1..5 连续（实得 %s）" % seqs)
 
-    # B3: SAVE_VERSION 目标为 5
+    # B3: SAVE_VERSION 目标为 6（B4-4 已占用 5）
     sv = [p for p in t["save_integration"]["patch_items"]
           if "SAVE_VERSION" in p["target"]]
-    ck.ok(len(sv) == 1 and sv[0]["action"] == "4 → 5",
-          "B5 SAVE_VERSION 4 → 5")
+    ck.ok(len(sv) == 1 and sv[0]["action"].startswith("5 → 6"),
+          "B5 SAVE_VERSION 5 → 6")
 
     # B4: migrate 分支显式存在且有警告
     ck.ok(t["save_integration"]["migration_warning"]["_critical"] is True,
@@ -711,8 +711,8 @@ def group_e(data, ck, repo):
     # E2: SAVE_VERSION 现值
     m = re.search(r"const SAVE_VERSION:\s*int\s*=\s*(\d+)", gc)
     now_sv = int(m.group(1)) if m else -1
-    ck.ok(now_sv == 4,
-          "E2 SAVE_VERSION 现为 %d（S10 目标 5，属已登记工单）" % now_sv)
+    ck.ok(now_sv == 5,
+          "E2 SAVE_VERSION 现为 %d（B4-4 已落地 5；S10 目标改 6，属已登记工单）" % now_sv)
 
     # E3: 现存 15 个定长数组是否都是 8 项（确认扩容工作量）
     checks = {

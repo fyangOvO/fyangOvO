@@ -2,7 +2,7 @@
 ##
 ## GDD 0.4 节 4.3/4.4：三选一选项、祭坛二选一、连杀层数机制 → 统一的
 ## 局内 buff 字典（{buff_id: stacks}），转成 StatCalculator 的 buffs 格式
-## （{buff_id: {"pct": {...}}}）并入属性结算。
+## （{buff_id: {"pct"|"flat": {...}}}）并入属性结算。桶由 `RunePool.OPTIONS[].bucket` 声明。
 ##
 ## 连杀（GDD 0.4 节 4.3）：3 秒内连续击杀不断连，每 20 连杀 +3% 攻击力，
 ## 上限 +15%。
@@ -52,7 +52,11 @@ static func SHINE_OPTIONS() -> Array[Dictionary]:
 	]
 
 
-## 转成 StatCalculator buffs 格式并入结算（`{buff_id: {"pct": {...}}}`）。
+## 转成 StatCalculator buffs 格式并入结算（`{buff_id: {"pct"|"flat": {...}}}`）。
+##
+## 桶（bucket）由 `RunePool.OPTIONS[].bucket` 声明（缺省 `"pct"`）；祭坛/连杀恒为 `"pct"`。
+## ⚠️ **flat 键（如 `skill_level`）必须走 `"flat"` 桶** —— `StatCalculator` 只从 flat 汇总
+##    直接累加键，塞进 pct 桶不会报错但**永不生效**（`skill_level` 死钩子复发点）。
 ##
 ## 【2026-09-18 修复 · D3】cap 从「抽卡过滤」升级为**硬顶钳制**：
 ##   旧实现只在 `RunePool.get_choices` 抽卡时按 `stats_pct >= cap` 过滤，**不钳制最终值** ⇒
@@ -64,27 +68,31 @@ static func SHINE_OPTIONS() -> Array[Dictionary]:
 ##   缩放对全部贡献者**一致**，保证「同样的选择永远得到同样的结果」（确定性）。
 ##   `picked_pct` 保留（历史签名兼容），当前不参与计算。
 func to_calculator_buffs(picked_pct: Dictionary = {}) -> Dictionary:
-	# ---- ① 收集原始贡献（option_id → {stat_key: pct}）并汇总每 stat_key 总量 ----
-	var raw: Dictionary = {}      # option_id -> {stat_key: value}
+	# ---- ① 收集原始贡献（option_id → {bucket: {stat_key: value}}）并汇总每 stat_key 总量 ----
+	# ⚠️ `bucket`（"pct" / "flat"）**必须由数据声明**（`RunePool.OPTIONS[].bucket`），
+	#    不能一律塞 "pct"：`skill_level` 在 `StatCalculator` 走 **flat** 桶
+	#    （`out["skill_level"] = flat.get("skill_level")`）⇒ 塞进 pct 桶会**静默失效**（死钩子）。
+	var raw: Dictionary = {}      # option_id -> {bucket: {stat_key: value}}
 	var totals: Dictionary = {}   # stat_key -> 累计
 	for option_id in buffs:
 		var opt := RunePool.get_option(option_id)
 		if not opt.is_empty():
 			var key := str(opt["stat_key"])
 			var val := float(opt["value"]) * float(buffs[option_id])
-			raw[option_id] = {key: val}
+			var bucket := str(opt.get("bucket", "pct"))
+			raw[option_id] = {bucket: {key: val}}
 			totals[key] = float(totals.get(key, 0.0)) + val
 		else:
-			# 祭坛等非池选项（id/name/desc/pct）
+			# 祭坛等非池选项（id/name/desc/pct）—— 无 bucket 字段 ⇒ 恒为 pct 桶
 			for altar in SHINE_OPTIONS():
 				if altar["id"] == option_id:
 					var pct: Dictionary = (altar["pct"] as Dictionary).duplicate()
-					raw[option_id] = pct
+					raw[option_id] = {"pct": pct}
 					for k in pct:
 						totals[k] = float(totals.get(k, 0.0)) + float(pct[k])
 	# 连杀攻击加成（GDD 0.4 §4.3：每 20 连杀 +3% 攻击，上限 +15%）——同样计入 pct_attack 总量
 	if streak_bonus_attack > 0.0:
-		raw["kill_streak"] = {"pct_attack": streak_bonus_attack}
+		raw["kill_streak"] = {"pct": {"pct_attack": streak_bonus_attack}}
 		totals["pct_attack"] = float(totals.get("pct_attack", 0.0)) + streak_bonus_attack
 
 	# ---- ② 每 stat_key 求钳制缩放（超出 cap 的部分夹住）----
@@ -94,13 +102,16 @@ func to_calculator_buffs(picked_pct: Dictionary = {}) -> Dictionary:
 		var total := float(totals[k])
 		scale[k] = (cap / total) if (cap > 0.0 and total > cap) else 1.0
 
-	# ---- ③ 按缩放写回 ----
+	# ---- ③ 按缩放写回（保持 bucket 分组）----
 	var out := {}
 	for option_id in raw:
-		var pct_out: Dictionary = {}
-		for k in raw[option_id]:
-			pct_out[k] = float(raw[option_id][k]) * float(scale.get(k, 1.0))
-		out[option_id] = {"pct": pct_out}
+		var bucket_out: Dictionary = {}
+		for bucket in raw[option_id]:
+			var d: Dictionary = {}
+			for k in raw[option_id][bucket]:
+				d[k] = float(raw[option_id][bucket][k]) * float(scale.get(k, 1.0))
+			bucket_out[bucket] = d
+		out[option_id] = bucket_out
 	return out
 
 

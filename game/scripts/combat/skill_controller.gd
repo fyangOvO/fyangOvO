@@ -45,6 +45,14 @@ var _cooldowns: Dictionary = {}
 ##    由 `tools/verify_skills.gd` 的符文段直接注入验证，**不是死代码**。
 var _equipped_runes: Dictionary = {}
 
+## 已选形态分支：`{skill_id: branch_id}`（第四步 B4-4 · 1-L9）。
+## 分支在技能等级达 5 时二选一（模板 `data/skills/branches.json`）；默认空 = 未选。
+## 数据源 = `SaveData.skill_branches`（`_load_equipment_from_save()` 注入）。
+var _equipped_branches: Dictionary = {}
+
+## 已警告过的「分支修饰未接」标记（避免每次施放都刷屏）
+var _branch_warned: Dictionary = {}
+
 ## 已警告过的「形态实现未落地」标记（避免每次施放都刷屏）
 var _pending_form_warned: Dictionary = {}
 
@@ -53,6 +61,7 @@ func _ready() -> void:
 	if not player_path.is_empty():
 		_player = get_node_or_null(player_path) as PlayerController
 	_load_skills()
+	_load_equipment_from_save()
 
 
 ## 从存档加载出战技能（2026-09-22 步骤 3：职业专属技能池 + 技能栏重排）。
@@ -77,6 +86,23 @@ func _equipped_skill_ids() -> Array[String]:
 			return data.skill_bar.duplicate()
 		return ConfigLoader.class_default_skill_bar(data.class_id)
 	return ConfigLoader.class_default_skill_bar(GameConstants.CLASS_DEFAULT)
+
+
+## 从存档注入符文装配 + 形态分支（第四步 B4-4 · 1-L9）。
+##
+## 数据源 = `SaveData.skill_runes` / `SaveData.skill_branches`（据点技能面板写入）。
+## 逐项走 `set_equipped_runes()` / `set_equipped_branch()` ⇒ 未注册的符文 / 非法分支被过滤。
+## 无档（测试场景）⇒ 两者为空，行为与「无符文、未选分支」逐位一致。
+func _load_equipment_from_save() -> void:
+	var data := SaveManager.current_data
+	if data == null:
+		return
+	for sid in data.skill_runes:
+		var arr: Variant = data.skill_runes[sid]
+		if arr is Array:
+			set_equipped_runes(String(sid), arr)
+	for sid in data.skill_branches:
+		set_equipped_branch(String(sid), String(data.skill_branches[sid]))
 
 
 # =============================================================================
@@ -122,6 +148,64 @@ func get_equipped_runes(skill_id: String) -> Array:
 	return _equipped_runes.get(skill_id, [])
 
 
+## 设置某技能已选的形态分支。空串 = 清除。非法分支 id（不在该形态模板内）**拒绝写入**并警告
+## —— 防「拼错 branch_id 静默放行 ⇒ 分支永不生效」。
+func set_equipped_branch(skill_id: String, branch_id: String) -> void:
+	if branch_id.is_empty():
+		_equipped_branches.erase(skill_id)
+		return
+	var sd := ConfigLoader.get_skill(skill_id)
+	if sd == null:
+		push_warning("[SkillController] 未知技能 '%s'，分支未写入" % skill_id)
+		return
+	if _find_branch(sd, branch_id).is_empty():
+		push_warning("[SkillController] 技能 '%s'（形态 %s）无分支 '%s'，已拒绝"
+			% [skill_id, _type_key(sd.type), branch_id])
+		return
+	_equipped_branches[skill_id] = branch_id
+
+
+func get_equipped_branch(skill_id: String) -> String:
+	return String(_equipped_branches.get(skill_id, ""))
+
+
+## 某技能形态模板下的可选分支（`[{id, display_name, description, modifiers}, ...]`）。
+## 供技能面板渲染分支按钮；未知形态返回空数组。
+func branch_options(skill_id: String) -> Array:
+	var sd := ConfigLoader.get_skill(skill_id)
+	if sd == null:
+		return []
+	return ConfigLoader.branch_options_for_type(_type_key(sd.type))
+
+
+# =============================================================================
+# 局内 UI 查询（技能栏叠加标识用；第四步 B4-4 · 1-L13）
+# =============================================================================
+
+## 该技能已装配符文数（0–3）。
+func get_rune_count(skill_id: String) -> int:
+	return (get_equipped_runes(skill_id) as Array).size()
+
+
+## 该技能已选分支 id（空串 = 未选）。
+func get_branch_id(skill_id: String) -> String:
+	return get_equipped_branch(skill_id)
+
+
+## 当前全局技能等级（1–10）。无玩家（测试）⇒ 回退基准 1。
+func get_skill_level() -> int:
+	if _player != null and _player.has_method("get_skill_level"):
+		return int(_player.get_skill_level())
+	return GameConstants.SKILL_LEVEL_BASE
+
+
+## 技能形态字符串键（`single`/`aoe`/…）；越界回退空串。
+func _type_key(t: int) -> String:
+	if t < 0 or t >= SkillData.TYPE_KEYS.size():
+		return ""
+	return String(SkillData.TYPE_KEYS[t])
+
+
 # =============================================================================
 # 主循环
 # =============================================================================
@@ -162,6 +246,9 @@ func try_cast(id: String) -> bool:
 	# 符文修饰器（第一步 §2.2）：形态 / 元素 / 数值改写在**扣费与分派之前**套用。
 	# 未装配符文时返回原对象（零开销、零行为变化）。
 	var effective := _apply_rune_modifiers(data, get_equipped_runes(id))
+	# 形态分支修饰器（第一步 §2.3）：在符文之后套用（分支是「终极方向选择」，最后生效）。
+	# 未选分支时原样返回 ⇒ 零行为变化。
+	effective = _apply_branch_modifiers(effective, get_equipped_branch(id))
 
 	# 冷却缩减 / 技能减耗（第二步 2-L5/L6 · 第三步 X3/X4；`02-装备属性.md` §7.4 给了精确码）：
 	#   两者都是**乘区**，**硬顶 70%**（`COOLDOWN_REDUCTION_CAP_PCT` / `SKILL_COST_REDUCTION_CAP_PCT`）
@@ -462,6 +549,93 @@ func _apply_rune_pct(out: SkillData, key: String, pct: float) -> void:
 			out.radius *= factor
 		"range_pct":
 			out.range *= factor
+
+
+# =============================================================================
+# 形态分支修饰器（第一步 §2.3 · 第四步 B4-4 · 1-L9）
+# =============================================================================
+
+## 分支修饰：可直接映射到 `SkillData` 字段的键（**本批已接**）。
+const BRANCH_FIELD_KEYS: Array[String] = [
+	"pierce_count", "projectile_count", "spread_deg",
+]
+## 分支修饰：乘算键（带符号增量，+40 = 放大 40%）。
+const BRANCH_PCT_KEYS: Array[String] = [
+	"multiplier_pct", "radius_pct", "dash_distance_pct", "duration_pct",
+]
+## 分支修饰：**需新增战斗支援、本批未接**的键（命中即一次性警告 + 列入遗留）。
+##
+## ⚠️ 用户裁定（2026-09-29）：「只接可映射的 7 个」。这 8 个键对应的分支
+##    （连击 / 滞留 / 余像 / 涌动 / 军团 / 精锐 / 强化）在 UI 上仍可选中并落盘，
+##    但**暂无行为效果** —— 面板对这类分支显示「暂未生效」角标。
+const BRANCH_UNSUPPORTED_KEYS: Array[String] = [
+	"combo_hits", "combo_damage_pct", "linger", "afterimage", "pulse",
+	"summon_count", "summon_damage_pct", "buff_potency_pct",
+]
+
+
+## 套用形态分支修饰：返回**副本**（不改动注册表里的模板对象）。
+## 未选分支 / 分支不属于该形态 ⇒ 原样返回 `data`（零开销、零行为变化）。
+func _apply_branch_modifiers(data: SkillData, branch_id: String) -> SkillData:
+	if branch_id.is_empty():
+		return data
+	var br := _find_branch(data, branch_id)
+	if br.is_empty():
+		return data
+	var out: SkillData = data.duplicate()
+	var mods: Dictionary = br.get("modifiers", {})
+	for key in mods:
+		var k := String(key)
+		var v: Variant = mods[key]
+		if k in BRANCH_FIELD_KEYS:
+			_apply_branch_field(out, k, v)
+		elif k in BRANCH_PCT_KEYS:
+			_apply_branch_pct(out, k, float(v))
+		else:
+			# 含 BRANCH_UNSUPPORTED_KEYS 与任何未知键 —— 一律警告，不静默吞
+			_warn_unsupported_branch(data.id, k)
+	return out
+
+
+## 在该技能**形态模板**内查分支定义；找不到返回 `{}`。
+func _find_branch(data: SkillData, branch_id: String) -> Dictionary:
+	for opt in ConfigLoader.branch_options_for_type(_type_key(data.type)):
+		if opt is Dictionary and String(opt.get("id", "")) == branch_id:
+			return opt
+	return {}
+
+
+func _apply_branch_field(out: SkillData, key: String, value: Variant) -> void:
+	match key:
+		"pierce_count":
+			out.pierce_count = int(value)
+		"projectile_count":
+			out.projectile_count = int(value)
+		"spread_deg":
+			out.spread_deg = float(value)
+
+
+func _apply_branch_pct(out: SkillData, key: String, pct: float) -> void:
+	var factor := 1.0 + pct / 100.0
+	match key:
+		"multiplier_pct":
+			out.multiplier *= factor
+		"radius_pct":
+			out.radius *= factor
+		"dash_distance_pct":
+			out.dash_distance *= factor
+		"duration_pct":
+			out.duration *= factor
+
+
+## 一次性警告（同一 skill+key 只报一次，避免每次施放刷屏）。
+func _warn_unsupported_branch(skill_id: String, key: String) -> void:
+	var tag := "%s:%s" % [skill_id, key]
+	if _branch_warned.get(tag, false):
+		return
+	_branch_warned[tag] = true
+	push_warning("[SkillController] 分支修饰 '%s'（技能 %s）本批未接（需新增战斗支援），已忽略"
+		% [key, skill_id])
 
 
 # =============================================================================

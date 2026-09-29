@@ -1391,7 +1391,9 @@ const SKILL_ICON: Dictionary = {
 	"void_rift": "skill_icon_void_rift",
 }
 
-const SAVE_VERSION: int = 4
+## 磁盘存档格式版本。**每次改动 SaveData 字段结构必须 +1，并在 `migrate()` 补一条显式分支。**
+## v2 class_id ｜ v3 skill_bar ｜ v4 consumables ｜ v5 skill_runes + skill_branches（B4-4 / 1-L9）
+const SAVE_VERSION: int = 5
 const SAVE_DIR: String = "user://saves"
 const SAVE_MAX_SLOTS: int = 8
 const SAVE_BACKUP_ROTATION: int = 3 ## 每槽保留的备份份数

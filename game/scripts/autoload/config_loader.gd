@@ -612,6 +612,9 @@ func _load_skill_dir(dir_path: String) -> void:
 			res.stun_duration = float(raw.get("stun_duration", 0.0))
 			res.branch_a = String(raw.get("branch_a", ""))
 			res.branch_b = String(raw.get("branch_b", ""))
+			# 2026-09-29（第四步 B4-4 · 1-L11）：解锁门槛（等级 / BOSS 首通）
+			res.unlock_level = int(raw.get("unlock_level", 0))
+			res.unlock_boss = String(raw.get("unlock_boss", ""))
 			_register(skills, res.id, res, entry)
 			_validate(res, entry)
 

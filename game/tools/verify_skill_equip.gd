@@ -102,10 +102,11 @@ func _test_pool_to_bar() -> void:
 	_ok("栏满时装配被拒（提示「已满」+ 栏不变）",
 		_sp.bar == ["fireball", "frost_nova", "lightning_chain"]
 		and _sp._info.text.contains("已满"))
-	# 2) 卸下 1 号位（火球术）腾位
-	_press_bar(0)
+	# 2) 卸下 1 号位（火球术）腾位 —— 点出战槽开详情 → 详情里卸下
+	_unequip_bar(0)
 	await _wait_frames(1)
-	_ok("点出战槽 1 → 卸下火球术", _sp.bar == ["frost_nova", "lightning_chain"]
+	_ok("点出战槽 1 → 详情里「从出战栏卸下」火球术",
+		_sp.bar == ["frost_nova", "lightning_chain"]
 		and _sp._info.text.contains("已卸下"))
 	# 3) 装配召唤技 → 自动补到空位
 	_press_pool("summon_elemental")
@@ -129,9 +130,9 @@ func _test_bar_unequip() -> void:
 	if _sp == null:
 		return
 	# 1) 卸下 1 号位（冰霜新星）
-	_press_bar(0)
+	_unequip_bar(0)
 	await _wait_frames(1)
-	_ok("点出战槽 1 → 卸下冰霜新星",
+	_ok("点出战槽 1 → 详情里卸下冰霜新星",
 		_sp.bar == ["lightning_chain", "summon_elemental"])
 	# 2) 栏当前 2 格，点第 3 槽（空）→ 无操作
 	_press_bar(2)
@@ -166,11 +167,11 @@ func _test_save_callback() -> void:
 		and SaveManager.current_data.skill_bar == _saved_bar
 		and reloaded != null and reloaded.skill_bar == _saved_bar)
 	# 空栏保存被拒（回呼不触发）
-	_press_bar(0)
+	_unequip_bar(0)
 	await _wait_frames(1)
-	_press_bar(0)
+	_unequip_bar(0)
 	await _wait_frames(1)
-	_press_bar(0)
+	_unequip_bar(0)
 	await _wait_frames(1)
 	var calls_before_empty := _save_calls
 	_press_save()
@@ -230,6 +231,9 @@ func _prepare_slot(class_id: String, slot: int) -> void:
 	SaveManager.current_data = null
 	SaveManager.current_slot = -1
 	var data := SaveManager.create_new_slot(slot, class_id)
+	# 账号等级抬到 22 ⇒ 法师池全开（B4-4 / 1-L11 起，`summon_elemental` 的 unlock_level = 22）。
+	# 否则 L1 账号下池卡灰显、装配被拒，整条端到端链路失效。
+	data.account_level = 22
 	SaveManager.current_data = data
 	SaveManager.current_slot = slot
 
@@ -267,9 +271,20 @@ func _press_bar(index: int) -> void:
 
 
 func _press_save() -> void:
-	var btn := _find_button(_sp, "保存技能栏")
+	var btn := _find_button(_sp, "保存配置")
 	if btn != null:
 		btn.pressed.emit()
+
+
+## 卸下第 index 个出战槽：B4-4 / 1-L14 起，点出战槽 = **打开技能详情**，
+## 卸下入口移到详情浮层的「从出战栏卸下」按钮 ⇒ 必须两步走。
+func _unequip_bar(index: int) -> void:
+	_press_bar(index)
+	var btn := _find_button_by_name(_sp, "DetailUnequip")
+	if btn != null:
+		btn.pressed.emit()
+	else:
+		_info("详情浮层里找不到 DetailUnequip（槽 %d）" % index)
 
 
 func _bar_slot_names(sp: SkillPanel) -> Array:

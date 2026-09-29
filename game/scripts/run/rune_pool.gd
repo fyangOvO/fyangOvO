@@ -1,11 +1,14 @@
 ## 局内三选一选项池（任务 4.2 · class_name 纯静态）
 ##
-## GDD 0.4 节 4.2：15 个具体选项（攻击 6 / 防御 5 / 资源 4），
+## GDD 0.4 节 4.2：16 个具体选项（攻击 6 / 防御 5 / 资源 4 / 成长 1），
 ## 每升 1 级从池中不重复抽取 3 个。
 ##
 ## GDD 0.4 节 4.4：局内增益对任意单一属性增幅上限 =
 ##   攻击/生命 +30%（硬上限）、攻速/暴击率 +20%、移速/拾取/金币不占上限；
 ##   达上限后该类选项从池中移除，自动切换为功能性选项。
+##
+## `bucket`（第四步 B4-4 · 1-L8）：`"pct"`（缺省，百分比）/ `"flat"`（固定值直接累加）。
+##   ⚠️ 固定值键（如 `skill_level`）**必须**标 `flat`，否则会被塞进 pct 桶而静默失效。
 class_name RunePool
 extends RefCounted
 
@@ -46,6 +49,11 @@ const OPTIONS: Array[Dictionary] = [
 		"stat_key": "magic_find", "value": 10.0, "cap": 0.0},
 	{"id": "drain",       "cat": "resource", "name": "汲取",   "desc": "攻击回复 2% 造成伤害（生命偷取）",
 		"stat_key": "life_steal", "value": 2.0, "cap": 0.0},
+	# ---- 成长（第四步 B4-4 · 1-L8）----
+	# ⚠️ `bucket: "flat"` **必须显式声明**：`skill_level` 在 StatCalculator 走 flat 桶
+	#    （`out["skill_level"] = flat.get(...)`）。缺省 bucket = "pct" ⇒ 该选项会**静默失效**。
+	{"id": "skill_insight","cat": "growth",   "name": "技之领悟", "desc": "+1 技能等级（本局）",
+		"stat_key": "skill_level", "value": 1.0, "cap": 0.0, "bucket": "flat"},
 ]
 
 

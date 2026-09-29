@@ -66,15 +66,41 @@ func _test_progression() -> void:
 
 func _test_pool() -> void:
 	print("--- B. 选项池 ---")
-	_ok("池 15 个选项", RunePool.OPTIONS.size() == 15)
+	_ok("池 16 个选项", RunePool.OPTIONS.size() == 16)
 	var cats := {}
 	for opt in RunePool.OPTIONS:
 		cats[opt["cat"]] = cats.get(opt["cat"], 0) + 1
 		_ok("选项 %s 键完整" % opt["id"],
 			opt.has("name") and opt.has("desc") and opt.has("stat_key")
 			and opt.has("value") and opt.has("cap"))
-	_ok("攻击 6 / 防御 5 / 资源 4", cats.get("attack", 0) == 6
-		and cats.get("defense", 0) == 5 and cats.get("resource", 0) == 4)
+	_ok("攻击 6 / 防御 5 / 资源 4 / 成长 1", cats.get("attack", 0) == 6
+		and cats.get("defense", 0) == 5 and cats.get("resource", 0) == 4
+		and cats.get("growth", 0) == 1)
+	# 第四步 B4-4 · 1-L8：固定值键必须标 flat 桶，否则会被塞进 pct 桶而静默失效
+	var insight := RunePool.get_option("skill_insight")
+	_ok("「技之领悟」存在且 stat_key = skill_level",
+		not insight.is_empty() and str(insight.get("stat_key", "")) == "skill_level")
+	_ok("「技之领悟」声明 bucket = flat（否则 skill_level 静默失效）",
+		str(insight.get("bucket", "")) == "flat")
+	# 反向：其余选项都不得声明 flat（防止误标导致百分比被当固定值）
+	var bad_flat: Array[String] = []
+	for opt in RunePool.OPTIONS:
+		if str(opt["id"]) != "skill_insight" and str(opt.get("bucket", "pct")) != "pct":
+			bad_flat.append(str(opt["id"]))
+	_ok("除「技之领悟」外无选项误标 flat（%s）" % str(bad_flat), bad_flat.is_empty())
+	# 桶路由（RunBuffSystem → StatCalculator 的契约）
+	var rbs := RunBuffSystem.new()
+	rbs.apply_option("skill_insight")
+	var o_flat := rbs.to_calculator_buffs()
+	var ins := o_flat.get("skill_insight", {}) as Dictionary
+	_ok("RunBuffSystem 把 skill_insight 路由到 flat 桶（键 %s）" % str(ins.keys()),
+		ins.has("flat") and not ins.has("pct"))
+	rbs.reset()
+	rbs.apply_option("fury")
+	var o_pct := rbs.to_calculator_buffs()
+	var fur := o_pct.get("fury", {}) as Dictionary
+	_ok("RunBuffSystem 把 fury 路由到 pct 桶（键 %s）" % str(fur.keys()),
+		fur.has("pct") and not fur.has("flat"))
 
 
 # =============================================================================

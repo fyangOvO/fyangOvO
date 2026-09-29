@@ -95,12 +95,15 @@ func _run() -> void:
 	var back := SaveData.from_dict(dict)
 	_ok("from_dict 往返一致", int(back.consumables.get("life_potion", 0)) == 3
 		and int(back.consumables.get("mana_potion", 0)) == 2)
-	_ok("存档版本=4", back.save_version == 4)
+	_ok("存档版本=当前 SAVE_VERSION（%d）" % GameConstants.SAVE_VERSION,
+		back.save_version == GameConstants.SAVE_VERSION)
 	var old := SaveData.new()
 	old.save_version = 3
 	old.class_id = "warrior"
 	old.skill_bar = ["slash"]
-	_ok("旧档 v3 迁移成功", old.migrate() and old.save_version == 4 and old.consumables is Dictionary)
+	_ok("旧档 v3 迁移成功（升到当前版本 + consumables 补齐）",
+		old.migrate() and old.save_version == GameConstants.SAVE_VERSION
+		and old.consumables is Dictionary)
 
 	# F. 药水图标贴图
 	var life := UISkin.texture("potion_life")
