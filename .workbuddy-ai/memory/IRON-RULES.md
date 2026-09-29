@@ -251,6 +251,19 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 ⇒ 修法：測試清場一律 `child.free()`（立即釋放）。
 （同源坑：`queue_free()` 之後同一幀內 `is_instance_valid()` 仍為真 —— 別用它當「已死」判據。）
 
+### 🆕 2026-09-29（B3-6）新踩一坑
+
+**⑫ 「生成但沒人消費」的靜默鏈路 —— 數據鏈路『上半截通了』不等於有消費點**
+一個素材/字段的「生產側」鏈路全綠，**末端零渲染、零報錯**：
+`set_emblem_*.png`（3 張 48×48）✅存在 → `sets.json` `emblem_path` ✅已填 → `SetData.emblem_path` ✅已聲明
+→ `ConfigLoader` ✅已讀 ⇒ 但 `grep emblem_path` **無任何 `.gd` 用它取紋理** ⇒ 面板上看不到、日誌也不報。
+⇒ **驗收判據**：看**末端渲染**（真跑一次截圖目視），而不是看「欄位是否存在 / 是否被讀」。
+⇒ 同源坑：**改 UI 子節點結構前，必先 grep verify 裡的「按子節點序號取值」硬斷言**
+（`verify_set_system.gd:187` 的 `first.get_child(0) as Label` 在標題行由 `Label` 改 `HBoxContainer` 後即崩：
+`as` 回 null → `.text` 空指針）。此類序號斷言是**脆弱斷言**，改結構前必查。
+⇒ 素材路線提醒：套裝徽記在 `res://assets/sprites/items/`，**不屬** `ContentPaths.CLASS_UI`（`=assets/ui/quest`）
+⇒ 只能走 **`ContentLoader.load_icon`（路線 B）**，誤走 `UISkin.texture()` 會靜默回 `null`。
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
@@ -266,7 +279,7 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 - ⚠️ `assets/ui/pixel/rarity_*_48.png`（5 張）**零引用的歷史殘留**
 
 ### ⚠️ 已知「生成但沒人消費」清單（主線①病根）
-- **套裝徽記**：素材/`sets.json`/`SetData`/`ConfigLoader:453` 全通 → **無 UI 渲染點** ⇒ 3 張白做（工單 `2-L15`）
+- **套裝徽記**：素材/`sets.json`/`SetData`/`ConfigLoader:453` 全通 → ~~無 UI 渲染點~~ ⇒ **✅ 已修（B3-6 `2-L15`）**：`set_system` 透出 `emblem_path` → `set_panel` 標題行 `TextureRect`（`ContentLoader.load_icon`）+ `SET_EMBLEM_SIZE` 16→48
 - **傳奇特效 / 套裝 `effect_id`**：31 條特效 + 6 個 `effect_id` 定義完整但生產代碼零調用（`3-K1`–`K10`）
 - **BOSS 技能** `bone_slam`/`fireball` 被 `bosses.json` 引用，但 `_cast_boss_skill` 只做 `has_summon`/`has_aoe` 兩閘門 ⇒ 死數據（`5-W5-5`）
 - **I1 臨時增益 UI** / **D3 分支圖標**：素材已備、系統未實作

@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟡 **B3-5 技能形態實體 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-6 套裝徽記 UI（`2-L15`，1 工單）** |
+| **工程落地** | 🟡 **B3-6 套裝徽記 UI 完成**（B3 實際 54 工單，分 7 小批）⇒ 下一步 **B3-7 校驗補齊（11 工單 `2-V1/V2/V3/V4/V5/V6/V7/V7b/V10/V11/V14`）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -87,7 +87,19 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 （延遲釋放會讓下一用例誤計殘留實體）
 ⚠️ **遺留（非本批）**：①`explosive_arrow` 的**命中爆炸**（`radius` 對投射物無法區分「顯式聲明」與「默認 48」）
 ②`poison_cloud`/`void_rift` 的「使其中毒」/「拉向中心」等附加效果 ③`rune_echo`（`echo_count`）未承載
-⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → B3-5 ✅ → **B3-6 徽記** → B3-7 校驗
+⚠️ **B3 分 7 小批**（逐批驗收）：B3-1 ✅ → B3-2 ✅ → B3-3 ✅ → B3-4 ✅ → B3-5 ✅ → B3-6 ✅ → **B3-7 校驗**
+
+⇒ **B3-6 套裝徽記 UI 已落地**（1 工單 `2-L15` / 4 檔）：`set_system.gd` 的 `_set_info()` + `get_progress()`
+透出 **`emblem_path`**（此前只到 `SetData`/`ConfigLoader` 就斷鏈）｜ `set_panel.gd` 的 `_make_set_row()`
+標題行由**單 Label** 改 **`HBoxContainer{TextureRect + Label}`**，徽記走 **`ContentLoader.load_icon(完整 res:// 路徑)`**
+（**路線 B 數據驅動直載，不進 `UISkin` TEX 表** —— 徽記在 `assets/sprites/items/` 不屬 `CLASS_UI`）
+｜ `game_constants.gd:541` **`SET_EMBLEM_SIZE` 16 → 48**（素材實測 48×48；16 渲染為 1/3 非整數縮放違反美術規範 §1.1）
+｜ `verify_set_system.gd` 修 **`:187` 脆弱斷言**（`get_child(0)` 已由 `Label` 變 `HBoxContainer`）+ 加 **6 條徽記斷言**
+**成果**：修「**3 張徽記白做**」（素材/sets.json/SetData/ConfigLoader 全通但 **UI 零消費、零報錯**）；
+`set_preview` 目視確認 3 徽記 48×48 正確顯示
+⚠️ **本批新踩 1 坑**（詳見 `IRON-RULES.md` ⑫）：**「生成但沒人消費」的靜默鏈路** —— 數據鏈路「上半截通了」≠ 有消費點，
+驗收看**末端渲染**；且**改 UI 子節點結構前必先 grep verify 的「按子節點序號取值」硬斷言**
+⚠️ **遺留**：本批完整閉環、無新遺留
 
 （明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
 
@@ -95,7 +107,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3/B3-4/B3-5 各另起 commit（**最新 `89a88b7`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1/B3-2/B3-3/B3-4/B3-5/B3-6 各另起 commit（**最新 `8e7b0e8`**）。
 
 ---
 
