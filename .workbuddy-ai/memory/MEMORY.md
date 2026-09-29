@@ -12,7 +12,26 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益 ✅**（`3-B1`~`3-B4`）+ **B4-2 套裝機制特效 ✅**（`3-S1`~`3-S4`）+ **B4-3 BOSS 技能 + 關卡目標 ✅**（`5-W5-5`~`5-W5-7`）⇒ 下一步 **B4-4 技能擴展 UI（`1-L8`~`1-L14`）** |
+| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益 ✅** + **B4-2 套裝機制特效 ✅** + **B4-3 BOSS 技能 + 關卡目標 ✅** + **B4-4 技能擴展 UI ✅**（`1-L8`~`1-L14`）⇒ 下一步 **B4-5 元素深化（`3-E7`/`3-E8`）** |
+
+⇒ **B4-4 已落地**（7 工單，**技能擴展 UI 全線閉環**）：`SAVE_VERSION 4 → 5`（新增 `skill_runes`/`skill_branches`/`unlocked_runes` 三欄位 + migrate 顯式 `4:` 分支）
+｜**技能等級**（每級 +8% 傷害係數，`1-L8`）修 flat/pct 桶錯位（`run_buff_system` 走 **flat 桶**）
+｜**技能解鎖節奏表落數據**（`skills.json` 每條加 `unlock_level`/`unlock_boss`，`1-L11`）+ `UnlockSystem.is_skill_unlocked()` 雙軌（等級軌 + BOSS 首通軌）+ skill_panel 解鎖閘門
+｜**天賦「技之極意」單點接線**（第 6 個大節點機制 + hub 消費 `TalentTree.get_bonus_stats()`，`1-L10`）
+｜**符文/分支完整閉環**（`1-L13`）：`SkillController._apply_rune_modifiers`/`_apply_branch_modifiers`（**可映射 7 鍵**）+ hub 落盤 + 局內讀檔套用
+｜**`skill_panel.gd` 整檔重寫**（`1-L9`/`1-L14`）：兩層（12 池卡 + 3 出戰槽 / 詳情浮層）+ 符文槽 3（3/6/9 解鎖）+ 分支二選一 + 卸下入口
+｜**`skill_bar.gd` 三標識**（等級數字 / 符文圓點 / 分支色框）
+｜**新增 `rune_codex_panel.gd`（`class_name RuneCodexPanel`）**：hub 第 7 面板「符文图鉴」6×4=24 格 + 右詳情，未解鎖灰化 + 🔒（`1-L12`）
+⚠️ **本批新踩五坑**（詳見 `IRON-RULES.md` ㉔㉕㉖㉗㉘㉙）：㉔**`String(v)` 對數字拋錯 ⇒ 一律 `str(v)`**（髒檔讀檔炸）
+㉕**`queue_free()` 延遲釋放 ⇒ 同幀舊節點仍被 `find_child`/輸入命中**（**真實產品 bug**：點到上一輪 `DetailUnequip`；清格改 `remove_child`+`queue_free`）
+㉖**新 `class_name` 未進快取 ⇒ 全庫 `Could not find type`**（跑 `--headless --editor --quit` 重建）
+㉗**`Control` 掛 `Node2D` 拿不到視口尺寸**（宿主改 `CanvasLayer`）㉘**`PALETTE_ACCENT` 是 7×4 扁平原色，`[4]` 是暗綠**（亮金前景用 `[14]`）
+⚠️ **遺留（記錄在案）**：①分支 **8 個 modifier 未接**（`combo_hits`/`combo_damage_pct`/`linger`/`afterimage`/`pulse`/`summon_count`/`summon_damage_pct`/`buff_potency_pct`，面板標「暫未生效」）
+②**符文掉落接線屬 B6 `2-L12`**（精英 8%/BOSS 25%，`unlocked_runes` 已備落點但**無寫入方**）③`BIG_NODE_MECHANICS` 前 5 機制仍為展示字符串
+④`talent_panel` 面板鍵（war/mage/shadow）與 `TalentTree` 鍵（might/guardian/arcane）**不一致（既有 bug）** ⑤`ACCOUNT_LEVEL_MAX 60` vs 策劃 `ruled_max_level 20`
+⑥策劃 **S10 的 `SAVE_VERSION` 編號已順延為 `5→6`**（B4-4 先行占用 v5）
+**⇒ 驗收**：`verify_skill_ext`（新建，**9 段 / 50 斷言全綠**）；全量回歸 **75 腳本（+1）/ 180.6s 零新增失敗**（殘餘 **3 檔 4 項**，比 B4-3 少 2 項）；
+策劃 `06` **202/0** · `07 --repo` **212/0**（已同步編號轉綠）；`b44_shot/` 4 張目視確認。
 
 ⇒ **B4-3 已落地**（3 工單）：BOSS 三標誌性技能**全部通電**（`05-check` **C7 4/7 → 7/7**）——
 `bone_slam`（前方 **120° 扇形** / 範圍 `attack_range × 1.6` / **0.4s 預警**→延遲命中 / ×1.4 傷害 / `fx_bone_slam`）·
@@ -174,7 +193,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1/B4-2/B4-3 各另起 commit（**最新 `ba42462`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1/B4-2/B4-3/B4-4 各另起 commit（**最新 `606ebb4`**）。
 
 ---
 

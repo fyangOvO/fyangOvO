@@ -353,6 +353,39 @@ GDScript 的 `%` 是格式化運算符 ⇒ `"20% 減傷（%.2f）" % [x]` 直接
 「無關」的分支要**顯式 `pass` + 註解**，不要依賴兜底。
 （同源於「全案最高危項 3：`migrate()` 的 `_:` 兜底」—— 同一類陷阱，只是換了場景。）
 
+### 🆕 2026-09-29（B4-4）新踩五坑
+
+**㉔ `String(v)` 對數字拋 `Invalid call 'String' constructor` ⇒ 讀檔清洗直接失敗**
+`SaveData._to_string_array()` 逐元素 `out.append(String(v))`；`String()` 只接受 `NodePath`/`String`/`StringName`，
+存檔裡只要有一個數字元素（髒檔、舊版遷移殘留）就**整段讀檔炸掉**。
+⇒ **凡是把任意 JSON 值轉字串，一律用 `str(v)`**（`str()` 接受任何型別），**永不用 `String(v)` 做清洗**。
+（同型：`Array[String]` 的 `append` 不會幫你做型別轉換。）
+
+**㉕ `queue_free()` 是延遲釋放 ⇒ 同幀內舊節點仍會被 `find_child` / 輸入命中（真實產品 bug）**
+清空容器時只 `queue_free()`，舊節點要到**幀末**才真正出樹；同幀內再 `find_child`（測試）或點擊（玩家連點）
+會命中**上一輪的幽靈節點** —— 實測「點到上一輪的 `DetailUnequip`」。
+⇒ **清格一律 `remove_child(c)` 先移出樹，再 `queue_free()`**（本批 3 處 `_render_pool`/`_render_bar`/`_render_detail` 全改）。
+
+**㉖ 新 `class_name` 未進 `global_script_class_cache.cfg` ⇒ 全庫 `Parse Error: Could not find type`**
+新建帶 `class_name` 的 `.gd`（如 `RuneCodexPanel`）後，其他腳本引用它的型別標註會**全庫報找不到型別**，
+但編輯器外看不出來。
+⇒ **新增 `class_name` 後必須跑 `"$GODOT" --headless --editor --quit --path .` 重建快取**（會同時生成 `.gd.uid`）。
+
+**㉗ `Control` 直接掛在 `Node2D` 下 ⇒ 拿不到視口尺寸，`PRESET_CENTER` 算到 (0,0)**
+抓圖 / 動態 UI 宿主若把全屏 `Control` 直接 `add_child` 到 `Node2D`，`get_viewport_rect()` 取不到尺寸，
+居中布局全跑到屏幕外（詳情浮層「消失」的假陰性）。
+⇒ **全屏 UI 宿主一律用 `CanvasLayer` + 全屏 `Control`**（本批抓圖腳本據此修正）。
+
+**㉘ `PALETTE_ACCENT` 是 7 系 × 4 的扁平原色，`[4]` 是暗綠 `0F2417`（不可當前景色）**
+索引 0–3 = 血/危險、4–7 = 毒/自然、8–11 = 魔法/冰、12–15 = **金/光**（`[14]`=`D9A521`、`[15]`=`F5D77A`）。
+用 `PALETTE_ACCENT[4]` 當文字/等級條前景色 ⇒ **暗綠字在深底上幾乎不可見**。
+⇒ **亮金前景色用 `[14]`**；取色前先確認該索引落在哪一「系」。
+
+**㉙ `%` 字面量寫進格式化字串 ⇒ `String formatting error: unsupported format character`**
+`"…精英 8% · BOSS 25%…" % []` 會把 `%` 當格式符。
+⇒ 用 `%%` 轉義（本批圖鑑進度字串）。
+（同型：**JSON 數字解析為 float** ⇒ `Array ==` 逐元素比較不可靠，測試斷言改**逐元素 `int()` 比**。）
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
