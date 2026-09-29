@@ -537,8 +537,9 @@ const SET_TOTAL_COUNT: int = 6
 ## 避免单机自玩卡在「就差最后一件」。
 const SET_SMART_BIAS_CHANCE: float = 0.60
 
-## 套装徽记图标尺寸（嵌在物品框右上角，GDD 3.2.1 / 美术规范 1.4「问题 4」）
-const SET_EMBLEM_SIZE: int = 16
+## 套装徽记图标尺寸（标题行左侧，GDD 3.2.1 / 美术规范 1.4「问题 4」）
+## 徽记素材实际为 48×48；若按 16 渲染则为 1/3 非整数缩放，违反美术规范 §1.1 ⇒ 定 48。
+const SET_EMBLEM_SIZE: int = 48
 
 ## 套装件数徽章尺寸（背包图标右下角，如 "4/6"）
 const SET_BADGE_SIZE: int = 16

@@ -9,8 +9,8 @@
 ##   B. 计数：count_pieces 按部位去重
 ##   C. 档位：2 件 → [2 档]；4 件 → [2,4]；6 件 → [2,4,6]
 ##   D. 统计加成：get_bonus_stats 数值汇总（2 件霜噬 +15 冰伤 / 6 件烬途 +20% 攻）
-##   E. 进度：get_progress 每套 6 段 + 档位 active 标记
-##   F. 面板：SetPanel 渲染（进度条段数 / 文案）
+##   E. 进度：get_progress 每套 6 段 + 档位 active 标记 + emblem_path 透出
+##   F. 面板：SetPanel 渲染（标题行徽记 TextureRect + 进度条段数 / 文案）
 ##   G. 边界：非套装装备、null、重复部位
 extends Node
 
@@ -163,6 +163,8 @@ func _test_progress() -> void:
 		if p["set_id"] == "frostbite":
 			frost = p
 	_ok("霜噬进度 2/6", not frost.is_empty() and frost["pieces"] == 2 and frost["piece_total"] == 6)
+	_ok("霜噬进度带徽记路径", not frost.is_empty()
+		and String(frost.get("emblem_path", "")).contains("set_emblem_frostbite"))
 	_ok("2 件时档位 active = [2,4,6] → [true,false,false]",
 		bool(frost["tiers"][0]["active"]) and not bool(frost["tiers"][1]["active"])
 		and not bool(frost["tiers"][2]["active"]))
@@ -184,8 +186,21 @@ func _test_panel() -> void:
 	panel.show_sets(equipped)
 	_ok("面板渲染 3 套行", panel._box.get_child_count() == 3)
 	var first: VBoxContainer = panel._box.get_child(0)
-	_ok("首行标题含 x/6", (first.get_child(0) as Label).text.contains("2/6") or (first.get_child(0) as Label).text.contains("1/6"))
+	# 标题行（get_child(0)）现为 HBoxContainer{徽记 TextureRect + 名称 Label}
+	var head := first.get_child(0) as HBoxContainer
+	_ok("首行标题行为 HBoxContainer", head != null)
+	var emblem: TextureRect = null
+	var title: Label = null
+	if head != null:
+		emblem = head.get_child(0) as TextureRect
+		title = head.get_child(1) as Label
+	_ok("首行标题含 x/6", title != null and (title.text.contains("2/6") or title.text.contains("1/6")))
 	_ok("首行进度条 6 段", (first.get_child(1) as HBoxContainer).get_child_count() == 6)
+	# 徽记消费点：TextureRect 存在 + 贴图非空 + 尺寸 = SET_EMBLEM_SIZE
+	_ok("首行徽记 TextureRect 存在", emblem != null)
+	_ok("首行徽记贴图已加载（消费点生效）", emblem != null and emblem.texture != null)
+	_ok("首行徽记尺寸 = %d" % GameConstants.SET_EMBLEM_SIZE,
+		emblem != null and emblem.custom_minimum_size == Vector2(GameConstants.SET_EMBLEM_SIZE, GameConstants.SET_EMBLEM_SIZE))
 	panel.queue_free()
 
 

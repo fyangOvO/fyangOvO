@@ -61,8 +61,9 @@ static func get_bonus_stats(equipped: Array[EquipmentInstance]) -> Dictionary:
 	return out
 
 
-## 每套进度（SetPanel 渲染）：[{set_id, display_name, pieces, piece_total, tiers}]
+## 每套进度（SetPanel 渲染）：[{set_id, display_name, emblem_path, pieces, piece_total, tiers}]
 ## tiers = [{pieces, description, active, stats, effect_id}]
+## emblem_path：套装徽记贴图（完整 res:// 路径，UI 侧走 ContentLoader.load_icon 加载）
 static func get_progress(equipped: Array[EquipmentInstance]) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for set_id in ConfigLoader.sets:
@@ -82,6 +83,7 @@ static func get_progress(equipped: Array[EquipmentInstance]) -> Array[Dictionary
 		out.append({
 			"set_id": set_id,
 			"display_name": String(info.get("display_name", set_id)),
+			"emblem_path": String(info.get("emblem_path", "")),
 			"pieces": count,
 			"piece_total": int(info.get("piece_template_ids", []).size()),
 			"tiers": tiers,
@@ -96,6 +98,7 @@ static func _set_info(set_id: String) -> Dictionary:
 	return {
 		"id": data.id,
 		"display_name": data.display_name,
+		"emblem_path": data.emblem_path,
 		"piece_template_ids": data.piece_template_ids,
 		"tier_bonuses": data.tier_bonuses,
 	}

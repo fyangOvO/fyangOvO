@@ -39,12 +39,25 @@ func _make_set_row(entry: Dictionary) -> VBoxContainer:
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
 
-	# 标题：名称 x/6
+	# 标题行：徽记图标 + 名称 x/6
+	# 徽记走「数据驱动直载」路线（ContentLoader.load_icon，完整 res:// 路径），
+	# 不进 UISkin 的 TEX 表——见设计文档 §B.1.4 素材路径契约。
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 4)
+
+	var emblem := TextureRect.new()
+	var emblem_size := GameConstants.SET_EMBLEM_SIZE
+	emblem.custom_minimum_size = Vector2(emblem_size, emblem_size)
+	emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	emblem.texture = ContentLoader.load_icon(String(entry.get("emblem_path", "")))
+	head.add_child(emblem)
+
 	var title := Label.new()
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", GameConstants.PALETTE_NEUTRAL[8])
 	title.text = "%s  %d/%d" % [entry["display_name"], entry["pieces"], entry["piece_total"]]
-	vb.add_child(title)
+	head.add_child(title)
+	vb.add_child(head)
 
 	# 6 段进度条（激活段亮色，未激活深色）
 	var bar := HBoxContainer.new()
