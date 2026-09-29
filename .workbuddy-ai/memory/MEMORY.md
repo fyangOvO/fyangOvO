@@ -12,7 +12,7 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟢 **B3 死鉤子接線 全批收線**（7 小批 B3-1~B3-7 全 ✅）⇒ 下一步 **B4 玩法擴展（27 工單：`1-L5`~`1-L15` / `1-V7`~`1-V9` / `3-B1`~`3-B4` / `3-S1`~`3-S4` / `3-E6`~`3-E8` / `5-W5-5`~`5-W5-7`，🟠 中）** |
+| **工程落地** | 🟠 **B4 玩法擴展 進行中**：**B4-1 臨時增益系統 ✅**（`3-B1`~`3-B4`，解鎖第二期 16 條特效）⇒ 下一步 **B4-2 套裝特效（`3-S1`~`3-S4`）** |
 
 ⇒ **B0 已落地**：`SkillType` 4→7 / `skills.json` 14→**36** / 新建 `runes.json`(24)+`branches.json`(7)
 / 三職業池各 12 / `skill_level` 死鉤子復活（`FINAL_KEYS` 31→32）/ `verify_skills` 四條同步
@@ -111,17 +111,40 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 **成果**：全量回歸 **70 腳本（+1 新腳本）/ 零新增失敗**；策劃 7 校驗器與 B3-6 基線一致
 ⚠️ **遺留**：**無** —— **B3 7 小批全數收線**
 
-⇒ **下一步 B4 玩法擴展**（27 工單 / 🟠 中）：`1-L5`~`1-L15`（BuffComponent / 召喚 / 位移 / 異常…）+ `3-B1`~`3-B4`
-+ `3-S1`~`3-S4` + `3-E6`~`3-E8` + `5-W5-5`~`5-W5-7`。**B3-4 遺留的 16 條特效（`buff_stat`×10 / `ms_boost`×3 /
-`damage_reduction`×1 / `summon`×2）正落在 B4**（`3-B1` BuffComponent 等）⇒ 接上即可通電。
+⇒ **B4-1 臨時增益系統 已落地**（4 工單 `3-B1`~`3-B4` / 16 檔）：**新建 `BuffComponent`**（獨立節點，
+玩家/敵人各一；`STAT_ALIAS` 別名表 8 種 stat 名 / 疊層+刷新並存 / 到期 `_prune` / `changed` 信號 /
+無增益自關 `_process`）｜ **`StatCalculator.FINAL_KEYS` 52→53**（新增 **`all_damage`**，
+`PlayerController.get_damage_bonus()` 併入 `compute_hit` 第 5 形參 ⇒ 物理 + 元素皆受益）
+｜ `HealthComponent` 內接 **移速 / 減傷**（不進計算器，防雙重計入）+ **限時盾** `grant_shield(amount, duration=0)`
+｜ `EnemyBase` `get_armor()` 減甲 / `_move_speed()` 減速 ｜ `LevelScene` 把 `BuffComponent.to_calculator_buffs()`
+**併入**（非取代）`RunBuffSystem` 的 buffs + `changed` ⇒ 重算屬性
+｜ **`LegendaryBus` 補 4 執行器**（`buff_stat`（含 `target=enemy`）/ `ms_boost` / `damage_reduction` / `summon`）
+⇒ **第二期 16 條特效全通電** ｜ `Summon.DEFS` 補 `ghost`/`echo_copy`（此前**缺定義 ⇒ 靜默變靈狼**）
++ `spawn` 支援 `lifetime`/`atk_ratio` 覆寫 + **存活上限 4** ｜ **BUFF 型技能改道**（新增 `GameConstants.BUFF_DEFS`
+7 條；移除 B0 過渡的 `PENDING_FORM_IMPL`/`_warn_pending_forms`/`_find_run_buff_system`）
+｜ **新建 `BuffBarUI`**（3-B4 HUD，24px×6 槽 + 剩餘豎條 + 疊層/秒數；**素材 12 張未生產 ⇒ 佔位繪製**）
+⚠️ **本批新踩 3 坑**（詳見 `IRON-RULES.md` ⑮⑯⑰）：⑮**測試殘留狀態污染**（`grant_shield` 到期取 `maxf`
+⇒ 同實例疊時長會假紅，邊界測試須用獨立實例）⑯**格式化字串裡的 `%` 要寫 `%%`**（否則
+`unsupported format character`）⑰**`Dict.get(id, default)` 的缺省兜底會掩蓋 id 拼錯**（消費端須先 `has()` 守門）
+⚠️ **遺留**：①`ms_boost.element_attach`（裂界指環附元素）未接線 ②`ghost`/`echo_copy` 無精靈素材（走佔位）
+③增益圖標 12 張仍為 0（設計案 §六 P0）④`extra_loot` 未強制 `loot_quality`（B3-4 遺留）⑤套裝特效未接（→ B4-2）
+**⇒ 驗收**：`verify_buff`（新建，7 段 72 條）**0 失敗**；全量回歸 **71 腳本（+1）/ 零新增失敗**；
+`buff_shot/` 4 張目視確認（與技能欄不重疊）；策劃 7 校驗器與 B3-7 基線逐條一致。
 
-（明細見 `.workbuddy-ai/memory/2026-09-28.md` §六/§七/§八/§九/§十）
+⇒ **B4 分 6 小批**（用戶裁定，逐批驗收）：**B4-1 ✅** → **B4-2 套裝特效（`3-S1`~`3-S4`）** → B4-3 BOSS+關卡目標
+（`5-W5-5`~`5-W5-7`）→ B4-4 技能擴展 UI（`1-L8`~`1-L14`）→ B4-5 元素深化（`3-E7`/`3-E8`）
+→ B4-6 校驗補齊（`1-V7`/`1-V8`/`1-V9` + 坐實 5 條已落地）。
+
+⚠️ **B4 摸底結論（28 工單，**5 條已落地**，勿重做）**：`1-L5`（`summon.gd` 完整）/ `1-L6`（`target_group`）/
+`1-L7`（`hit_query` 跳過 `summons`）/ `3-E6`（`get_element_damage_bonus`）/ `3-B2`（介面已備，B4-1 已補產出方）。
+
+（明細見 `.workbuddy-ai/memory/2026-09-29.md` §五）
 
 ⚠️ **留給各自批次的預存回歸紅**（用戶已裁定本輪不動）：4 條**無工單**（`verify_choice_panel` 裸 Color
 ／`verify_player` 手柄映射／`verify_skill_panel` `save_version==3` vs `SAVE_VERSION=4`）＋ `self_check`
 怪物 L20 舊值 2 條（→ B6 `4-W5-e`）。B2 開工不受影響。
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7 各另起 commit（**最新 `8c763c0`**）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1 各另起 commit（**最新 `1799432`**）。
 
 ---
 

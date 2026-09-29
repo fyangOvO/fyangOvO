@@ -278,6 +278,26 @@ R1 `05-bosses.json` 4 階段→二階段(S11) ｜ R2 全文「8 檔」→10 檔(
 ⇒ 只要走 `_warn()`（print `[WARN]`、**不** `_fail += 1`），既保留可見性又不污染回歸。
 （體例：`02-check_affix_pool.py` 的 `warn()` ↔ GDScript `_warn()`，兩側對稱。）
 
+**⑮ 「測試殘留狀態污染」—— 同一實例上疊時長類狀態 ⇒ 邊界測試假紅**
+`HealthComponent.grant_shield(amount, duration)` 的到期時刻是 **`maxf(舊, 新)`**（疊盾語義，
+後授予的短盾不會縮短先授予的長盾）。於是「先給 8 秒盾 → 手動 `shield = 0` → 再給 0.2 秒盾
+→ 等 0.5 秒」**到期仍在 8 秒後** ⇒ 測試紅、代碼沒錯。
+**通則：時長 / 疊層 / 冷卻類邊界測試一律用「獨立實例」**（`XxxComponent.new()` 另掛），
+不要在同一實例上先鋪場景再測邊界。同型：`_cooldowns` / `_buffs` / `_extra_loot_used`。
+
+**⑯ 「格式化字串裡的 `%` 必須寫 `%%`」**
+GDScript 的 `%` 是格式化運算符 ⇒ `"20% 減傷（%.2f）" % [x]` 直接
+`ERROR: String formatting error: unsupported format character`。
+中文標籤（百分比 / 機率）極易帶 `%`，**凡是 `"..." % [...]` 的字面量都要把 `%` 寫成 `%%`**。
+（本批 2 處踩到；`"50%% ⇒"` 寫對的地方反而是少數。）
+
+**⑰ 「`Dictionary.get(id, default)` 的缺省兜底會掩蓋 id 拼錯」—— 同型於「String 字段靜默脫鉤」**
+`Summon._configure()` 的 `DEFS.get(summon_id, DEFS["summon_spirit_wolf"])` 是**故意的容錯兜底**，
+但代價是：傳奇數據裡寫 `creature: "ghost"`（`DEFS` 無此鍵）時**不會報錯**，而是
+**靜默生成一隻靈狼**。⇒ **消費端必須先 `has()` 守門再取值**：
+`if not Summon.DEFS.has(creature): _warn_once(...); return`。
+**通則：凡是「帶缺省值的字典查表」，都要問一句「查不到時會發生什麼、誰看得見」。**
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
