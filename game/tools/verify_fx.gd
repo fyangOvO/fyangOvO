@@ -103,7 +103,7 @@ func _check_table_and_assets() -> void:
 func _check_palette_iron_law() -> void:
 	print("--- B. 色板铁律（PALETTE_ALL）---")
 	_ok("PALETTE_ALL = %d 色" % GameConstants.PALETTE_ALL.size(),
-		GameConstants.PALETTE_ALL.size() == 44)
+		GameConstants.PALETTE_ALL.size() == GameConstants.PALETTE_DEFINED_COUNT)
 
 	var ids := FxTable.all_ids()
 	var checked := 0

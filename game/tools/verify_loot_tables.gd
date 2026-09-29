@@ -5,7 +5,7 @@
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
 ## 覆盖范围（5 个测试段）：
-##   A. 权威表逐位断言：三张表 × 8 档与 GDD 6.1 完全一致（容差 0.001）
+##   A. 权威表逐位断言：三张表 × 10 档与 GDD 6.1 + S12 完全一致（容差 0.001）
 ##   B. 权重和 = 100、橙装概率随怪物档位递增（0.05 → 1.00 → 5.00）
 ##   C. 难度修正规则：NM1 红清零 / NM2+ 红 ×1.5 / 白 ×0.85 / 黄 ×1.15 / 紫橙 ×1.30 /
 ##      绿 ×1.10 / 彩不变 / 越级紫橙红 ×0.5
@@ -17,11 +17,14 @@ extends Node
 var _fail: int = 0
 var _rng := RandomNumberGenerator.new()
 
-## GDD 6.1 权威表（%）
+## GDD 6.1 权威表（%）+ 第六步 S12（B5-2）新增深渊 / 塔两档
+##
+## ⚠️ 三表各 **10 位**、和 = 100；橙 0.05 / 1.00 / 5.00 为硬约束**不变**。
+##    新增两档权重全部从 common / magic 挤出（normal −0.12/−0.05；elite −0.50/−0.30；boss −1.00/−1.00）。
 const EXPECT_TABLES := {
-	"monster_normal": [78.02, 17.55, 3.50, 0.45, 0.05, 0.02, 0.40, 0.01],
-	"monster_elite": [40.30, 34.00, 16.00, 5.00, 1.00, 0.60, 3.00, 0.10],
-	"monster_boss": [6.00, 30.00, 35.00, 15.00, 5.00, 1.80, 7.00, 0.20],
+	"monster_normal": [77.90, 17.50, 3.50, 0.45, 0.05, 0.02, 0.40, 0.01, 0.14, 0.03],
+	"monster_elite": [39.80, 33.70, 16.00, 5.00, 1.00, 0.60, 3.00, 0.10, 0.60, 0.20],
+	"monster_boss": [5.00, 29.00, 35.00, 15.00, 5.00, 1.80, 7.00, 0.20, 1.50, 0.50],
 }
 
 ## GDD 6.1 一局节奏期望（件/局）
@@ -82,10 +85,10 @@ func _test_authoritative() -> void:
 			all_ok = false
 			continue
 		var expect: Array = EXPECT_TABLES[table_id]
-		if table.rarity_weights.size() != 8:
+		if table.rarity_weights.size() != GameConstants.RARITY_COUNT:
 			all_ok = false
 			continue
-		for i in range(8):
+		for i in range(GameConstants.RARITY_COUNT):
 			if absf(float(table.rarity_weights[i]) - float(expect[i])) > 0.001:
 				all_ok = false
 				_info("%s 第 %d 档：期望 %.2f 实际 %.2f"

@@ -86,9 +86,9 @@ func _run_self_check() -> void:
 	_add_check("彩蛋渐变 6 色", GameConstants.PRISMATIC_GRADIENT.size() == 6)
 
 	# 任务 1.6：48 色板唯一色源（美术规范附录 PALETTE）
-	# 阶段 11 收尾：DBCC85（暖金）入中性基底，消耗 1 个 D 组预留槽位 ⇒ 44 已定义 + 4 预留 = 48
-	_add_check("48 色板已定义色 = %d（A11+B28+C5）" % GameConstants.PALETTE_ALL.size(),
-		GameConstants.PALETTE_ALL.size() == 44)
+	# 阶段 11 收尾：DBCC85（暖金）入中性基底；B5-2 占用 D 组 2 槽（深渊 / 塔）⇒ 46 已定义 + 2 预留 = 48
+	_add_check("48 色板已定义色 = %d（A11+B28+C5+D2）" % GameConstants.PALETTE_ALL.size(),
+		GameConstants.PALETTE_ALL.size() == GameConstants.PALETTE_DEFINED_COUNT)
 	var bad_ui_colors := GameConstants.ui_colors_not_in_palette()
 	var palette_label := "UI 颜色常量全部取自 48 色板"
 	if not bad_ui_colors.is_empty():
@@ -192,9 +192,9 @@ func _run_self_check() -> void:
 			pass
 		else:
 			equip_chapters_ok = false
-	_add_check("装备库 62 件（主手 %d / 防具 %d / 饰品 %d + 套装件 18）" % [
+	_add_check("装备库 68 件（主手 %d / 防具 %d / 饰品 %d + 套装件 18；含特殊底材 6）" % [
 		equip_weapons, equip_body, equip_jewel],
-		equip_total == 62 and equip_weapons >= 14 and equip_body >= 28 and equip_jewel >= 13)
+		equip_total == 68 and equip_weapons >= 14 and equip_body >= 28 and equip_jewel >= 13)
 	_add_check("装备三章等级带覆盖（1-6 / 7-13 / 14-20）",
 		equip_chapters_ok and ConfigLoader.get_equipment_template("bow_spirit") != null
 		and ConfigLoader.get_equipment_template("helm_crown_titan") != null)
@@ -293,8 +293,8 @@ func _run_self_check() -> void:
 		ConfigLoader.bosses.size() == 2)
 	_add_check("回归红线：技能 ≥ 36 条（当前 %d）" % ConfigLoader.skills.size(),
 		ConfigLoader.skills.size() >= 36)
-	_add_check("回归红线：装备 == 62 件（当前 %d）" % ConfigLoader.equipment_templates.size(),
-		ConfigLoader.equipment_templates.size() == 62)
+	_add_check("回归红线：装备 == 68 件（当前 %d；B5-2 补特殊底材 +6）" % ConfigLoader.equipment_templates.size(),
+		ConfigLoader.equipment_templates.size() == 68)
 	_add_check("回归红线：关卡 == 20 关（当前 %d）" % ConfigLoader.levels.size(),
 		ConfigLoader.levels.size() == 20)
 	var fix_slot_ok := GameConstants.SAVE_MAX_SLOTS >= 8
@@ -800,7 +800,8 @@ func _run_self_check() -> void:
 				or lt.drop_count_range.x < 1 or lt.drop_count_range.y < lt.drop_count_range.x:
 			loot_tables_ok = false
 			break
-	_add_check("掉落表完整（3 档位映射齐全、drop_chance ∈ (0,1]、稀有度权重 8 档、件数区间自洽）",
+	_add_check("掉落表完整（3 档位映射齐全、drop_chance ∈ (0,1]、稀有度权重 %d 档、件数区间自洽）"
+			% GameConstants.RARITY_COUNT,
 		loot_tables_ok)
 	_add_check("拾取与金币常量合法（拾取半径 > 0、金币成长 > 1、物件尺寸 > 0）",
 		GameConstants.PICKUP_RADIUS > 0.0
@@ -809,9 +810,9 @@ func _run_self_check() -> void:
 		and GameConstants.LOOT_EQUIPMENT_ICON_SIZE > 0
 		and GameConstants.LOOT_DROP_LIFETIME > 0.0)
 	var rarity_adjust_ok := (
-		GameConstants.RARITY_KEYS.size() == 8
-		and GameConstants.RARITY_BEAM_HEIGHTS.size() == 8
-		and GameConstants.RARITY_BEAM_SHAPES.size() == 8)
+		GameConstants.RARITY_KEYS.size() == GameConstants.RARITY_COUNT
+		and GameConstants.RARITY_BEAM_HEIGHTS.size() == GameConstants.RARITY_COUNT
+		and GameConstants.RARITY_BEAM_SHAPES.size() == GameConstants.RARITY_COUNT)
 	if rarity_adjust_ok:
 		var w := GameConstants.adjust_rarity_weights_by_difficulty(
 			GameConstants.RARITY_DROP_BASE_PERCENT,
@@ -821,7 +822,7 @@ func _run_self_check() -> void:
 			GameConstants.RARITY_DROP_BASE_PERCENT,
 			GameConstants.DifficultyTier.NM2, 0, 1)
 		rarity_adjust_ok = rarity_adjust_ok and w2[GameConstants.Rarity.MYTHIC] > 0.0
-	_add_check("稀有度难度修正合法（NM1 红装清零、NM2+ 红装开放、光柱/形状 8 档对齐）",
+	_add_check("稀有度难度修正合法（NM1 红装清零、NM2+ 红装开放、光柱/形状 %d 档对齐）" % GameConstants.RARITY_COUNT,
 		rarity_adjust_ok)
 
 	# 任务 2.8：打击感锚点

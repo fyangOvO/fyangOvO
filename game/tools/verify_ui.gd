@@ -49,9 +49,9 @@ func _ready() -> void:
 
 func _test_constants() -> void:
 	print("--- A. 色板与 UI 常量 ---")
-	# 阶段 11 收尾：DBCC85（暖金）入中性基底，消耗 1 个 D 组预留槽位 ⇒ 44 已定义 + 4 预留 = 48
-	_ok("48 色板已定义色 = 44（A11+B28+C5）",
-		GameConstants.PALETTE_ALL.size() == 44)
+	# 阶段 11 收尾：DBCC85（暖金）入中性基底；B5-2 占用 D 组 2 槽（深渊 / 塔）⇒ 46 已定义 + 2 预留 = 48
+	_ok("48 色板已定义色 = %d（A11+B28+C5+D2）" % GameConstants.PALETTE_DEFINED_COUNT,
+		GameConstants.PALETTE_ALL.size() == GameConstants.PALETTE_DEFINED_COUNT)
 	_ok("PALETTE_NEUTRAL = 11 色", GameConstants.PALETTE_NEUTRAL.size() == 11)
 	_ok("PALETTE_ACCENT = 28 色（7 系 × 4）", GameConstants.PALETTE_ACCENT.size() == 28)
 	_ok("PALETTE_RARITY_SEMANTIC = 5 色", GameConstants.PALETTE_RARITY_SEMANTIC.size() == 5)

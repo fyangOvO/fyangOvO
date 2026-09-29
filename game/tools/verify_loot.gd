@@ -122,7 +122,9 @@ func _test_rarity_distribution() -> void:
 	print("--- C. 稀有度分布 ---")
 	seed(20260917)
 	var weights: Array = ConfigLoader.loot_tables["monster_normal"].rarity_weights
-	var counts: Array[int] = [0, 0, 0, 0, 0, 0, 0, 0]
+	var counts: Array[int] = []
+	for i in GameConstants.RARITY_COUNT:
+		counts.append(0)
 	for i in 20000:
 		counts[LootRoller._roll_rarity(weights, GameConstants.DifficultyTier.NM1, 0, 1)] += 1
 	_ok("普通怪稀有度：白 > 蓝 > 黄（20k 次抽样）",
@@ -130,8 +132,7 @@ func _test_rarity_distribution() -> void:
 		and counts[GameConstants.Rarity.MAGIC] > counts[GameConstants.Rarity.RARE])
 	_ok("普通怪橙装极稀有（20k 次 ≈ 0.05% = 10 ± 12）",
 		counts[GameConstants.Rarity.LEGENDARY] <= 22)
-	_info("      分布：白 %d / 蓝 %d / 黄 %d / 紫 %d / 橙 %d / 红 %d / 绿 %d / 彩 %d"
-			% [counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[7]])
+	_info("      分布：%s" % str(counts))
 
 
 # =============================================================================

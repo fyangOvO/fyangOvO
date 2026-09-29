@@ -449,8 +449,8 @@ func _test_palette_law() -> void:
 			if not GameConstants.palette_contains(img.get_pixel(x, y)):
 				off += 1
 	_ok("生成的測試幀離板像素數 = 0（實測 %d）" % off, off == 0)
-	_ok("PALETTE_ALL 為 44 色（實測 %d）" % GameConstants.PALETTE_ALL.size(),
-		GameConstants.PALETTE_ALL.size() == 44)
+	_ok("PALETTE_ALL 為 %d 色（實測 %d）" % [GameConstants.PALETTE_DEFINED_COUNT, GameConstants.PALETTE_ALL.size()],
+		GameConstants.PALETTE_ALL.size() == GameConstants.PALETTE_DEFINED_COUNT)
 
 
 # =============================================================================

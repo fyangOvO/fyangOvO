@@ -1,0 +1,66 @@
+[
+ {
+  "id": "abyss_blade",
+  "display_name": "深渊触手刃",
+  "slot": "main_hand",
+  "weapon_archetype": "dagger",
+  "base_stats": {
+   "flat_attack": 28.0,
+   "crit_chance": 6.0,
+   "attack_speed": 10.0
+  },
+  "affix_pool_ids": [
+   "weapon_offense",
+   "weapon_generic"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "special_abyss",
+  "rarity_max": "special_abyss",
+  "icon_path": "res://assets/icons/equipment/equip_dagger_48.png",
+  "drop_weight": 60.0,
+  "craftable": false
+ },
+ {
+  "id": "abyss_crown",
+  "display_name": "深渊面甲",
+  "slot": "helm",
+  "base_stats": {
+   "flat_hp": 60.0,
+   "flat_armor": 20.0,
+   "max_resource": 40.0
+  },
+  "affix_pool_ids": [
+   "armor_defense",
+   "armor_generic"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "special_abyss",
+  "rarity_max": "special_abyss",
+  "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
+  "drop_weight": 60.0,
+  "craftable": false
+ },
+ {
+  "id": "abyss_treads",
+  "display_name": "深渊行者靴",
+  "slot": "boots",
+  "base_stats": {
+   "flat_hp": 35.0,
+   "flat_armor": 12.0,
+   "attack_speed": 4.0
+  },
+  "affix_pool_ids": [
+   "armor_utility",
+   "armor_generic"
+  ],
+  "item_level_min": 15,
+  "item_level_max": 20,
+  "rarity_min": "special_abyss",
+  "rarity_max": "special_abyss",
+  "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
+  "drop_weight": 60.0,
+  "craftable": false
+ }
+]

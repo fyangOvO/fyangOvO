@@ -16,7 +16,7 @@ class_name GameConstants
 extends RefCounted
 
 # =============================================================================
-# 一、稀有度 8 档
+# 一、稀有度 10 档
 # =============================================================================
 #
 # 体系结构（GDD 0.3 节 3.2 v1.3「6 档线性 + 2 独立维度」）：
@@ -36,19 +36,22 @@ enum Rarity {
 	MYTHIC = 5,    ## 神话 · 红 —— 普通词缀 6–7 条（上限 4 前 + 3 后）+ 1 条神话词缀（独立槽），必含传奇特效，基础属性上浮
 	SET = 6,       ## 套装 · 绿 —— 3–5 条（上限 2 前 + 3 后）+ 1 条套装标记词缀（独立槽），必带 set_id，凑齐触发套装加成
 	HIDDEN = 7,    ## 隐藏 · 彩 —— 5–6 条（上限 3 前 + 3 后）+ 1 条彩蛋标记词缀（独立槽），全池掉落权重极低
+	SPECIAL_ABYSS = 8, ## 深渊 · 深紫青 —— 6–8 条（上限 4 前 + 3 后），深渊副本专属（第六步 S12 · B5-2）
+	SPECIAL_TOWER = 9, ## 塔 · 塔金 —— 6–8 条（上限 4 前 + 3 后），爬塔专属（与深渊平级、不同来源）
 }
 
 ## 稀有度档数（数组尺寸校验用）
-const RARITY_COUNT: int = 8
+const RARITY_COUNT: int = 10
 
 ## 稀有度中文名（UI 显示用，索引对应 Rarity）
 const RARITY_NAMES: Array[String] = [
-	"普通", "魔法", "稀有", "史诗", "传说", "神话", "套装", "隐藏",
+	"普通", "魔法", "稀有", "史诗", "传说", "神话", "套装", "隐藏", "深渊", "塔",
 ]
 
 ## 稀有度英文名（存档 / 日志 / 数据文件键名用，禁止本地化）
 const RARITY_KEYS: Array[String] = [
 	"common", "magic", "rare", "epic", "legendary", "mythic", "set", "hidden",
+	"special_abyss", "special_tower",
 ]
 
 ## 稀有度文字色（HEX）。
@@ -72,6 +75,8 @@ const RARITY_COLORS: Array[Color] = [
 	Color("FF2D55"), # 神话 Mythic · 线性顶点（专属色，非血红）
 	Color("2FA37A"), # 套装 Set · 正交（专属色，非毒绿）
 	Color("F5D77A"), # 隐藏 Hidden · 彩蛋（单色回退；实际走 PRISMATIC_GRADIENT）
+	Color("7B5CE0"), # 深渊 SpecialAbyss · 深紫青（第六步 S12 · B5-2；色板 D 组预留槽）
+	Color("C9A227"), # 塔 SpecialTower · 塔金（第六步 S12 · B5-2；色板 D 组预留槽）
 ]
 
 ## 稀有度物品框颜色（美术规范 1.4 节「物品框」）
@@ -84,6 +89,8 @@ const RARITY_FRAME_COLORS: Array[Color] = [
 	Color("FF2D55"), # 神话：3px 实线 红 + 金色双层外框（见 MYTHIC_GOLD_FRAME_COLOR）
 	Color("2FA37A"), # 套装：2px 实线 青绿 + 四角菱形节点
 	Color("F5D77A"), # 隐藏：6 色渐变描边（单色回退；实际走 PRISMATIC_GRADIENT）
+	Color("7B5CE0"), # 深渊：3px 实线 深紫青 + 双层棱镜框（同 RARITY_COLORS[8]）
+	Color("C9A227"), # 塔：3px 实线 塔金 + 分段竖塔框（同 RARITY_COLORS[9]）
 ]
 
 ## 神话装专属的**金色双层外框**色（美术规范 1.4 节「问题 1」）。
@@ -114,11 +121,12 @@ const PRISMATIC_GRADIENT: Array[Color] = [
 
 ## 稀有度框线宽度（px）。
 ## 美术规范 1.4 节：线性档 1/1/2/2/3/3；套装 2px（靠形状而非粗细区分）；隐藏 3px 渐变。
-const RARITY_FRAME_WIDTHS: Array[int] = [1, 1, 2, 2, 3, 3, 2, 3]
+const RARITY_FRAME_WIDTHS: Array[int] = [1, 1, 2, 2, 3, 3, 2, 3, 3, 3]
 
 ## 稀有度地面光柱高度（px）。普通档无光柱（0）。
 ## 美术规范 1.4 节：线性档 0/8/16/24/40/56；套装走菱形环（32px，换形状）；隐藏 64px 分段柱。
-const RARITY_BEAM_HEIGHTS: Array[int] = [0, 8, 16, 24, 40, 56, 32, 64]
+## 深渊 / 塔 48px（介于传说 40 与神话 56 之间，与套装 32 / 隐藏 64 构成不冲突的高度序列）。
+const RARITY_BEAM_HEIGHTS: Array[int] = [0, 8, 16, 24, 40, 56, 32, 64, 48, 48]
 
 ## 光柱形状（美术规范 1.4 节「问题 3」的四个差异维度之一）
 enum BeamShape {
@@ -130,11 +138,14 @@ enum BeamShape {
 	LINE_FIRERING = 5,## 直线柱 + 地面持续火环 + 上升金色粒子
 	DIAMOND_RING = 6, ## 菱形环（套装专用：换形状，不比高度）
 	GRADIENT_SEG = 7, ## 6 色分段柱 + 上升星点（彩蛋专用）
+	SPECIAL_PRISM = 8,## 三色棱镜柱（深渊专用：深紫主色 + 青/品红分层，每 8px 一个切面）
+	SPECIAL_SPIRE = 9,## 竖塔形分段柱（塔专用：青白主色，分 3 段递窄，段间 2px 暗色分隔）
 }
 
 const RARITY_BEAM_SHAPES: Array[int] = [
 	BeamShape.NONE, BeamShape.LINE, BeamShape.LINE_PULSE, BeamShape.LINE_RING,
 	BeamShape.LINE_BURST, BeamShape.LINE_FIRERING, BeamShape.DIAMOND_RING, BeamShape.GRADIENT_SEG,
+	BeamShape.SPECIAL_PRISM, BeamShape.SPECIAL_SPIRE,
 ]
 
 ## 框线样式（第四个差异维度，专治「同粗细难区分」）
@@ -145,12 +156,14 @@ enum FrameStyle {
 	SOLID_GOLD_DOUBLE = 3,## 红 + 金色双层外框（神话专属）
 	SOLID_DIAMOND = 4,    ## 青绿 + 四角菱形节点（套装专属）
 	GRADIENT_FLOW = 5,    ## 6 色渐变流动（彩蛋专属）
+	SOLID_PRISM_DOUBLE = 6,## 深紫青双层棱镜框（深渊专属；静态可辨，禁止运行时旋转）
+	SOLID_SPIRE_SEG = 7,  ## 塔金分段竖塔框（塔专属；3 段递窄，静态可辨）
 }
 
 const RARITY_FRAME_STYLES: Array[int] = [
 	FrameStyle.SOLID, FrameStyle.SOLID, FrameStyle.SOLID, FrameStyle.SOLID_GLOW,
 	FrameStyle.SOLID_FLOW, FrameStyle.SOLID_GOLD_DOUBLE, FrameStyle.SOLID_DIAMOND,
-	FrameStyle.GRADIENT_FLOW,
+	FrameStyle.GRADIENT_FLOW, FrameStyle.SOLID_PRISM_DOUBLE, FrameStyle.SOLID_SPIRE_SEG,
 ]
 
 ## 稀有度的**类别**，用于美术规范 1.4 节要求的「两级判断」：
@@ -159,12 +172,14 @@ enum RarityCategory {
 	LINEAR = 0,   ## 线性强度阶梯（白/蓝/黄/紫/橙/红）
 	ORTHOGONAL = 1,## 正交分类（套装绿，并行获取路径）
 	EASTER_EGG = 2,## 彩蛋（隐藏彩）
+	SPECIAL = 3,  ## 特殊来源（深渊 / 塔：不同来源、同强度，平级替代关系）
 }
 
 const RARITY_CATEGORIES: Array[int] = [
 	RarityCategory.LINEAR, RarityCategory.LINEAR, RarityCategory.LINEAR,
 	RarityCategory.LINEAR, RarityCategory.LINEAR, RarityCategory.LINEAR,
 	RarityCategory.ORTHOGONAL, RarityCategory.EASTER_EGG,
+	RarityCategory.SPECIAL, RarityCategory.SPECIAL,
 ]
 
 ## 稀有度掉落权重基准（百分数，**普通怪**口径，GDD 0.6 节 6.1「8 档掉落率曲线」）。
@@ -174,14 +189,16 @@ const RARITY_CATEGORIES: Array[int] = [
 ##
 ## 注意：掉落逻辑必须使用 `game/data/loot_tables/` 中的数据，本表仅作校验基准。
 const RARITY_DROP_BASE_PERCENT: Array[float] = [
-	78.02, # 普通
-	17.55, # 魔法
+	77.90, # 普通（S12 挤出 −0.12）
+	17.50, # 魔法（S12 挤出 −0.05）
 	3.50,  # 稀有
 	0.45,  # 史诗
-	0.05,  # 传说 ← 与原 5 档表一致（硬约束）
+	0.05,  # 传说 ← 与原 5 档表一致（硬约束，S12 不变）
 	0.02,  # 神话（仅梦魇 II 及以上掉落）
 	0.40,  # 套装（因需集齐 6 件，故频率高于橙）
 	0.01,  # 隐藏（约 98 局 1 件）
+	0.14,  # 深渊（第六步 S12 · B5-2；来源特殊，权重略高于隐藏）
+	0.03,  # 塔（第六步 S12 · B5-2；与深渊平级、不同来源）
 ]
 
 ## 各稀有度的词缀条数区间 [最小, 最大]（GDD 0.3 节 3.2「稀有度 8 档体系」表）
@@ -194,6 +211,8 @@ const RARITY_AFFIX_RANGE: Array[Vector2i] = [
 	Vector2i(6, 7), # 神话（仅普通前/后缀条数；神话词缀为独立槽，不计入）
 	Vector2i(3, 5), # 套装（单件弱于紫，靠集齐补回）
 	Vector2i(5, 6), # 隐藏（强度锚定橙装）
+	Vector2i(5, 7), # 深渊（S12：略高于传说，与神话相当但不含神话独立槽）
+	Vector2i(5, 7), # 塔（S12：与深渊完全相同 —— 平级替代，非强弱阶梯）
 ]
 
 ## 各稀有度的前缀 / 后缀条数上限。
@@ -202,13 +221,13 @@ const RARITY_AFFIX_RANGE: Array[Vector2i] = [
 ## 本文件数组与该表逐项一致。不变式：`前缀上限 + 后缀上限 = 词缀条数上限`
 ## （后者见 RARITY_AFFIX_RANGE，二者由 main.gd 自检校验）。
 ##
-## 拆分结果：黄 2+2 / 紫 3+2 / 橙 3+3 / 红 4+3 / 绿 2+3 / 彩 3+3。
+## 拆分结果：黄 2+2 / 紫 3+2 / 橙 3+3 / 红 4+3 / 绿 2+3 / 彩 3+3 / 深渊 4+3 / 塔 4+3。
 ##
 ## ⚠️ **计数口径（GDD 唯一定义）**：表中「词缀条数」只算**普通前 / 后缀**；
 ##    神话词缀 / 套装标记词缀 / 彩蛋标记词缀 / 传奇特效均为**特殊槽，不计入条数**。
 ##    因此不要把特殊槽算进 RARITY_AFFIX_RANGE。
-const RARITY_PREFIX_LIMIT: Array[int] = [0, 1, 2, 3, 3, 4, 2, 3]
-const RARITY_SUFFIX_LIMIT: Array[int] = [0, 1, 2, 2, 3, 3, 3, 3]
+const RARITY_PREFIX_LIMIT: Array[int] = [0, 1, 2, 3, 3, 4, 2, 3, 4, 4]
+const RARITY_SUFFIX_LIMIT: Array[int] = [0, 1, 2, 2, 3, 3, 3, 3, 3, 3]
 
 ## 神话词缀的最低稀有度要求（神话装必含 1 条「全属性 +X%」词缀）
 const MYTHIC_AFFIX_MIN_RARITY: int = Rarity.MYTHIC
@@ -608,7 +627,8 @@ const COLOR_ACCENT_GOLD: Color = Color("D9A521")
 #
 # 唯一色源铁律（美术规范 1.2 / 附录）：
 #   · 烘焙图像资产（PNG 精灵 / 图标 / tile）全部像素必须落在 `PALETTE_ALL`
-#     （44 已定义色，阶段 11 收尾 DBCC85 入中性基底消耗 1 个 D 组预留槽）内 —— 阶段 6 资产校验以此为准。
+#     （46 已定义色 = A11+B28+C5+D2，阶段 11 收尾 DBCC85 入中性基底；B5-2 占用 D 组 2 槽）内
+#     —— 阶段 6 资产校验以此为准。
 #   · 运行时特效层（Shader 流光 / 光柱 / 粒子）颜色须落在
 #     `PALETTE_ACCENT + PALETTE_RARITY_SEMANTIC` 内，禁止引入色板外颜色。
 #   · 彩蛋装 `PRISMATIC_GRADIENT` 的 6 色取自 B 系辉光阶，天然合规。
@@ -651,8 +671,22 @@ const PALETTE_RARITY_SEMANTIC: Array[Color] = [
 	Color("C9D1D9"), Color("4C8BF5"), Color("F5C542"), Color("A96BFF"), Color("FF8A2B"),
 ]
 
-## 全部已定义色（A + B + C = 44）。D 组 4 色为预留，未定义（原 5 色，阶段 11 收尾 DBCC85 占用 1）。
-const PALETTE_ALL: Array[Color] = PALETTE_NEUTRAL + PALETTE_ACCENT + PALETTE_RARITY_SEMANTIC
+## D. 特殊档色（2）—— 第六步 S12 · B5-2 占用 D 组预留槽。
+##
+## 用户拍板「动色板」：两新稀有度档（深渊 / 塔）取 spec 建议值落在 D 组预留槽，
+## 使 `RARITY_COLORS[8]/[9]` 通过「逐色入板自检」（见 `ui_colors_not_in_palette()`）。
+const PALETTE_SPECIAL: Array[Color] = [
+	Color("7B5CE0"), ## 深紫青（深渊 SpecialAbyss）
+	Color("C9A227"), ## 塔金（塔 SpecialTower）
+]
+
+## 已定义色总数（A11 + B28 + C5 + D2 = 46）。**唯一真源**：
+## 色板增删只改此处 + 对应组数组；`self_check` / `verify_anim` / `verify_fx` / `verify_ui`
+## 均引用本常量（**勿再写 `== 44` 之类字面量** —— 见 IRON-RULES ㊱）。
+const PALETTE_DEFINED_COUNT: int = 46
+
+## 全部已定义色（A + B + C + D = 46）。
+const PALETTE_ALL: Array[Color] = PALETTE_NEUTRAL + PALETTE_ACCENT + PALETTE_RARITY_SEMANTIC + PALETTE_SPECIAL
 
 
 ## 判断颜色是否落在 48 色板已定义色内（含 Alpha 容差）。

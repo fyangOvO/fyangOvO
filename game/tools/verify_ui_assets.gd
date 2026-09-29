@@ -131,12 +131,14 @@ func _test_skin_assets() -> void:
 			boxes.size() == 3 and boxes.has("normal") and boxes.has("hover")
 			and boxes.has("pressed"))
 
-	# 物品格：8 階稀有度全部解析出樣式
+	# 物品格：全部稀有度階級（0..RARITY_COUNT-1）都解析出樣式
 	var slot_ok := 0
-	for r in range(8):
+	for r in range(GameConstants.RARITY_COUNT):
 		if UISkin.slot_stylebox_rarity(r) != null:
 			slot_ok += 1
-	_ok("slot_stylebox_rarity(0..7) 全部解析出樣式（%d/8）" % slot_ok, slot_ok == 8)
+	_ok("slot_stylebox_rarity(0..%d) 全部解析出樣式（%d/%d）"
+			% [GameConstants.RARITY_COUNT - 1, slot_ok, GameConstants.RARITY_COUNT],
+		slot_ok == GameConstants.RARITY_COUNT)
 	_ok("slot_stylebox(\"slot_selected\") 非空", UISkin.slot_stylebox("slot_selected") != null)
 
 	# 缺素材安全降級（回傳 null，不拋錯）
@@ -148,9 +150,9 @@ func _test_skin_assets() -> void:
 # =============================================================================
 
 func _test_equipment_icons() -> void:
-	print("--- B. 裝備圖標接線（62 件真的載得進）---")
+	print("--- B. 裝備圖標接線（68 件真的載得進）---")
 	var tpls: Dictionary = ConfigLoader.equipment_templates
-	_ok("裝備模板數 = 62", tpls.size() == 62)
+	_ok("裝備模板數 = 68（含特殊底材 6）", tpls.size() == 68)
 	var total := 0
 	var ok_icon := 0
 	var names := {}
