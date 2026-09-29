@@ -34,9 +34,11 @@
 ## ⚠️ 已知限制（明确记录，**不静默**）：
 ##   1. `LevelView` 只画不碰撞 —— 墙 / 障碍**没有 StaticBody2D**（任务 8.3 为压 draw call
 ##      刻意把全图塞进单个 CanvasItem）。本阶段玩家可以走过墙格，属已知表现缺口。
-##   2. 目标类型完整实现 `clear_all` / `kill_boss` / `kill_elite` / `collect`；
-##      `survive` / `reach_exit` **未实现** ⇒ 退化为「清空全部」并 `push_warning`，
-##      不假装完成（否则玩家会遇到「打光了也不结算」且无任何提示）。
+##   2. 目标类型 6 种**全部实现**（W5-7，2026-09-29）：`clear_all` / `kill_boss` /
+##      `kill_elite` / `collect` 事件驱动；`survive`（计时器 + 期间持续刷怪）/
+##      `reach_exit`（出口精灵 + 距离触碰到场）每帧推进，见 `_tick_objective_timers()`。
+##      任何一条**摆不出来**（无地面格 / 无怪可刷）时仍走 `_degrade_to_clear_all()` +
+##      `push_warning`，不假装完成。
 ##      `collect` 的目标物在 `LevelGenerator.pickup_spawns` 上**确定性**摆放（数量恒等于
 ##      `objective_value`），不依赖随机掉落 —— 靠掉落凑数会让「收集 3 个」变成概率目标
 ##      （普通怪掉率 8%，一整关可能一件都不出），端到端验收会 flaky。
@@ -73,6 +75,21 @@ const LOOT_SCENE: PackedScene = preload("res://scenes/loot/loot_drop.tscn")
 const DEFAULT_LEVEL_ID: String = "ch1_l01"
 
 const TILE_PX: int = 32
+
+# --- W5-7 · `survive` / `reach_exit` 两种目标的参数 ---
+
+## `survive` 期间刷怪波间隔（秒）与每波只数。
+## 设计案 05 §3.5① 明列：不刷怪的话玩家「站着不动也能过」，目标失去意义。
+const SURVIVE_WAVE_INTERVAL: float = 12.0
+const SURVIVE_WAVE_MIN: int = 3
+const SURVIVE_WAVE_MAX: int = 5
+## 刷怪点与玩家的最小距离（像素）：避免「脸上刷新」，给玩家反应时间
+const SURVIVE_SPAWN_MIN_DIST: float = 140.0
+
+## `reach_exit` 出口触发半径（像素）
+const EXIT_TOUCH_RADIUS: float = 24.0
+## `reach_exit` 出口特效 id（`data/fx.json` 已注册；`loop = true` 的常驻精灵，`below_actors`）
+const EXIT_FX_ID: String = "tile_exit_portal"
 
 # =============================================================================
 # 节点引用
@@ -175,6 +192,15 @@ var _objective_desc: String = ""
 ## 已拾取的收集目标物数量（`collect` 目标专用）
 var _collected: int = 0
 
+## `survive` 目标：已存活秒数（只在 `_objective_kind == SURVIVE` 时累加）
+var _survive_elapsed: float = 0.0
+## `survive` 目标：刷怪波倒计时（见 `SURVIVE_WAVE_INTERVAL`）
+var _survive_wave_timer: float = 0.0
+## `reach_exit` 目标：出口世界坐标（`Vector2.INF` = 未布置）
+var _exit_pos: Vector2 = Vector2.INF
+## `reach_exit` 目标：出口可视精灵（`FxSprite`，`loop = true` ⇒ 常驻；结算时释放）
+var _exit_portal: Node2D = null
+
 var _built: bool = false
 var _finished: bool = false
 ## 结算流程进行中（保底掉落 → 等拾取 → 落盘）。防止 `_on_unit_died` 重入重复结算。
@@ -215,6 +241,7 @@ func _process(delta: float) -> void:
 	_check_boss_awaken()
 	if not _finished:
 		_buff_system.tick(delta)
+		_tick_objective_timers(delta)
 	# 增益 HUD 的**轮询兜底**（事件驱动为主，见 `_build_buff_hud`）：低频比对签名，变化才改文本
 	_buff_hud_poll += delta
 	if _buff_hud_poll >= BUFF_HUD_POLL_INTERVAL:
@@ -424,6 +451,8 @@ func _build() -> void:
 	_setup_objective()
 	# 4b) 收集目标物（`collect` 专用；摆不出来时会把自己降级成 clear_all 并吵一声）
 	_spawn_collectibles()
+	# 4c) 出口（`reach_exit` 专用；同上，摆不出来就降级）
+	_spawn_exit_portal()
 
 	EventBus.level_started.emit(level_id, difficulty_tier)
 	# 5) 任务 11.9 埋点：开一局。**必须在全部生成之后** —— 要拿最终的敌人数
@@ -856,6 +885,17 @@ func _setup_objective() -> void:
 		LevelData.ObjectiveType.COLLECT:
 			_objective_target = maxi(int(_level_def.objective_value), 1)
 			_objective_desc = "收集目标物"
+		LevelData.ObjectiveType.SURVIVE:
+			# `objective_value` 在本类型下语义是**秒数**（策划 05-levels.json：
+			# ch2_l08 = 90 / ch2_l11 = 105 / ch3_l17 = 120）
+			_objective_target = maxi(int(_level_def.objective_value), 1)
+			_objective_desc = "存活 %d 秒" % _objective_target
+			# 首波刷怪延迟到「进关后一个完整间隔」，避免开局瞬间在初始怪群之上再叠一波
+			_survive_wave_timer = SURVIVE_WAVE_INTERVAL
+		LevelData.ObjectiveType.REACH_EXIT:
+			# 出口只有一个，达成即 1/1
+			_objective_target = 1
+			_objective_desc = "抵达出口"
 		LevelData.ObjectiveType.CLEAR_ALL:
 			_objective_target = _alive.size()
 			_objective_desc = "清空全部敌人"
@@ -889,6 +929,10 @@ func _objective_done() -> bool:
 			return _elite_kills >= _objective_target
 		LevelData.ObjectiveType.COLLECT:
 			return _collected >= _objective_target
+		LevelData.ObjectiveType.SURVIVE:
+			return _survive_elapsed >= float(_objective_target)
+		LevelData.ObjectiveType.REACH_EXIT:
+			return _objective_current >= _objective_target
 		_:
 			return _alive.is_empty()
 
@@ -901,6 +945,13 @@ func _sync_objective_counter() -> void:
 			_objective_current = _elite_kills
 		LevelData.ObjectiveType.COLLECT:
 			_objective_current = _collected
+		LevelData.ObjectiveType.SURVIVE:
+			# 显示**整数秒**（夹到目标值，避免「121 / 120」这种越界读数）
+			_objective_current = mini(int(_survive_elapsed), _objective_target)
+		LevelData.ObjectiveType.REACH_EXIT:
+			# ⚠️ 必须显式留空：`_on_unit_died()` 每次击杀都会调本函数，落到 `_:` 会把
+			#    `_objective_current` 写成 `_kills` ⇒ **杀 1 只怪就直接「抵达出口」过关**。
+			pass
 		_:
 			_objective_current = _kills
 	_refresh_objective()
@@ -965,6 +1016,108 @@ func _on_collectible_picked_up(_entry: Dictionary) -> void:
 	_collected += 1
 	_sync_objective_counter()
 	_check_objective_and_settle()
+
+
+## `survive` / `reach_exit` 的**每帧推进**（W5-7）。
+##
+## 为什么单独一个函数：`_process()` 里已有相机 / BOSS 觉醒 / 增益三件事，再塞 20 行
+## 目标逻辑会让「谁在改什么」不可读。另外 4 种目标（clear_all / kill_boss / kill_elite /
+## collect）都是**事件驱动**（`_on_unit_died` / `_on_collectible_picked_up`），不需要 tick。
+func _tick_objective_timers(delta: float) -> void:
+	if _finished or _settling:
+		return
+	match _objective_kind:
+		LevelData.ObjectiveType.SURVIVE:
+			_survive_elapsed += delta
+			# 设计案 05 §3.5①：期间**持续刷怪** —— 否则「站着不动也能过」，目标失去意义
+			_survive_wave_timer -= delta
+			if _survive_wave_timer <= 0.0:
+				_survive_wave_timer = SURVIVE_WAVE_INTERVAL
+				_spawn_survive_wave()
+			# HUD 只在**整数秒**变化时刷新（每帧 emit 会刷屏且无意义）
+			if mini(int(_survive_elapsed), _objective_target) != _objective_current:
+				_sync_objective_counter()
+			_check_objective_and_settle()
+		LevelData.ObjectiveType.REACH_EXIT:
+			if _player == null or not is_instance_valid(_player) or _exit_pos == Vector2.INF:
+				return
+			if _player.global_position.distance_to(_exit_pos) > EXIT_TOUCH_RADIUS:
+				return
+			_objective_current = _objective_target
+			_refresh_objective()
+			_check_objective_and_settle()
+		_:
+			pass
+
+
+## 摆放出口（`reach_exit` 目标专用）。
+##
+## 落点 = 距 `player_spawn` **最远的可行走格** —— 与 `LevelGenerator` 摆 BOSS 房的算法同口径
+## （`generate()` 里 `_dist(c, player_spawn) > _dist(far, player_spawn)`）。
+## 刻意**不改生成器**：`boss_spawn` 已经占用了「最远格」这条算法，出口复用即可；
+## 且 `reach_exit` 的两关（ch1_l04 / ch3_l15）没有 BOSS，两者不会抢同一格。
+##
+## ⚠️ 出口用 `FxTable` 的 `loop` 精灵而不是 tile：本关的 `LevelView` 是**单节点批处理绘制**
+##    全图（1–2 draw call），没有「按格放 sprite」的通道；`tile_exit_portal` 本来就是
+##    按 tile 尺寸（32×32）产出的 4 帧循环图，`below_actors` 正好压在地面层。
+func _spawn_exit_portal() -> void:
+	if _objective_kind != LevelData.ObjectiveType.REACH_EXIT:
+		return
+	var spawn_cell: Vector2i = _layout.get("player_spawn", Vector2i(-1, -1))
+	var cells: Dictionary = _layout.get("cells", {})
+	var far := Vector2i(-1, -1)
+	var best := -1.0
+	for c in cells.keys():
+		if int(cells[c]) != LevelGenerator.TILE_GROUND:
+			continue
+		if c == spawn_cell:
+			continue
+		var d := Vector2(c).distance_squared_to(Vector2(spawn_cell))
+		if d > best:
+			best = d
+			far = c
+	if far == Vector2i(-1, -1):
+		push_warning("[Level] %s 目标为抵达出口，但布局里没有可用的地面格，降级为清空全部"
+			% level_id)
+		_degrade_to_clear_all("出口摆放失败（退化为清空）")
+		return
+	_exit_pos = _cell_to_world(far)
+	_exit_portal = FxTable.spawn(EXIT_FX_ID, _exit_pos, {"host": _actors})
+	print("[Level] 出口已布置于格 %s（世界坐标 %s）" % [far, _exit_pos])
+
+
+## `survive` 期间的一波刷怪：按关卡 `monster_entries` 权重随机取 N 只，
+## 刷在**离玩家足够远**的地面格上（`SURVIVE_SPAWN_MIN_DIST`），避免脸上刷新。
+##
+## 刻意不刷 BOSS：`_weighted_monster_ids()` 已把 `is_boss` 条目排除，
+## 且本函数只走 `monster_entries`（不含 `LevelData.boss_id`）。
+func _spawn_survive_wave() -> void:
+	var pool := _weighted_monster_ids(_level_def.monster_entries)
+	if pool.is_empty():
+		push_warning("[Level] %s 存活目标需要持续刷怪，但 monster_entries 为空" % level_id)
+		return
+	var ppos := _player.global_position if _player != null else Vector2.ZERO
+	var ground: Array = []
+	var cells: Dictionary = _layout.get("cells", {})
+	for c in cells.keys():
+		if int(cells[c]) != LevelGenerator.TILE_GROUND:
+			continue
+		if _cell_to_world(c).distance_to(ppos) < SURVIVE_SPAWN_MIN_DIST:
+			continue
+		ground.append(c)
+	if ground.is_empty():
+		return
+	var count := _rng.randi_range(SURVIVE_WAVE_MIN, SURVIVE_WAVE_MAX)
+	var made := 0
+	for _i in count:
+		var mid := _pick_weighted(pool)
+		if mid.is_empty():
+			break
+		var cell: Vector2i = ground[_rng.randi_range(0, ground.size() - 1)]
+		if _spawn_enemy(mid, cell) != null:
+			made += 1
+	print("[Level] 存活目标刷怪波：%d 只（存活 %.1fs / %.0fs）"
+		% [made, _survive_elapsed, float(_objective_target)])
 
 
 # =============================================================================

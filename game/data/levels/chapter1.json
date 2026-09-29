@@ -62,8 +62,8 @@
 		"chapter": 1,
 		"level": 2,
 		"recommended_player_level": 6,
-		"objective_type": "clear_all",
-		"objective_value": 0,
+		"objective_type": "collect",
+		"objective_value": 3,
 		"monster_entries": [
 			{ "monster_id": "spider_cave", "count_min": 41, "count_max": 74, "weight": 100.0, "spawn_group": "ambient" },
 			{ "monster_id": "bat_swarm", "count_min": 20, "count_max": 41, "weight": 60.0, "spawn_group": "pack" },
@@ -144,8 +144,8 @@
 		"chapter": 1,
 		"level": 4,
 		"recommended_player_level": 8,
-		"objective_type": "collect",
-		"objective_value": 3,
+		"objective_type": "reach_exit",
+		"objective_value": 0,
 		"monster_entries": [
 			{ "monster_id": "skeleton_warrior", "count_min": 48, "count_max": 73, "weight": 100.0, "spawn_group": "guard" },
 			{ "monster_id": "slime_acid", "count_min": 37, "count_max": 53, "weight": 70.0, "spawn_group": "ambient" },

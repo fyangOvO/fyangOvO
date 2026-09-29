@@ -200,6 +200,8 @@ func _test_elite_boss() -> void:
 ##     （5% × 约 60 怪 ⇒ 期望 3 个，但 P(不足 2) ≈ 19%），是**概率可完成**而非确定可完成
 ##   - ch1_l06 目标 kill_boss，但缺 `boss_id` ⇒ 生成器返回 boss_spawn=(-1,-1)，锚点丢失
 ##   - ch1_l04 目标 collect，当时**整个目标类型都没实现**（退化为清空）
+##   - W5-7 前 `survive` / `reach_exit` 也未实现（同样退化为清空）——
+##     2026-09-29 两种都补上后，本段的 `implemented` 列表同步扩到 6 种
 ##
 ## 判定口径：**只看数据与生成器输出**，不实例化场景 ——
 ## 这样 20 关可以秒级跑完，且失败信息直接指向「哪一关的哪个字段」。
@@ -210,6 +212,8 @@ func _test_objective_reachable() -> void:
 		LevelData.ObjectiveType.KILL_ELITE,
 		LevelData.ObjectiveType.KILL_BOSS,
 		LevelData.ObjectiveType.COLLECT,
+		LevelData.ObjectiveType.SURVIVE,
+		LevelData.ObjectiveType.REACH_EXIT,
 	]
 	var bad_type: Array[String] = []
 	var elite_short: Array[String] = []
@@ -217,6 +221,8 @@ func _test_objective_reachable() -> void:
 	var collect_bad: Array[String] = []
 	var layout_broken: Array[String] = []
 	var boss_unspawnable: Array[String] = []
+	var survive_bad: Array[String] = []
+	var exit_bad: Array[String] = []
 
 	for lv in ConfigLoader.get_levels_sorted():
 		var tag := "%s(%s)" % [lv.id, lv.get_objective_name()]
@@ -267,12 +273,32 @@ func _test_objective_reachable() -> void:
 					collect_bad.append("%s objective_value=%d" % [lv.id, lv.objective_value])
 				if (layout["pickup_spawns"] as Array).is_empty():
 					collect_bad.append("%s 生成器没给 pickup_spawns" % lv.id)
+			LevelData.ObjectiveType.SURVIVE:
+				# `objective_value` 语义 = **秒数**（见 `LevelData.objective_value` 注释）。
+				# 刷怪波走 `monster_entries`（`_spawn_survive_wave()`），
+				# 「至少有一条非 BOSS 条目」已由 `layout_broken` 的
+				# `monster_spawns.is_empty()` 覆盖。
+				if lv.objective_value < 1.0:
+					survive_bad.append("%s objective_value=%d（秒）" % [lv.id, lv.objective_value])
+			LevelData.ObjectiveType.REACH_EXIT:
+				# 出口落点 = 距 `player_spawn` 最远的**地面格**
+				# （`LevelScene._spawn_exit_portal()`），所以除出生格外必须还有地面格可放。
+				var spawn_cell: Vector2i = layout["player_spawn"]
+				var ground_cells := 0
+				var cells: Dictionary = layout["cells"]
+				for c in cells.keys():
+					if int(cells[c]) == LevelGenerator.TILE_GROUND and c != spawn_cell:
+						ground_cells += 1
+				if ground_cells < 1:
+					exit_bad.append("%s 除出生格外没有地面格" % lv.id)
 
 	_ok("20 关目标类型全部已实现（未实现：%s）" % str(bad_type), bad_type.is_empty())
 	_ok("每关都能生成出生点与怪物（异常：%s）" % str(layout_broken), layout_broken.is_empty())
 	_ok("kill_elite 关的精英锚点 ≥ 目标数（不足：%s）" % str(elite_short), elite_short.is_empty())
 	_ok("kill_boss 关的 BOSS 锚点可用（异常：%s）" % str(boss_broken), boss_broken.is_empty())
 	_ok("kill_boss 关的 BOSS 一定能刷出来（异常：%s）" % str(boss_unspawnable), boss_unspawnable.is_empty())
+	_ok("survive 关的 objective_value ≥ 1 秒（异常：%s）" % str(survive_bad), survive_bad.is_empty())
+	_ok("reach_exit 关有可放出口的地面格（异常：%s）" % str(exit_bad), exit_bad.is_empty())
 	_ok("collect 关的目标数与拾取点可用（异常：%s）" % str(collect_bad), collect_bad.is_empty())
 
 

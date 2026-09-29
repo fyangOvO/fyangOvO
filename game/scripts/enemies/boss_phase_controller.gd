@@ -4,6 +4,7 @@
 ##   · BOSS 做长（TTK 目标 90–120s，v1.8）：4 阶段血量门（100–75% / 75–50% /
 ##     50–25% / 25–0%），每阶段解锁新技能（召唤 → 范围践踏 → 狂暴）。
 ##   · 阶段数值乘区：阶段伤害随阶段递增；狂暴阶段攻速间隔 ×0.6 左右 + 伤害 ×1.3。
+##   · 狂暴起始阶段由 `enrage_phase` 配置（缺省 4）—— 见 `enrage_phase()` 的说明。
 ##   · 数据在 `data/monsters/bosses.json`（2 个章末 BOSS），本类只做纯计算。
 class_name BossPhaseController
 extends RefCounted
@@ -32,6 +33,11 @@ static func validate(config: Dictionary) -> Array[String]:
 		errs.append("缺 enrage 狂暴配置")
 	if not config.has("phase_damage_mult") or (config["phase_damage_mult"] as Array).size() != 4:
 		errs.append("phase_damage_mult 必须 4 段")
+	# `enrage_phase` 可选（缺省 4）。写了就必须落在 1–4，否则 `clampi` 会把笔误静默吞掉。
+	if config.has("enrage_phase"):
+		var ep := int(config["enrage_phase"])
+		if ep < 1 or ep > 4:
+			errs.append("enrage_phase 必须在 1–4（当前 %d）" % ep)
 	return errs
 
 
@@ -70,10 +76,20 @@ static func phase_damage_mult(config: Dictionary, phase: int) -> float:
 	return float(arr[clampi(phase - 1, 0, 3)])
 
 
-## 狂暴乘区（仅阶段 4 生效）：{interval_mult, damage_mult}
+## 狂暴起始阶段（`enrage_phase`，缺省 4）。
+##
+## 【2026-09-29 · W5-6】此前狂暴阶段**硬编码 4**，导致「熔心之主 enrage 提前到阶段 3」
+## 这条策划口径**无法用数据表达** —— 只能改代码。现在改为读配置：
+##   · `boss_bone_tyrant` 不写该字段 ⇒ 缺省 4（与历史行为逐位一致）
+##   · `boss_ember_lord` 写 3 ⇒ 法术流 BOSS 在 50% HP 就进狂暴
+static func enrage_phase(config: Dictionary) -> int:
+	return clampi(int(config.get("enrage_phase", 4)), 1, 4)
+
+
+## 狂暴乘区（阶段 >= `enrage_phase` 生效）：{interval_mult, damage_mult}
 static func enrage_multipliers(config: Dictionary, phase: int) -> Dictionary:
 	var er: Dictionary = config.get("enrage", {})
-	if phase >= 4:
+	if phase >= enrage_phase(config):
 		return {
 			"interval_mult": float(er.get("attack_interval_mult", 1.0)),
 			"damage_mult": float(er.get("damage_mult", 1.0)),
@@ -81,6 +97,6 @@ static func enrage_multipliers(config: Dictionary, phase: int) -> Dictionary:
 	return {"interval_mult": 1.0, "damage_mult": 1.0}
 
 
-## 是否已进入狂暴（阶段 4）
-static func is_enraged(phase: int) -> bool:
-	return phase >= 4
+## 是否已进入狂暴（阶段 >= `enrage_phase`，缺省 4）
+static func is_enraged(config: Dictionary, phase: int) -> bool:
+	return phase >= enrage_phase(config)

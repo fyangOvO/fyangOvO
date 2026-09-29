@@ -22,7 +22,7 @@
 ##    （本测试不打怪，怪会一直攻击玩家；这与被验证的收集逻辑无关）。
 extends Node
 
-const LEVEL_ID: String = "ch1_l04"          ## 第一章唯一的 collect 关（目标收集 3 个）
+const LEVEL_ID: String = "ch1_l02"          ## 第一章 collect 关（W5-7 后由 ch1_l04 改为 ch1_l02，目标收集 3 个）
 const LEVEL_SCENE: PackedScene = preload("res://scenes/levels/level.tscn")
 const MAX_WAIT_FRAMES: int = 600
 

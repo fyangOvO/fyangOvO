@@ -30,8 +30,8 @@
 		"chapter": 3,
 		"level": 15,
 		"recommended_player_level": 16,
-		"objective_type": "kill_elite",
-		"objective_value": 5,
+		"objective_type": "reach_exit",
+		"objective_value": 0,
 		"monster_entries": [
 			{ "monster_id": "wraith_frost", "count_min": 111, "count_max": 165, "weight": 100.0, "spawn_group": "ambient" },
 			{ "monster_id": "plague_bearer", "count_min": 94, "count_max": 147, "weight": 60.0, "spawn_group": "ambient" },
@@ -55,8 +55,8 @@
 		"chapter": 3,
 		"level": 16,
 		"recommended_player_level": 17,
-		"objective_type": "clear_all",
-		"objective_value": 0,
+		"objective_type": "collect",
+		"objective_value": 3,
 		"monster_entries": [
 			{ "monster_id": "wraith_frost", "count_min": 124, "count_max": 177, "weight": 100.0, "spawn_group": "ambient" },
 			{ "monster_id": "bone_archer", "count_min": 102, "count_max": 162, "weight": 80.0, "spawn_group": "ambient" },
@@ -80,8 +80,8 @@
 		"chapter": 3,
 		"level": 17,
 		"recommended_player_level": 18,
-		"objective_type": "kill_elite",
-		"objective_value": 6,
+		"objective_type": "survive",
+		"objective_value": 120,
 		"monster_entries": [
 			{ "monster_id": "wraith_frost", "count_min": 110, "count_max": 159, "weight": 100.0, "spawn_group": "ambient" },
 			{ "monster_id": "storm_wisp", "count_min": 70, "count_max": 113, "weight": 60.0, "spawn_group": "ambient" },

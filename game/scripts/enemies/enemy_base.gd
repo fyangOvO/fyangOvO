@@ -80,6 +80,12 @@ var _boss_skills: Array[String] = []
 var _boss_interval_mult := 1.0
 var _boss_dmg_mult := 1.0
 var _summon_timer := 0.0
+## W5-5 · 骸骨暴君「扇形重擊」冷卻計時（與普攻同節奏 tick，但有自己的冷卻）
+var _slam_timer := 0.0
+## W5-5 · 熔心之主「火球」冷卻計時（**獨立於普攻/狀態**，見 `_tick_state`）
+var _fireball_timer := 0.0
+## W5-5 · 狂暴紅閃是否已播（`enrage` 是**一次性**事件，不能每次普攻重播）
+var _enrage_fx_played := false
 
 ## W5-1 · erratic_chaser 擾動累計時間（CHASE 方向加正弦擾動用）
 var _erratic_phase: float = 0.0
@@ -914,6 +920,15 @@ func _tick_state(delta: float) -> void:
 	var dist := INF
 	if _player != null:
 		dist = global_position.distance_to(_player.global_position)
+	# W5-5 · BOSS 远程招式（fireball）：**独立于普攻与 AI 状态**计时。
+	# 为什么必须独立：`_cast_boss_skill()` 只在普攻命中时跑，而 BOSS 的 `attack_range`
+	# 只有 70–80px —— 把「远程火球」挂在近战普攻上，等于要求 BOSS 贴身才能远程攻击。
+	# 只在已交战（非 PATROL）时放，避免 BOSS 隔着半张图狙玩家。
+	if _player != null and state != AIState.PATROL and _boss_skills.has("fireball"):
+		_fireball_timer -= delta
+		if _fireball_timer <= 0.0:
+			_fireball_timer = float(boss_config.get("fireball_interval", 4.0))
+			_cast_fireball()
 	match state:
 		AIState.PATROL:
 			_tick_patrol(delta)
@@ -1281,23 +1296,42 @@ func _apply_boss_phase(phase: int) -> void:
 	_boss_dmg_mult = BossPhaseController.phase_damage_mult(boss_config, phase)
 	var er := BossPhaseController.enrage_multipliers(boss_config, phase)
 	_boss_interval_mult = float(er["interval_mult"])
-	if BossPhaseController.is_enraged(phase):
+	if BossPhaseController.is_enraged(boss_config, phase):
 		_boss_dmg_mult *= float(er["damage_mult"])
+		# W5-5 · 狂暴**表现**：进狂暴阶段的那一帧放一次全屏红闪（素材 `fx_enrage_flash`）。
+		# ⚠️ 刻意放在这里而不是 `_cast_boss_skill()`：`enrage` 是**一次性**事件，而
+		#    `_cast_boss_skill()` 每次普攻都会跑 —— 放那边会变成「狂暴期间每 2 秒闪一次」。
+		if _boss_skills.has("enrage") and not _enrage_fx_played:
+			_enrage_fx_played = true
+			_play_enrage_flash()
 	# 6.6 音效：BOSS 阶段切换 → 低吼扫频
 	AudioManager.play("boss_phase")
 
 
-## 阶段技能施放：召唤（冷却控制）/ 范围践踏（对玩家 AoE）
+## 阶段技能施放（**近战耦合支线**）：召唤（冷却控制）/ 扇形重击 / 范围践踏。
+##
+## ⚠️ 本函数只在 BOSS **普攻命中**时被调用（`_attack_player()` 末尾），所以放在这里的
+##    技能必须「贴身释放」才合理。另外两个标志性技能**刻意不在这里**：
+##      · `fireball` → `_tick_state()`（远程招式不能要求贴身，见该处注释）
+##      · `enrage`   → `_apply_boss_phase()`（一次性事件，不能按普攻节奏重播）
 func _cast_boss_skill() -> void:
 	if _player == null:
 		return
+	var tick := data.attack_interval * _boss_interval_mult
 	var has_summon := _boss_skills.has("summon_skeleton") or _boss_skills.has("summon_imp")
 	var has_aoe := _boss_skills.has("shockwave") or _boss_skills.has("magma_eruption")
 	if has_summon:
-		_summon_timer -= data.attack_interval * _boss_interval_mult
+		_summon_timer -= tick
 		if _summon_timer <= 0.0:
 			_summon_timer = float(boss_config.get("summon_interval", 8.0))
 			_summon_minions()
+	# W5-5 · 骸骨暴君招牌「前方扇形重击」：与普攻同节奏 tick，但有独立冷却，
+	# 否则每一下普攻都叠一发扇形重击（伤害翻倍且预警圈刷屏）。
+	if _boss_skills.has("bone_slam"):
+		_slam_timer -= tick
+		if _slam_timer <= 0.0:
+			_slam_timer = float(boss_config.get("slam_interval", 5.0))
+			_bone_slam()
 	if has_aoe:
 		_aoe_strike()
 
@@ -1337,15 +1371,21 @@ func _aoe_strike() -> void:
 	timer.timeout.connect(func() -> void: _aoe_impact(dmg))
 
 
-## 警示视觉：地面红色闪烁圆环（Node2D 自绘，0.6s 后自毁）
-func _spawn_aoe_telegraph(radius: float) -> void:
+## 警示视觉：地面红色闪烁圆环（Node2D 自绘，`life` 秒后自毁）
+##
+## W5-5：加三个**可选**参数以支持扇形（`arc_deg < 360` + `dir` 中轴）与自定义预警时长。
+## 缺省 = 整圆 + `AOE_TELEGRAPH_TIME`，与改前逐位一致
+## （`_aoe_strike` / `_attack_lob` 都不传后三个参数）。
+func _spawn_aoe_telegraph(radius: float, arc_deg: float = 360.0,
+		dir: Vector2 = Vector2.ZERO, life: float = -1.0) -> void:
 	var host := get_parent()
 	if host == null:
 		return
+	var dur := AOE_TELEGRAPH_TIME if life <= 0.0 else life
 	var tel := AoETelegraph.new()
 	tel.position = global_position
 	host.add_child(tel)
-	tel.setup(radius, AOE_TELEGRAPH_TIME)
+	tel.setup(radius, dur, arc_deg, dir)
 
 
 ## 命中结算（警示结束后调用）
@@ -1358,6 +1398,119 @@ func _aoe_impact(dmg: float) -> void:
 		_player.take_damage(dmg, self)
 	EventBus.damage_dealt.emit(_player, dmg, false, data.element)
 	print("[Boss] %s 范围技能命中玩家 -%.1f" % [data.display_name, dmg])
+
+
+# =============================================================================
+# 五·六、W5-5 · BOSS 标志性技能（bone_slam / fireball / enrage 表现）
+# =============================================================================
+#
+# 策划 05 §3.4① 的口径：`bone_slam` / `fireball` / `enrage` 此前是**死数据**
+# （`phase_skills` 里写了，`enemy_base.gd` 零消费）。本节把三个都接上。
+#
+# ⚠️ 三者的**挂载点刻意不同**，不是随手放的：
+#   · `bone_slam` → `_cast_boss_skill()`：近战招式，贴身释放合理
+#   · `fireball`  → `_tick_state()`：远程招式，不能要求贴身（否则没有远程手段）
+#   · `enrage`    → `_apply_boss_phase()`：一次性事件，不能按普攻节奏重播
+
+## 扇形重击参数（策划 05 §3.4①：前方 120° 扇形、半径 `attack_range × 1.6`、预警 0.4s）
+const BONE_SLAM_ARC_DEG: float = 120.0
+const BONE_SLAM_RANGE_MULT: float = 1.6
+const BONE_SLAM_TELEGRAPH_TIME: float = 0.4
+const BONE_SLAM_DAMAGE_MULT: float = 1.4
+
+## 火球参数（策划 05 §3.4①：1–3 发慢速火球、速度 ~140、命中给燃烧）
+const FIREBALL_SPEED: float = 140.0
+const FIREBALL_COUNT_MAX: int = 3
+const FIREBALL_SPREAD_DEG: float = 14.0
+const FIREBALL_LIFE: float = 3.0
+const FIREBALL_VISUAL_ID: String = "bolt_fire"
+
+
+## 骸骨暴君 · 前方扇形重击：地面 0.4s 预警 → 延迟结算。
+## 与 `_aoe_strike()` 同范式（先画预警圈再结算），差别只在「判定形状」：
+## 整圆 → 以 `dir` 为中轴的 ±60° 扇形。玩家可以横向走位躲开。
+func _bone_slam() -> void:
+	if _player == null:
+		return
+	var dir := global_position.direction_to(_player.global_position)
+	if dir.length_squared() <= 0.0:
+		dir = facing if facing.length_squared() > 0.0 else Vector2.RIGHT
+	dir = dir.normalized()
+	var radius := data.attack_range * BONE_SLAM_RANGE_MULT
+	_spawn_aoe_telegraph(radius, BONE_SLAM_ARC_DEG, dir, BONE_SLAM_TELEGRAPH_TIME)
+	var host := get_parent()
+	if host != null:
+		FxTable.spawn("fx_bone_slam", global_position + dir * radius * 0.45,
+			{"host": host, "rotation": dir.angle()})
+	var dmg := data.get_damage(level, difficulty_tier) * _boss_dmg_mult * BONE_SLAM_DAMAGE_MULT
+	var timer := get_tree().create_timer(BONE_SLAM_TELEGRAPH_TIME)
+	timer.timeout.connect(func() -> void: _cone_impact(dmg, radius, dir))
+
+
+## 扇形命中结算（预警结束后调用）：距离 ≤ `radius` **且** 落在中轴 ±ARC/2 内才命中。
+##
+## 与 `_aoe_impact()` 同口径地**不**额外查无敌帧 —— `take_damage` 内部自会处理
+## 闪避/格挡；这里只做「位置判定」，不做「减伤判定」。
+func _cone_impact(dmg: float, radius: float, dir: Vector2) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var to_player: Vector2 = _player.global_position - global_position
+	if to_player.length() > radius:
+		return
+	if to_player.length_squared() > 0.0:
+		var half_cos := cos(deg_to_rad(BONE_SLAM_ARC_DEG * 0.5))
+		if dir.dot(to_player.normalized()) < half_cos:
+			return
+	if _player.has_method("take_damage"):
+		_player.take_damage(dmg, self)
+	EventBus.damage_dealt.emit(_player, dmg, false, data.element)
+	print("[Boss] %s 扇形重击命中玩家 -%.1f" % [data.display_name, dmg])
+
+
+## 熔心之主 · 火球：按阶段发 1–3 发扇形散开的慢速投射物，命中给燃烧。
+##
+## `ailment_element` 传 `data.element`（熔心之主 = `fire` ⇒ 燃烧）；
+## 元素→异常的映射由 `HealthComponent.apply_ailment_from_element` 负责，
+## 物理 / 雷电元素会自行返回空（不施加），所以这里不需要白名单。
+func _cast_fireball() -> void:
+	if _player == null:
+		return
+	var base_dir := global_position.direction_to(_player.global_position)
+	if base_dir.length_squared() <= 0.0:
+		base_dir = Vector2.RIGHT
+	base_dir = base_dir.normalized()
+	var host := get_parent()
+	if host == null:
+		return
+	var count := clampi(_boss_phase, 1, FIREBALL_COUNT_MAX)
+	var dmg := data.get_damage(level, difficulty_tier) * _boss_dmg_mult
+	for i in count:
+		var offset := 0.0
+		if count > 1:
+			offset = deg_to_rad(FIREBALL_SPREAD_DEG) * (float(i) - float(count - 1) * 0.5)
+		var d := base_dir.rotated(offset)
+		var proj := EnemyProjectile.new()
+		proj.setup(d, FIREBALL_SPEED, dmg, data.element, self, FIREBALL_LIFE,
+			FIREBALL_VISUAL_ID, data.element)
+		proj.global_position = global_position + d * 18.0
+		host.add_child(proj)
+	FxTable.spawn("pyromancer_cast", global_position, {"host": host})
+	print("[Boss] %s 发射 %d 发火球" % [data.display_name, count])
+
+
+## 狂暴表现：进狂暴阶段那一帧放一次**全屏红闪**（`fx_enrage_flash` 160×90 ⇒ ×5 ≈ 800×450）。
+##
+## 定位用**视口中心的世界坐标**（`canvas_transform` 逆变换）而不是 BOSS 自身位置 ——
+## 相机跟随玩家，狂暴时 BOSS 可能在屏幕边缘，锚在 BOSS 身上会看不见。
+func _play_enrage_flash() -> void:
+	var host := get_parent()
+	var vp := get_viewport()
+	if host == null or vp == null:
+		return
+	var world_center: Vector2 = vp.get_canvas_transform().affine_inverse() \
+		* (vp.get_visible_rect().size * 0.5)
+	FxTable.spawn("fx_enrage_flash", world_center,
+		{"host": host, "scale": Vector2(5.0, 5.0)})
 
 
 ## 死亡（组件广播 unit_died 后由 _on_unit_died 掉落 + 移除；本函数仅供外部触发）
@@ -1529,15 +1682,27 @@ func _solid_texture(w: int, h: int, color: Color) -> ImageTexture:
 
 
 ## 范围技能警示视觉（9.x 内部类）：红色闪烁圆环，淡出后自毁
+##
+## W5-5：加 `arc_deg` + `dir` 两个**可选**参数以支持**扇形**（`bone_slam` 的前方 120°）。
+## 缺省 `arc_deg = 360` ⇒ 走原来的整圆分支，与改前逐位一致。
 class AoETelegraph extends Node2D:
 	var _radius: float = 110.0
 	var _life: float = 0.6
 	var _t: float = 0.0
+	var _arc_deg: float = 360.0
+	var _dir: Vector2 = Vector2.RIGHT
 
-	func setup(radius: float, life: float) -> void:
+	func setup(radius: float, life: float, arc_deg: float = 360.0,
+			dir: Vector2 = Vector2.ZERO) -> void:
 		_radius = radius
 		_life = life
+		_arc_deg = arc_deg
+		if dir.length_squared() > 0.0:
+			_dir = dir.normalized()
 		z_index = 40  # 盖在地面/敌人之上
+		# 与 `FxSprite` 同一约定：把同类实例挂进组，让 verify / 抓图工具能数得出
+		# 「场上此刻有几个预警圈」，而不是靠猜节点类型（内部类没法用 `is` 判）。
+		add_to_group(&"aoe_telegraphs")
 
 	func _process(delta: float) -> void:
 		_t += delta
@@ -1549,5 +1714,24 @@ class AoETelegraph extends Node2D:
 		var alpha := 0.85 * (1.0 - _t / _life)
 		var blink := 0.6 + 0.4 * sin(_t * 24.0)
 		var col := Color(1.0, 0.25, 0.15, alpha * blink)
-		draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 40, col, 3.0)
-		draw_arc(Vector2.ZERO, _radius * 0.88, 0.0, TAU, 32, Color(1.0, 0.5, 0.3, alpha * 0.5), 2.0)
+		# 整圆（缺省路径，`_aoe_strike` / `_attack_lob` 走这里）
+		if _arc_deg >= 359.9:
+			draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 40, col, 3.0)
+			draw_arc(Vector2.ZERO, _radius * 0.88, 0.0, TAU, 32,
+				Color(1.0, 0.5, 0.3, alpha * 0.5), 2.0)
+			return
+		# 扇形：中轴 `_dir`，张角 `_arc_deg`。外弧 + 两条半径边 + 半透明填充。
+		var half := deg_to_rad(_arc_deg) * 0.5
+		var mid := _dir.angle()
+		var a0 := mid - half
+		var a1 := mid + half
+		draw_arc(Vector2.ZERO, _radius, a0, a1, 24, col, 3.0)
+		draw_arc(Vector2.ZERO, _radius * 0.88, a0, a1, 20,
+			Color(1.0, 0.5, 0.3, alpha * 0.5), 2.0)
+		draw_line(Vector2.ZERO, Vector2.from_angle(a0) * _radius, col, 2.0)
+		draw_line(Vector2.ZERO, Vector2.from_angle(a1) * _radius, col, 2.0)
+		var pts := PackedVector2Array([Vector2.ZERO])
+		var steps := 12
+		for i in steps + 1:
+			pts.append(Vector2.from_angle(lerpf(a0, a1, float(i) / float(steps))) * _radius)
+		draw_colored_polygon(pts, Color(1.0, 0.3, 0.15, alpha * 0.18))

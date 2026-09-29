@@ -15,7 +15,8 @@
 ##   玩家视角 = 「我打死了屠夫，任务计数器不动」。
 ##
 ## 本脚本守住三件事：
-##   A. 7 个 kill_elite 关的 `elite_count` 与生成器锚点都 ≥ `objective_value`
+##   A. 全部 kill_elite 关（W5-7 目标再平衡后为 4 关）的 `elite_count` 与生成器锚点
+##      都 ≥ `objective_value`
 ##   B. 口径统一：场上不存在「数据层是精英档但没被标记」的怪；
 ##      `_elite_total` == 场上 `_is_elite()` 为真的只数；且 ≥ `objective_value`
 ##   C. 击杀计数行为：杀掉 `objective_value` 个精英（**优先挑数据层精英档的**，

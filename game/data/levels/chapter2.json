@@ -30,8 +30,8 @@
 		"chapter": 2,
 		"level": 8,
 		"recommended_player_level": 11,
-		"objective_type": "kill_elite",
-		"objective_value": 3,
+		"objective_type": "survive",
+		"objective_value": 90,
 		"monster_entries": [
 			{ "monster_id": "skeleton_warrior", "count_min": 99, "count_max": 145, "weight": 100.0, "spawn_group": "ambient" },
 			{ "monster_id": "bat_swarm", "count_min": 54, "count_max": 90, "weight": 60.0, "spawn_group": "pack" },
@@ -55,8 +55,8 @@
 		"chapter": 2,
 		"level": 9,
 		"recommended_player_level": 12,
-		"objective_type": "clear_all",
-		"objective_value": 0,
+		"objective_type": "kill_elite",
+		"objective_value": 3,
 		"monster_entries": [
 			{ "monster_id": "skeleton_warrior", "count_min": 81, "count_max": 116, "weight": 80.0, "spawn_group": "ambient" },
 			{ "monster_id": "wraith_frost", "count_min": 40, "count_max": 64, "weight": 60.0, "spawn_group": "ambient" },
@@ -80,8 +80,8 @@
 		"chapter": 2,
 		"level": 10,
 		"recommended_player_level": 13,
-		"objective_type": "kill_elite",
-		"objective_value": 4,
+		"objective_type": "collect",
+		"objective_value": 3,
 		"monster_entries": [
 			{ "monster_id": "skeleton_warrior", "count_min": 139, "count_max": 194, "weight": 100.0, "spawn_group": "ambient" },
 			{ "monster_id": "brute_butcher", "count_min": 11, "count_max": 32, "weight": 10.0, "spawn_group": "guard" },
@@ -105,8 +105,8 @@
 		"chapter": 2,
 		"level": 11,
 		"recommended_player_level": 13,
-		"objective_type": "clear_all",
-		"objective_value": 0,
+		"objective_type": "survive",
+		"objective_value": 105,
 		"monster_entries": [
 			{ "monster_id": "plague_bearer", "count_min": 73, "count_max": 109, "weight": 70.0, "spawn_group": "ambient" },
 			{ "monster_id": "wraith_frost", "count_min": 38, "count_max": 59, "weight": 60.0, "spawn_group": "ambient" },

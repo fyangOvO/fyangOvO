@@ -9,7 +9,8 @@
 ##   B. 阶段判定：HP 比例 → 阶段（100→1 / 80→1 / 70→2 / 40→3 / 10→4）
 ##   C. 技能集：逐阶段累积（阶段 3 ⊇ 阶段 2 ⊇ 阶段 1；阶段 4 含狂暴）
 ##   D. 召唤：数量随阶段递增 / 池内 id 全部存在（ConfigLoader 交叉校验）
-##   E. 狂暴乘区：阶段 4 攻速 ×0.6 / 伤害 ×1.3 类生效，阶段 1–3 为 1
+##   E. 狂暴乘区：阶段 4 攻速 ×0.6 / 伤害 ×1.3 类生效（骸骨阶段 1–3 为 1）；
+##      W5-6 后狂暴起始阶段可配（`enrage_phase`：骸骨 4 / 熔心 3）
 ##   F. BOSS 掉落：monster_boss 100% 掉 2–4 件（GDD 6.1）
 ##   G. 集成：EnemyBase tier=BOSS 挂载阶段机制；HP 打至 50% 触发阶段 2 + 广播
 extends Node
@@ -102,11 +103,18 @@ func _test_summon() -> void:
 	print("--- D. 召唤 ---")
 	var tyrant: Dictionary = ConfigLoader.bosses["boss_bone_tyrant"]
 	var ember: Dictionary = ConfigLoader.bosses["boss_ember_lord"]
-	_ok("召唤数量随阶段递增（0 → 2 → 3 → 4）",
+	# W5-6（2026-09-29）差异化的目标值：
+	#   骸骨暴君 → 「召唤流」0/3/5/7；熔心之主 → 「法术流」0/1/2/2
+	_ok("骸骨暴君召唤数量随阶段递增（0 → 3 → 5 → 7）",
 		BossPhaseController.summon_count_for(tyrant, 1) == 0
-		and BossPhaseController.summon_count_for(tyrant, 2) == 2
-		and BossPhaseController.summon_count_for(tyrant, 3) == 3
-		and BossPhaseController.summon_count_for(tyrant, 4) == 4)
+		and BossPhaseController.summon_count_for(tyrant, 2) == 3
+		and BossPhaseController.summon_count_for(tyrant, 3) == 5
+		and BossPhaseController.summon_count_for(tyrant, 4) == 7)
+	_ok("熔心之主召唤数量随阶段递增（0 → 1 → 2 → 2，法术流少召唤）",
+		BossPhaseController.summon_count_for(ember, 1) == 0
+		and BossPhaseController.summon_count_for(ember, 2) == 1
+		and BossPhaseController.summon_count_for(ember, 3) == 2
+		and BossPhaseController.summon_count_for(ember, 4) == 2)
 	_ok("骸骨暴君召唤骷髅/猎犬（怪物表已含）",
 		ConfigLoader.monsters.has("skeleton_warrior") and ConfigLoader.monsters.has("warg_dark"))
 	_ok("熔心之主召唤小鬼/猎犬（怪物表已含）",
@@ -131,6 +139,25 @@ func _test_enrage() -> void:
 		BossPhaseController.phase_damage_mult(tyrant, 1) == 1.0
 		and BossPhaseController.phase_damage_mult(tyrant, 2) == 1.1
 		and BossPhaseController.phase_damage_mult(tyrant, 4) == 1.35)
+	# W5-6（2026-09-29）· 狂暴起始阶段配置化（`enrage_phase`，缺省 4）
+	var ember: Dictionary = ConfigLoader.bosses["boss_ember_lord"]
+	_ok("骸骨暴君 enrage_phase = 4（缺省，与历史行为一致）",
+		BossPhaseController.enrage_phase(tyrant) == 4)
+	_ok("熔心之主 enrage_phase = 3（法术流提前狂暴）",
+		BossPhaseController.enrage_phase(ember) == 3)
+	var e3 := BossPhaseController.enrage_multipliers(ember, 3)
+	var e2 := BossPhaseController.enrage_multipliers(ember, 2)
+	_ok("熔心之主阶段 3 已吃狂暴乘区（攻速 ×0.55 / 伤害 ×1.35）",
+		absf(float(e3["interval_mult"]) - 0.55) < 0.01
+		and absf(float(e3["damage_mult"]) - 1.35) < 0.01)
+	_ok("熔心之主阶段 2 无狂暴乘区（×1.0）",
+		absf(float(e2["interval_mult"]) - 1.0) < 0.01
+		and absf(float(e2["damage_mult"]) - 1.0) < 0.01)
+	_ok("is_enraged：熔心 3 真 / 2 假；骸骨 3 假 / 4 真",
+		BossPhaseController.is_enraged(ember, 3)
+		and not BossPhaseController.is_enraged(ember, 2)
+		and not BossPhaseController.is_enraged(tyrant, 3)
+		and BossPhaseController.is_enraged(tyrant, 4))
 
 
 # =============================================================================
