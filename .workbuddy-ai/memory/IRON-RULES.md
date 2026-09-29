@@ -444,6 +444,26 @@ B4-5 `3-E7` 把「非暴擊 + 有元素」的飄字色從 `COLOR_DAMAGE_NORMAL(D
 修法：期望值改**引用同一來源**（`DamageNumber.normal_color_for(ELEMENT_PHYSICAL)`），並補一條空元素回退斷言。
 **通則：改任何「會外洩到斷言」的常量 / 口徑後，立刻 grep 該常量的全部消費點（含 `tools/verify_*.gd`）。**
 
+### 🆕 2026-09-29（B5-1）新踩兩坑
+
+**㊱ 「版本號 / 檔數 / 項數」類斷言一律引用常量，禁寫字面量 —— 否則升版即轉紅**
+`verify_skill_ext.gd:541` 寫死 `mig.save_version == 5`，B5-1 把 `SAVE_VERSION` 升到 6 後
+**轉紅**（本批全量回歸才暴露）。修法：斷言改 `mig.save_version == GameConstants.SAVE_VERSION`
+（或 `>= N` 表「該版本起有此字段」）。
+**通則：凡斷言涉及版本號 / 陣列長度 / 枚舉個數，一律引用常量或 `.size()`，不寫字面量。**
+（同型：`RARITY_COUNT` / `SKILL_COUNT` / `AILMENTS.size()` 之類。）
+自查：`grep -rn "save_version == [0-9]\|SAVE_VERSION == [0-9]" tools/ scripts/`。
+
+**㊲ 策劃校驗器的「現狀快照」斷言群，必須隨批次同步重基線 —— 否則像 bug**
+`06-check_special_modes.py` 的 **E 組（16 條，僅 `--repo`）** 與 `07-check_dev_tasks.py` 的 **E-repo 群**
+不是「規格斷言」，而是「**B5 前現狀快照**」：E1 `RARITY_COUNT==8` / E2 `SAVE_VERSION==5` /
+E3 三數組 8 項 / E4 三處硬編碼 8 存在 / E5-E6 BOSS 4 階段 / E7 scripts 內門票·塔·深淵零命中 /
+E8 `verify_boss63 ==4` / E9 底材 `rarity_max` 最大 7；07 的 R5/R6/R7/R11/R12/R13/R14/R15 同型。
+⇒ **B5 每推進一步就推翻幾條**（做 `6-W6-01` 就紅 06-E2 + 07-R7/R11/R12；做 `6-W6-11` 就紅 06-E1/E3 + 07-R5）。
+**用戶拍板：每子批同步重基線**（把被推翻的斷言改成「新現狀」，如 E2 → `== TARGET_SAVE_VERSION`、
+R11 → `"tickets" in t`），使 `06 --repo` / `07 --repo` 全程保持全綠。
+**通則：看到「尚無 / 仍為 / 零命中」措辭的斷言，就是現狀快照 ⇒ 落地該功能時必須同步翻轉。**
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】

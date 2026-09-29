@@ -12,7 +12,23 @@
 |---|---|
 | 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| **工程落地** | 🟢 **B4 玩法擴展 全批收線（28 條）**：B4-1 臨時增益 ✅ / B4-2 套裝機制特效 ✅ / B4-3 BOSS+關卡目標 ✅ / B4-4 技能擴展 UI ✅（`1-L8`~`1-L14`）/ B4-5 元素深化 ✅（`3-E7`/`3-E8`）/ **B4-6 校驗補齊 ✅**（`1-V7`~`1-V9`）⇒ 下一步 **B5 特殊玩法（第六步，28 條，🔴 極高）** |
+| **工程落地** | 🔴 **B5 特殊玩法 進行中（第六步 / 28 條 / 8 子批）**：**B5-1 存檔與門票底座 ✅**（`6-W6-01`/`02`/`20`）⇒ 下一步 **B5-2 稀有度擴容核心（`6-W6-11/12/13/14`，8→10 不可逆）** |
+
+⇒ **B5-1 已落地**（3 工單，**存檔升版 v5→v6 + 門票 API + 稀有掉落廣播**）：
+**`6-W6-01`** `SAVE_VERSION 5→6`；`save_data.gd` 新增 `tickets`/`tower_progress` 兩字段
+（`create_new` 初始化 / `to_dict` / `from_dict` 帶 `is Dictionary` 守衛 / **`migrate()` 顯式 `5:` 分支**）
+｜**`6-W6-02`** `get_ticket(id)->int` / `add_ticket(id, amount)->bool`（**風格對齊 `add_material()`**：
+不足返回 `false` 且**不寫入** ⇒ 消耗即 `add_ticket(id,-1)`；門票永不为负）
+｜**`6-W6-20`** `enemy_base._drop_loot()` 補 `EventBus.rare_loot_spawned` emit（`rarity >= Rarity.EPIC`，
+位置取 add_child 之後的 `drop.global_position`）
+｜門票 id 落常量：`game_constants.gd` 新增 `TICKET_NORMAL="ticket_normal"` / `TICKET_ADVANCED="key_advanced"` / `TICKET_KEYS`
+⚠️ **本批新踩兩坑**（詳見 `IRON-RULES.md` ㊱㊲）：㊱**「版本號/檔數/項數」類斷言禁寫字面量**
+（`verify_skill_ext.gd` 寫死 `save_version == 5` ⇒ 升 v6 即轉紅；改引用 `GameConstants.SAVE_VERSION`）
+㊲**策劃校驗器的「現狀快照」斷言群須隨批次同步重基線**（`06` E 組 16 條 + `07` E-repo 群；
+看到「尚無/仍為/零命中」措辭即是快照 ⇒ 落地該功能時必須同步翻轉）
+**⇒ 驗收**：`verify_save`（+13 條）/ `verify_loot`（+稀有 emit 一致性）/ `verify_skill_ext` 全綠；
+**證偽測試 ×2**（拿掉 `5:` 補字段 ⇒ 哨兵斷言轉紅；關掉 emit ⇒ emit 數斷言轉紅，均已還原）；
+`06 --repo` **202/0** · `07 --repo` **212/0**（重基線後）；全量回歸 **76 腳本零新增失敗**。
 
 ⇒ **B4-6 已落地**（3 工單，**純驗證批 / 不動生產代碼**）：
 **`1-V8`** `verify_skills` 新增 **G 段** `_test_dps_full_scan()` —— 36 條技能 × DPS 係數區間全量掃描
@@ -229,7 +245,7 @@ extra_loot/revive_protect/reflect/resource_refund）｜ `03-legendary-wiring.jso
 （→ B6 `4-W5-e`）。`verify_skill_panel` 的 `save_version==3` 殘餘**已隨 B4-4 升版消失**。
 （另：`verify_juice` 的「普通飄字亮白」1 項已於 **B4-6** 修正，見上方㉟。）
 
-⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1…B4-5 各另起 commit（**最新 `9436788`**，B4-6 待提交）。
+⚠️ **git**：09-28 backlog 5 天已補提交（`8801219`/`61322b8`/`d27c31e`/`ef604aa`），B0/B1/B2/B3-1…B3-7/B4-1…B4-6/B5-1 各另起 commit（**最新 `3772f00`**，B5-1）。
 
 ---
 
