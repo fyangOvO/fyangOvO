@@ -2,43 +2,49 @@
 	{
 		"id": "boss_bone_tyrant",
 		"display_name": "骸骨暴君",
-		"phase_count": 4,
-		"thresholds": [0.75, 0.5, 0.25],
+		"phase_count": 2,
+		"thresholds": [0.6],
 		"phase_skills": {
-			"1": ["bone_slam"],
-			"2": ["bone_slam", "summon_skeleton"],
-			"3": ["bone_slam", "summon_skeleton", "shockwave"],
-			"4": ["bone_slam", "summon_skeleton", "shockwave", "enrage"]
+			"1": ["bone_slam", "summon_skeleton"],
+			"2": ["bone_slam", "summon_skeleton", "shockwave", "enrage"]
 		},
 		"summon_pool": ["skeleton_warrior", "warg_dark"],
-		"summon_count": [0, 3, 5, 7],
+		"summon_count": [0, 4],
 		"summon_interval": 8.0,
 		"enrage": {
 			"attack_interval_mult": 0.6,
 			"damage_mult": 1.3
 		},
-		"enrage_phase": 4,
-		"phase_damage_mult": [1.0, 1.1, 1.2, 1.35]
+		"enrage_phase": 2,
+		"phase_damage_mult": [1.0, 1.4],
+		"arena_shrink": {
+			"fire_ring_radius": 0.45,
+			"damage_per_sec": 8.0,
+			"note": "二阶段触发：火环收缩战场，站环外持续掉血"
+		}
 	},
 	{
 		"id": "boss_ember_lord",
 		"display_name": "熔心之主",
-		"phase_count": 4,
-		"thresholds": [0.75, 0.5, 0.25],
+		"phase_count": 2,
+		"thresholds": [0.6],
 		"phase_skills": {
-			"1": ["fireball"],
-			"2": ["fireball", "summon_imp"],
-			"3": ["fireball", "summon_imp", "magma_eruption", "enrage"],
-			"4": ["fireball", "summon_imp", "magma_eruption", "enrage"]
+			"1": ["fireball", "summon_imp"],
+			"2": ["fireball", "summon_imp", "magma_eruption", "enrage"]
 		},
 		"summon_pool": ["imp_hellfire", "hound_ash"],
-		"summon_count": [0, 1, 2, 2],
+		"summon_count": [0, 2],
 		"summon_interval": 9.0,
 		"enrage": {
 			"attack_interval_mult": 0.55,
 			"damage_mult": 1.35
 		},
-		"enrage_phase": 3,
-		"phase_damage_mult": [1.0, 1.12, 1.25, 1.4]
+		"enrage_phase": 2,
+		"phase_damage_mult": [1.0, 1.4],
+		"arena_shrink": {
+			"fire_ring_radius": 0.45,
+			"damage_per_sec": 8.0,
+			"note": "二阶段触发：火环收缩战场，站环外持续掉血"
+		}
 	}
 ]

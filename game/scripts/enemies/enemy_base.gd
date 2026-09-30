@@ -87,6 +87,9 @@ var _fireball_timer := 0.0
 ## W5-5 · 狂暴紅閃是否已播（`enrage` 是**一次性**事件，不能每次普攻重播）
 var _enrage_fx_played := false
 
+## B5-5（6-W6-09）· 二阶段火环是否已广播过（收缩只触发一次）
+var _arena_shrunk := false
+
 ## W5-1 · erratic_chaser 擾動累計時間（CHASE 方向加正弦擾動用）
 var _erratic_phase: float = 0.0
 
@@ -1304,6 +1307,13 @@ func _apply_boss_phase(phase: int) -> void:
 		if _boss_skills.has("enrage") and not _enrage_fx_played:
 			_enrage_fx_played = true
 			_play_enrage_flash()
+		# B5-5（6-W6-09）：进狂暴阶段（=二阶段）时收缩战场，广播火环参数一次。
+		if boss_config.has("arena_shrink") and not _arena_shrunk:
+			_arena_shrunk = true
+			var sh: Dictionary = boss_config["arena_shrink"]
+			EventBus.boss_arena_shrunk.emit(self,
+				float(sh.get("fire_ring_radius", 0.45)),
+				float(sh.get("damage_per_sec", 8.0)))
 	# 6.6 音效：BOSS 阶段切换 → 低吼扫频
 	AudioManager.play("boss_phase")
 

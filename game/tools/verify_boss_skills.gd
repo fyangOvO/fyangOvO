@@ -75,26 +75,26 @@ func _test_data() -> void:
 	var tyrant: Dictionary = ConfigLoader.bosses["boss_bone_tyrant"]
 	var ember: Dictionary = ConfigLoader.bosses["boss_ember_lord"]
 
-	_ok("骸骨暴君 enrage_phase = 4（与历史行为一致）",
-		BossPhaseController.enrage_phase(tyrant) == 4)
-	_ok("熔心之主 enrage_phase = 3（法术流提前狂暴）",
-		BossPhaseController.enrage_phase(ember) == 3)
-	_ok("缺省（不写 enrage_phase）= 4",
-		BossPhaseController.enrage_phase({}) == 4)
+	_ok("骸骨暴君 enrage_phase = 2（B5-5 二阶段即狂暴）",
+		BossPhaseController.enrage_phase(tyrant) == 2)
+	_ok("熔心之主 enrage_phase = 2",
+		BossPhaseController.enrage_phase(ember) == 2)
+	_ok("缺省（不写 enrage_phase）= 最后阶段",
+		BossPhaseController.enrage_phase({"thresholds": [0.6]}) == 2)
 
-	var e3 := BossPhaseController.enrage_multipliers(ember, 3)
 	var e2 := BossPhaseController.enrage_multipliers(ember, 2)
-	_ok("熔心之主阶段 3 已吃狂暴乘区（攻速 ×0.55 / 伤害 ×1.35）",
-		absf(float(e3["interval_mult"]) - 0.55) < 0.01
-		and absf(float(e3["damage_mult"]) - 1.35) < 0.01)
-	_ok("熔心之主阶段 2 无狂暴乘区（×1.0）",
-		absf(float(e2["interval_mult"]) - 1.0) < 0.01
-		and absf(float(e2["damage_mult"]) - 1.0) < 0.01)
-	_ok("is_enraged：熔心 3 真 / 2 假；骸骨 3 假 / 4 真",
-		BossPhaseController.is_enraged(ember, 3)
-		and not BossPhaseController.is_enraged(ember, 2)
-		and not BossPhaseController.is_enraged(tyrant, 3)
-		and BossPhaseController.is_enraged(tyrant, 4))
+	var e1 := BossPhaseController.enrage_multipliers(ember, 1)
+	_ok("熔心之主阶段 2 已吃狂暴乘区（攻速 ×0.55 / 伤害 ×1.35）",
+		absf(float(e2["interval_mult"]) - 0.55) < 0.01
+		and absf(float(e2["damage_mult"]) - 1.35) < 0.01)
+	_ok("熔心之主阶段 1 无狂暴乘区（×1.0）",
+		absf(float(e1["interval_mult"]) - 1.0) < 0.01
+		and absf(float(e1["damage_mult"]) - 1.0) < 0.01)
+	_ok("is_enraged：两 BOSS 阶段 2 真 / 阶段 1 假",
+		BossPhaseController.is_enraged(ember, 2)
+		and not BossPhaseController.is_enraged(ember, 1)
+		and BossPhaseController.is_enraged(tyrant, 2)
+		and not BossPhaseController.is_enraged(tyrant, 1))
 
 	_ok("validate：两个 BOSS 都合法",
 		BossPhaseController.validate(tyrant).is_empty()
@@ -116,13 +116,13 @@ func _test_summon_diff() -> void:
 	var ember: Dictionary = ConfigLoader.bosses["boss_ember_lord"]
 	var t: Array[int] = []
 	var e: Array[int] = []
-	for p in range(1, 5):
+	for p in range(1, 3):
 		t.append(BossPhaseController.summon_count_for(tyrant, p))
 		e.append(BossPhaseController.summon_count_for(ember, p))
-	_ok("骸骨暴君改「召唤流」[0,2,3,4] → [0,3,5,7]（实际 %s）" % str(t),
-		t == [0, 3, 5, 7])
-	_ok("熔心之主改「法术流」[0,2,3,4] → [0,1,2,2]（实际 %s）" % str(e),
-		e == [0, 1, 2, 2])
+	_ok("骸骨暴君「召唤流」2 阶段 [0,4]（实际 %s）" % str(t),
+		t == [0, 4])
+	_ok("熔心之主「法术流」2 阶段 [0,2]（实际 %s）" % str(e),
+		e == [0, 2])
 	_ok("两者召唤数不再相同（差异化真的落地）", t != e)
 	_sections_done.append("B")
 
@@ -295,20 +295,19 @@ func _test_fireball() -> void:
 		_ok("火球视觉真的建出来了（用 FxSprite 而不是占位色块）",
 			pr._fx != null and pr._body == null)
 
-	# ③ 阶段 3 ⇒ 3 发
+	# ③ 阶段 2 ⇒ 2 发（B5-5：2 阶段，phase2 即 2 发）
 	var n1 := _count_projectiles()
-	boss._boss_phase = 3
+	boss._boss_phase = 2
 	boss._cast_fireball()
-	_ok("阶段 3 发 3 发（实际 %d）" % (_count_projectiles() - n1),
-		_count_projectiles() - n1 == 3)
+	_ok("阶段 2 发 2 发（实际 %d）" % (_count_projectiles() - n1),
+		_count_projectiles() - n1 == 2)
 
-	# ④ 阶段 4 仍夹到上限 3（不因阶段 4 变 4 发）
+	# ④ 阶段号不会超过 2（N 相数据驱动），夹到上限的分支由 clampi 保证
 	var n2 := _count_projectiles()
-	boss._boss_phase = 4
+	boss._boss_phase = 2
 	boss._cast_fireball()
-	_ok("阶段 4 仍夹在上限 %d 发（实际 %d）"
-			% [EnemyBase.FIREBALL_COUNT_MAX, _count_projectiles() - n2],
-		_count_projectiles() - n2 == EnemyBase.FIREBALL_COUNT_MAX)
+	_ok("阶段 2 保持 2 发（不因重复召唤堆叠，实际 %d）" % (_count_projectiles() - n2),
+		_count_projectiles() - n2 == 2)
 
 	# ⑤ 命中给燃烧：把假玩家挪到某一发的正前方，等它飞过去
 	var pr2: EnemyProjectile = _projectiles()[0]
@@ -354,27 +353,27 @@ func _test_enrage_flash() -> void:
 	var pack := await _make_boss("boss_bone_tyrant", boss_pos, boss_pos + Vector2(60.0, 0.0))
 	var boss: EnemyBase = pack[0]
 
-	# ② 未进狂暴阶段时不该放
+	# ② 未进狂暴阶段时不该放（B5-5：enrage_phase=2，阶段 1 不闪）
 	boss._enrage_fx_played = false
 	var n0 := get_tree().get_nodes_in_group(&"fx_sprites").size()
-	boss._apply_boss_phase(3)
+	boss._apply_boss_phase(1)
 	await get_tree().process_frame
-	_ok("阶段 3（骸骨 enrage_phase=4）不放红闪",
+	_ok("阶段 1（骸骨 enrage_phase=2）不放红闪",
 		get_tree().get_nodes_in_group(&"fx_sprites").size() == n0
 		and not boss._enrage_fx_played)
 
-	# ③ 进阶段 4 ⇒ 放一次
-	boss._apply_boss_phase(4)
+	# ③ 进阶段 2 ⇒ 放一次
+	boss._apply_boss_phase(2)
 	await get_tree().process_frame
 	var n1 := get_tree().get_nodes_in_group(&"fx_sprites").size()
-	_ok("进阶段 4 放了红闪（%d → %d）且标记已置位" % [n0, n1],
+	_ok("进阶段 2 放了红闪（%d → %d）且标记已置位" % [n0, n1],
 		n1 > n0 and boss._enrage_fx_played)
 	_ok("狂暴乘区同时生效（攻速 ×0.6 / 伤害 ×1.3）",
 		absf(boss._boss_interval_mult - 0.6) < 0.01)
 
 	# ④ 再进一次不该重放（一次性事件）
 	var n2 := get_tree().get_nodes_in_group(&"fx_sprites").size()
-	boss._apply_boss_phase(4)
+	boss._apply_boss_phase(2)
 	await get_tree().process_frame
 	_ok("重复进狂暴不重放红闪（%d → %d）" % [n2, get_tree().get_nodes_in_group(&"fx_sprites").size()],
 		get_tree().get_nodes_in_group(&"fx_sprites").size() <= n2)

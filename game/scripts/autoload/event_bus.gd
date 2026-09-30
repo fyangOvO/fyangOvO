@@ -111,8 +111,12 @@ signal resource_spent(amount: float)
 ## 单位死亡
 signal unit_died(unit: Node, killer: Node)
 
-## 任务 6.3：BOSS 阶段切换（阈值 75% / 50% / 25% → 阶段 2 / 3 / 4）
+## 任务 6.3：BOSS 阶段切换（阈值 60% → 阶段 2，B5-5 改为 2 阶段）
 signal boss_phase_changed(enemy: Node, phase: int, skills: Array)
+
+## B5-5（6-W6-09）：BOSS 进入二阶段时收缩战场——火环半径（归一化）+ 环外每秒伤害。
+## 消费方（关卡层）负责画火环并对站在环外的玩家持续掉血；本信号只广播一次。
+signal boss_arena_shrunk(enemy: Node, radius: float, damage_per_sec: float)
 
 ## 玩家角色死亡（触发结算损失流程，GDD 0.2 节死亡方案 B）
 signal player_died(reason: String)

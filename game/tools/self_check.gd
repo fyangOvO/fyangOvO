@@ -634,16 +634,16 @@ func _run_self_check() -> void:
 		AffixController.AFFIXES.size() == 6
 		and AffixController.WEIGHTS.size() == 6)
 
-	# 任务 6.3：BOSS 设计与机制（2 个章末 BOSS / 4 阶段 / 掉落 2–4 件）
+	# 任务 6.3：BOSS 设计与机制（2 个章末 BOSS / 2 阶段 / 掉落 2–4 件；B5-5 改 2 阶段）
 	var boss_total := ConfigLoader.bosses.size()
 	var boss_valid := true
 	for bid in ConfigLoader.bosses:
 		if not BossPhaseController.validate(ConfigLoader.bosses[bid]).is_empty():
 			boss_valid = false
 	var boss_table: LootTable = ConfigLoader.get_loot_table("monster_boss")
-	_add_check("BOSS 机制配置 2 个（骸骨暴君 / 熔心之主，4 阶段阈值）",
+	_add_check("BOSS 机制配置 2 个（骸骨暴君 / 熔心之主，2 阶段阈值 0.6）",
 		boss_total == 2 and boss_valid
-		and BossPhaseController.current_phase(0.4) == 3)
+		and BossPhaseController.current_phase(0.4) == 2)
 	_add_check("BOSS 掉落 100% / 2–4 件（GDD 6.1）",
 		boss_table != null and is_equal_approx(boss_table.drop_chance, 1.0)
 		and boss_table.drop_count_range == Vector2i(2, 4))
