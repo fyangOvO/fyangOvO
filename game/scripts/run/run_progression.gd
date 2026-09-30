@@ -29,7 +29,7 @@ var total_xp := 0.0
 
 ## 升到下一级所需经验（局内公式，工程侧默认）
 static func xp_to_next(level: int) -> float:
-	return 20.0 * pow(float(level), 1.4)
+	return 50.0 * pow(float(level), 1.4)   ## 4-W4：20→50（局内升级节奏放缓）
 
 
 func _refresh_xp_next() -> void:

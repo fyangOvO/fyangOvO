@@ -133,6 +133,20 @@ static func _roll_consumable(level: int) -> Dictionary:
 		"rarity": -1, "item_level": level }
 
 
+## 符文掉落桶（2-L12 / 2-V12）：精英 8% / BOSS 25% 额外掉一枚随机已解锁符文。
+## 图鉴式符文只取 id；数量 1。表空时返回空表（不掉符文）。
+const RUNE_DROP_CHANCE := {"elite": 0.08, "boss": 0.25}
+static func roll_rune_drop(tier: String) -> Dictionary:
+	var chance: float = float(RUNE_DROP_CHANCE.get(tier, 0.0))
+	if chance <= 0.0 or randf() > chance:
+		return {}
+	var ids: Array = ConfigLoader.runes.keys() if ConfigLoader.runes is Dictionary else []
+	if ids.is_empty():
+		return {}
+	return { "type": "rune", "amount": 1, "item_id": str(ids[randi() % ids.size()]),
+		"rarity": -1, "item_level": 1 }
+
+
 ## 金币：round(4 × 1.12^(L-1) × randf_range(0.8, 1.2))，至少 1
 static func _roll_gold(level: int) -> Dictionary:
 	var amount := maxi(1, int(round(

@@ -370,7 +370,7 @@ const AFFIX_POSITION_NAMES: Array[String] = ["前缀", "后缀"]
 
 ## 词缀数值随物品等级缩放的线性系数（GDD 0.6 节 6.2）：
 ## Value(iLvl) = Base × (1 + 0.085 × (iLvl - 1))
-const AFFIX_ILVL_SCALE_PER_LEVEL: float = 0.085
+const AFFIX_ILVL_SCALE_PER_LEVEL: float = 0.10   ## 4-W3-c：0.085→0.10（路线A 装备等级上限提到22后同步）
 
 ## 装备主属性（基础属性）随物品等级缩放的线性系数（GDD 0.6 节 6.2）：
 ## Item_Stat(iLvl) = S0 × (1 + 0.12 × (iLvl - 1))
@@ -1017,7 +1017,7 @@ const ELEMENT_COLORS: Dictionary = {
 }
 
 ## 元素抗性减伤系数：与护甲 `ARMOR_DR_CONSTANT_PER_LEVEL`（50）同构，直觉统一。
-const RESIST_DR_CONSTANT_PER_LEVEL: float = 50.0
+const RESIST_DR_CONSTANT_PER_LEVEL: float = 25.0   ## 4-W7：50→25（路线A 下可选，曲线更平缓）
 
 ## 元素抗性减伤上限（0–1）：75%（与暴击率上限同值，直觉统一）。
 const RESIST_DR_CAP: float = 0.75

@@ -15,7 +15,7 @@
    "tower_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "special_tower",
   "rarity_max": "special_tower",
   "icon_path": "res://assets/icons/equipment/equip_staff_48.png",
@@ -37,7 +37,7 @@
    "tower_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "special_tower",
   "rarity_max": "special_tower",
   "icon_path": "res://assets/icons/equipment/equip_chest_48.png",
@@ -60,7 +60,7 @@
    "tower_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "special_tower",
   "rarity_max": "special_tower",
   "icon_path": "res://assets/icons/equipment/equip_gauntlet_48.png",

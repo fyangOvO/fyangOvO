@@ -11,7 +11,7 @@
    "jewelry_generic"
   ],
   "item_level_min": 1,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "common",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
@@ -29,7 +29,7 @@
    "jewelry_generic"
   ],
   "item_level_min": 1,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "common",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
@@ -49,7 +49,7 @@
    "legendary_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "legendary",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
@@ -70,7 +70,7 @@
    "legendary_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "legendary",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_ring_b_48.png",
@@ -92,7 +92,7 @@
    "mythic_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "mythic",
   "rarity_max": "mythic",
   "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
@@ -115,7 +115,7 @@
    "mythic_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "mythic",
   "rarity_max": "mythic",
   "icon_path": "res://assets/icons/equipment/equip_staff_48.png",
@@ -136,7 +136,7 @@
    "hidden_pool"
   ],
   "item_level_min": 10,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "hidden",
   "rarity_max": "hidden",
   "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
@@ -161,7 +161,7 @@
    "hidden_pool"
   ],
   "item_level_min": 10,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "hidden",
   "rarity_max": "hidden",
   "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
@@ -201,7 +201,7 @@
    "jewelry_generic"
   ],
   "item_level_min": 8,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "magic",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
@@ -238,7 +238,7 @@
    "epic_empower"
   ],
   "item_level_min": 9,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "rare",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",
@@ -256,7 +256,7 @@
    "jewelry_generic"
   ],
   "item_level_min": 10,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "magic",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_ring_48.png",
@@ -275,7 +275,7 @@
    "epic_empower"
   ],
   "item_level_min": 12,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "rare",
   "rarity_max": "legendary",
   "icon_path": "res://assets/icons/equipment/equip_amulet_48.png",

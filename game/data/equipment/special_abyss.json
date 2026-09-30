@@ -15,7 +15,7 @@
    "abyss_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "special_abyss",
   "rarity_max": "special_abyss",
   "icon_path": "res://assets/icons/equipment/equip_dagger_48.png",
@@ -38,7 +38,7 @@
    "abyss_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "special_abyss",
   "rarity_max": "special_abyss",
   "icon_path": "res://assets/icons/equipment/equip_helmet_48.png",
@@ -61,7 +61,7 @@
    "abyss_pool"
   ],
   "item_level_min": 15,
-  "item_level_max": 20,
+  "item_level_max": 22,
   "rarity_min": "special_abyss",
   "rarity_max": "special_abyss",
   "icon_path": "res://assets/icons/equipment/equip_boots_48.png",
