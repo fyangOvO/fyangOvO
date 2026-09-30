@@ -1512,6 +1512,7 @@ const STAT_SKILL_COST_REDUCTION: String = "skill_cost_reduction" ## 技能减耗
 const STAT_PICKUP_RADIUS: String = "pickup_radius"         ## 拾取范围
 const STAT_DODGE: String = "dodge"                         ## 闪避 %
 const STAT_BLOCK_CHANCE: String = "block_chance"           ## 格挡率 %
+const STAT_BLOCK_DR: String = "block_damage_reduction"     ## 3-BL2：格挡成功时额外减伤 %（可被装备修正）
 const STAT_LIFE_ON_HIT: String = "life_on_hit"             ## 生命偷取 %
 const STAT_LIFE_REGEN: String = "life_regen"               ## 生命回复/秒
 const STAT_THORNS: String = "thorns"                       ## 荆棘反伤
@@ -1622,7 +1623,7 @@ const ALL_STAT_KEYS: Array[String] = [
 	STAT_MOVE_SPEED,
 	STAT_MAX_RESOURCE, STAT_RESOURCE_REGEN,
 	STAT_COOLDOWN_REDUCTION, STAT_SKILL_COST_REDUCTION, STAT_PICKUP_RADIUS,
-	STAT_DODGE, STAT_BLOCK_CHANCE, STAT_LIFE_ON_HIT, STAT_LIFE_REGEN, STAT_THORNS,
+	STAT_DODGE, STAT_BLOCK_CHANCE, STAT_BLOCK_DR, STAT_LIFE_ON_HIT, STAT_LIFE_REGEN, STAT_THORNS,
 	STAT_ARMOR_PIERCE, STAT_ELEMENTAL_DAMAGE, STAT_SKILL_LEVEL,
 	# 元素专精（3-E1 / 3.2）：5 个非物理子键 + 全元素伤害 + 对异常增伤 + 穿透
 	STAT_ELEMENTAL_DAMAGE_FIRE, STAT_ELEMENTAL_DAMAGE_COLD, STAT_ELEMENTAL_DAMAGE_LIGHTNING,
@@ -1657,6 +1658,7 @@ const STAT_DISPLAY_NAMES: Dictionary = {
 	STAT_PICKUP_RADIUS: "拾取范围",
 	STAT_DODGE: "闪避",
 	STAT_BLOCK_CHANCE: "格挡率",
+	STAT_BLOCK_DR: "格挡减伤",
 	STAT_LIFE_ON_HIT: "生命偷取",
 	STAT_LIFE_REGEN: "生命回复",
 	STAT_THORNS: "荆棘反伤",

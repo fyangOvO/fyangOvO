@@ -30,7 +30,7 @@ const MYTHIC_SCALED_KEYS: Array[String] = ["max_hp", "attack", "armor"]
 ## 最终属性键顺序（展示用）
 const FINAL_KEYS: Array[String] = [
 	"max_hp", "attack", "armor", "crit_chance", "crit_damage", "attack_speed",
-	"elemental_damage", "all_damage", "dodge", "block_chance", "life_regen", "fire_resist",
+	"elemental_damage", "all_damage", "dodge", "block_chance", "block_damage_reduction", "life_regen", "fire_resist",
 	"cold_resist", "poison_resist", "lightning_resist",
 	# 第三步补齐的抗性 3 系（3-E5 / 2-L3）：暗影 / 物理 / 全抗
 	"shadow_resist", "physical_resist", "all_resist",

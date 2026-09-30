@@ -22,6 +22,7 @@ const LABELS: Dictionary = {
 	"all_damage": "通用伤害",
 	"dodge": "闪避",
 	"block_chance": "格挡率",
+	"block_damage_reduction": "格挡减伤",
 	"life_regen": "生命回复",
 	"fire_resist": "火焰抗性",
 	"cold_resist": "冰霜抗性",
@@ -71,7 +72,7 @@ const LABELS: Dictionary = {
 ## 以百分号渲染的键（其余按整数渲染）
 const PCT_KEYS: Array[String] = [
 	"crit_chance", "crit_damage", "attack_speed", "elemental_damage", "all_damage",
-	"dodge", "block_chance", "fire_resist", "cold_resist", "poison_resist",
+	"dodge", "block_chance", "block_damage_reduction", "fire_resist", "cold_resist", "poison_resist",
 	"lightning_resist", "shadow_resist", "physical_resist", "all_resist",
 	"resource_regen", "skill_cost_reduction",
 	"cooldown_reduction", "move_speed", "magic_find", "xp_gain", "gold_gain",

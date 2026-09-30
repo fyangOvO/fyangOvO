@@ -121,9 +121,9 @@ func _run() -> void:
 	#        此前 52 = 2026-09-28 第三步 B3-2：元素子键 5 + 抗性 3 + 穿透 2 + 异常增伤 8 + 全元素/对异常 2）。
 	# 这是**变更检测**而非自洽断言：数字写死是为了让「FINAL_KEYS 被无意改动」在回归里暴露，
 	# 故改 FINAL_KEYS 必须同步改这里（以及 `StatPanel.LABELS` / `PCT_KEYS` / 面板列数）。
-	_ok("输出 53 键 = FINAL_KEYS",
+	_ok("输出 54 键 = FINAL_KEYS",
 		stats.size() == StatCalculator.FINAL_KEYS.size()
-		and StatCalculator.FINAL_KEYS.size() == 53)
+		and StatCalculator.FINAL_KEYS.size() == 54)
 	var missing := 0
 	for k in StatCalculator.FINAL_KEYS:
 		if not stats.has(k):
@@ -134,7 +134,7 @@ func _run() -> void:
 
 	var sp := hub.get_panel("character") as StatPanel
 	_ok("StatPanel 收到结算结果", sp != null and not sp.last_stats.is_empty())
-	_ok("StatPanel 渲染 53 行", sp != null and sp.row_count() == 53)
+	_ok("StatPanel 渲染 54 行", sp != null and sp.row_count() == 54)
 	_ok("StatPanel 渲染值非 0", sp != null
 		and String(sp.rendered_values.get("max_hp", "0")) != "0")
 	_ok("LABELS 覆盖 FINAL_KEYS 全部键",
