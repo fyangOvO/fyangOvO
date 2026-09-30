@@ -1565,25 +1565,41 @@ func _explode() -> void:
 		EventBus.damage_dealt.emit(player, dmg, false, data.element)
 
 
-## 掉落：按怪物档位掉落表 roll（金币 / 材料 / 装备），在死亡点周围撒出 LootDrop
+## 掉落：按怪物档位掉落表 roll（金币 / 材料 / 消耗品 / 装备）+ 独立的符文桶，
+## 在死亡点周围撒出 LootDrop。
+##
+## 符文（2-L12）是**第二次独立 roll**（`LootRoller.roll_rune_drop`）：命中不挤掉上面那次，
+## 两种掉落可以同时出现（精英/BOSS 打得爽时有「装备 + 符文」双响）。
 func _drop_loot(killer: Node) -> void:
 	var drops := LootRoller.roll_loot(
 		data, level, difficulty_tier, _player_level(), _player_magic_find())
+	var rune_drop := LootRoller.roll_rune_drop(data, level)
+	if not rune_drop.is_empty():
+		drops.append(rune_drop)
 	for entry in drops:
-		var drop := LOOT_SCENE.instantiate() as LootDrop
-		drop.setup(entry)
-		var scatter := Vector2(randf_range(-14.0, 14.0), randf_range(-14.0, 14.0))
-		drop.global_position = global_position + scatter
-		get_parent().add_child(drop)
-		# 稀有掉落广播（第六步 B5-1 · 6-W6-20 补 emit；此前 `rare_loot_spawned` 声明了但 0 个 emit 点）。
-		# 消费点：稀有光柱 / 落地演出 / 镜头（6-W6-19 · `_draw_beam` 按 shape 分支）。
-		# ⚠️ 位置取 `drop.global_position`（**必须**在 add_child 之后读，见坑⑨两段式落点）。
-		var r := int(entry.get("rarity", -1))
-		if r >= GameConstants.Rarity.EPIC and entry.get("instance") is Dictionary:
-			EventBus.rare_loot_spawned.emit(
-				EquipmentInstance.from_dict(entry["instance"]), drop.global_position)
+		_spawn_loot_drop(entry)
 	if not drops.is_empty():
 		print("[Loot] %s 掉落 %d 件" % [data.display_name, drops.size()])
+
+
+## 在死亡点周围撒出一件地面掉落物（LootDrop 节点）。
+##
+## 抽成独立方法是因为符文桶（2-L12）也要走同一条落地路径 —— 复制一份 instantiate/setup
+## 逻辑迟早会两边漂移（`rare_loot_spawned` 只在一边 emit 之类）。
+func _spawn_loot_drop(entry: Dictionary) -> void:
+	var drop := LOOT_SCENE.instantiate() as LootDrop
+	drop.setup(entry)
+	var scatter := Vector2(randf_range(-14.0, 14.0), randf_range(-14.0, 14.0))
+	drop.global_position = global_position + scatter
+	get_parent().add_child(drop)
+	# 稀有掉落广播（第六步 B5-1 · 6-W6-20 补 emit；此前 `rare_loot_spawned` 声明了但 0 个 emit 点）。
+	# 消费点：稀有光柱 / 落地演出 / 镜头（6-W6-19 · `_draw_beam` 按 shape 分支）。
+	# ⚠️ 位置取 `drop.global_position`（**必须**在 add_child 之后读，见坑⑨两段式落点）。
+	# 符文 `rarity = -1`，天然不触发本分支（符文有自己的紫罗兰光柱，见 `LootDrop._draw`）。
+	var r := int(entry.get("rarity", -1))
+	if r >= GameConstants.Rarity.EPIC and entry.get("instance") is Dictionary:
+		EventBus.rare_loot_spawned.emit(
+			EquipmentInstance.from_dict(entry["instance"]), drop.global_position)
 
 
 ## 越级惩罚用玩家等级（玩家组第一人；无玩家 = 0 跳过惩罚）

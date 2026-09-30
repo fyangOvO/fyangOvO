@@ -754,6 +754,41 @@ func pickup_loot(entry: Dictionary) -> void:
 				LootRoller.obtain_unique(tmpl.unique_group)
 			print("[Loot] 拾取 %s（%s · iLvl %d · %d 条词缀，背包 %d 件）"
 					% [nm, rn, item["item_level"], item["affix_count"], inventory.size()])
+		"rune":
+			_pickup_rune(entry)
+
+
+## 符文拾取（工单 2-L12 · 图鉴式解锁）。
+##
+## 口径（`01-技能体系.md` §11.4 Q2）：
+##   · **首次获得即永久解锁** —— 写入 `SaveData.unlocked_runes`（append-only，分解/死亡不回收）；
+##   · **重复掉落自动转化为魔石**（避免垃圾堆积）。
+##
+## ⚠️ 结果写回 `entry`（`rune_new` / `material_amount`）供 `PickupToastHUD` 区分文案。
+##    契约依赖：`LootDrop._pick_up()` **先**调 `pickup_loot()` 再 emit `loot_picked_up`，
+##    且传的是同一个 Dictionary 引用。若该顺序被改，提示条会退回默认文案（不崩、但会误显示「解锁」）。
+func _pickup_rune(entry: Dictionary) -> void:
+	var rid := str(entry.get("item_id", ""))
+	if rid.is_empty():
+		return
+	var data = SaveManager.current_data
+	var is_new := false
+	var gained_mat := 0
+	if data == null:
+		# 无存档对象（理论上不会发生）：不静默吞掉这次拾取，告警后按「重复」保守处理。
+		push_warning("[Loot] 拾取符文 %s 时 SaveManager.current_data 为空，无法写入解锁集合" % rid)
+	elif not data.unlocked_runes.has(rid):
+		is_new = true
+		data.unlocked_runes.append(rid)
+		AudioManager.play("pickup_item")
+		print("[Loot] 解锁符文 %s（图鉴 %d 枚）" % [rid, data.unlocked_runes.size()])
+	else:
+		gained_mat = LootRoller.rune_duplicate_material_amount(int(entry.get("item_level", 1)))
+		materials += gained_mat
+		AudioManager.play("pickup_gold")
+		print("[Loot] 重复符文 %s → 魔石 ×%d（累计 %d）" % [rid, gained_mat, materials])
+	entry["rune_new"] = is_new
+	entry["material_amount"] = gained_mat
 
 
 # ============ 消耗品（步骤 8A · 药水） ============

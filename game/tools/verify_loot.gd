@@ -4,7 +4,7 @@
 ##   godot --headless --path "D:/七傳說/game" res://tools/verify_loot.tscn
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
-## 覆盖范围（6 个测试段）：
+## 覆盖范围（9 个测试段）：
 ##   A. 掉落表数据：3 张表 / 权重 8 档且和为 100 / drop_chance 与件数区间合法
 ##   B. roll 基础：BOSS 表（drop_chance 1.0）必掉 2–4 件
 ##   C. 稀有度分布：普通怪权重 20k 次抽样白 > 蓝 > 黄、橙极低
@@ -12,12 +12,16 @@
 ##   E. 底材过滤：iLvl 区间 / 套装稀有度只出 set_id 底材 / iLvl clamp+三角抖动（4-W3·T10）
 ##   F. 敌人死亡掉落 + 拾取：BOSS 秒杀掉 2–4 件 LootDrop，玩家走近自动入账
 ##   G. 收编回归：敌人受击转发生命组件（无双重减伤）
+##   H. 符文掉落桶（工单 2-L12 / 校验 2-V12）：三档概率读表 / 只产出合法 rune id / 与主掉落独立
+##   I. 符文拾取：首获永久解锁 / 重复转魔石（与材料同口径）/ 结果写回载荷
 extends Node
 
 const ENEMY_SCENE := preload("res://scenes/enemies/enemy_base.tscn")
 
 var _fail: int = 0
 var _player: PlayerController = null
+## 本脚本进入前的 `SaveManager.current_data`（符文拾取段需要存档对象；跑完还原）。
+var _prev_save: SaveData = null
 
 
 func _ok(label: String, cond: bool) -> void:
@@ -36,6 +40,11 @@ func _ready() -> void:
 	print("===== 掉落与拾取系统实测 =====")
 	_player = get_node_or_null("/root/VerifyLoot/Player") as PlayerController
 	_ok("场景就绪：玩家", _player != null)
+	# 符文拾取（段 I）需要写入 `SaveData.unlocked_runes`；本场景默认无存档对象。
+	# `SaveData.new()` 的 account_level 回退值与「current_data == null」时的 `get_player_level()`
+	# 同为 1 ⇒ 对既有段落（B–G）的越级惩罚判定**零影响**。
+	_prev_save = SaveManager.current_data
+	SaveManager.current_data = SaveData.new()
 	await _test_tables()
 	await _test_roll_basic()
 	await _test_rarity_distribution()
@@ -43,6 +52,8 @@ func _ready() -> void:
 	await _test_template_filter()
 	await _test_enemy_drop_and_pickup()
 	await _test_mitigation_regression()
+	await _test_rune_drop()
+	await _test_rune_pickup()
 	_finish()
 
 
@@ -235,8 +246,18 @@ func _test_enemy_drop_and_pickup() -> void:
 	boss.take_damage(999999.0, _player)  # 秒杀 → 组件死亡 → unit_died → 掉落 + 移除
 	await _step_physics(0.35)  # 掉落弹出（pop delay 0.25）+ 移除完成
 	_ok("BOSS 死亡后节点已移除", not is_instance_valid(boss))
-	var drops := get_tree().get_nodes_in_group(&"loot_drops")
-	_ok("BOSS 必掉 2–4 件地面掉落物", drops.size() >= 2 and drops.size() <= 4)
+	# ⚠️ 符文（2-L12）是**独立第二次 roll**，会与主掉落并存 ⇒ 「2–4 件」只统计**主掉落**，
+	#    符文单独计数，否则 BOSS 掉 4 件主掉落 + 1 枚符文时这条会假红。
+	var ground := get_tree().get_nodes_in_group(&"loot_drops")
+	var drops: Array = []
+	var rune_drops := 0
+	for d in ground:
+		if (d as LootDrop).drop_type == "rune":
+			rune_drops += 1
+		else:
+			drops.append(d)
+	_ok("BOSS 必掉 2–4 件主掉落地面物（符文另计）", drops.size() >= 2 and drops.size() <= 4)
+	_info("      地面：主掉落 %d 件 + 符文 %d 枚" % [drops.size(), rune_drops])
 	# emit 数应逐件等于「地面稀有(≥史诗)掉落数」—— 与 RNG 结果无关，故不 flaky。
 	var rare_on_ground := 0
 	for d in drops:
@@ -272,8 +293,153 @@ func _test_mitigation_regression() -> void:
 	e.queue_free()
 
 
+# =============================================================================
+# H. 符文掉落桶（工单 2-L12 · 校验 2-V12）
+# =============================================================================
+
+## 造一只只有 tier 有意义的怪物（`roll_rune_drop` 只读 `tier` 找表）。
+func _make_tier_monster(tier: int) -> MonsterData:
+	var m := MonsterData.new()
+	m.id = "sim_tier_%d" % tier
+	m.tier = tier
+	m.level_min = 1
+	m.level_max = GameConstants.LEVEL_MAX
+	return m
+
+
+func _test_rune_drop() -> void:
+	print("--- H. 符文掉落桶（2-L12 / 2-V12） ---")
+	# 0) 表接线：JSON 的 rune_drop_chance 必须真的进到运行时 Resource
+	#    （ConfigLoader 是逐字段手写映射，漏读 = 数据侧有、运行时不生效）。
+	var t_normal: LootTable = ConfigLoader.loot_tables["monster_normal"]
+	var t_elite: LootTable = ConfigLoader.loot_tables["monster_elite"]
+	var t_boss: LootTable = ConfigLoader.loot_tables["monster_boss"]
+	_ok("三表 rune_drop_chance 读表生效（0.02 / 0.08 / 0.25）",
+		absf(t_normal.rune_drop_chance - 0.02) < 1e-6
+		and absf(t_elite.rune_drop_chance - 0.08) < 1e-6
+		and absf(t_boss.rune_drop_chance - 0.25) < 1e-6)
+	_ok("符文池 = 24 条（数据驱动遍历 ConfigLoader.runes）",
+		LootRoller.all_rune_ids().size() == 24)
+	# 1) 三档概率抽样（4000 次/档），并断言只产出合法 rune id
+	var ids := LootRoller.all_rune_ids()
+	var monsters := [
+		_make_tier_monster(MonsterData.Tier.NORMAL),
+		_make_tier_monster(MonsterData.Tier.ELITE),
+		_make_tier_monster(MonsterData.Tier.BOSS),
+	]
+	var expect := [0.02, 0.08, 0.25]
+	var bounds := [[0.005, 0.040], [0.050, 0.120], [0.200, 0.300]]
+	var samples := 4000
+	seed(20260930)
+	var hits := [0, 0, 0]
+	var bad_type := 0
+	var bad_id := 0
+	var bad_ilvl := 0
+	for i in samples:
+		for k in 3:
+			var e := LootRoller.roll_rune_drop(monsters[k], 7)
+			if e.is_empty():
+				continue
+			hits[k] += 1
+			if str(e.get("type", "")) != "rune":
+				bad_type += 1
+			if not ids.has(str(e.get("item_id", ""))):
+				bad_id += 1
+			if int(e.get("item_level", -1)) != 7:
+				bad_ilvl += 1
+	_ok("符文条目字段合法（type=rune / item_id ∈ 符文池 / item_level = 怪物等级）",
+		bad_type == 0 and bad_id == 0 and bad_ilvl == 0)
+	var rates: Array[float] = []
+	for k in 3:
+		rates.append(float(hits[k]) / float(samples))
+	_info("      命中率：普通 %.3f / 精英 %.3f / BOSS %.3f（期望 %.2f / %.2f / %.2f，%d 次抽样）"
+		% [rates[0], rates[1], rates[2], expect[0], expect[1], expect[2], samples])
+	var rate_ok := true
+	for k in 3:
+		if rates[k] < bounds[k][0] or rates[k] > bounds[k][1]:
+			rate_ok = false
+	_ok("三档命中率均落在期望区间（普通 0.5–4% / 精英 5–12% / BOSS 20–30%）", rate_ok)
+	_ok("概率随档位单调递增（普通 < 精英 < BOSS）",
+		rates[0] < rates[1] and rates[1] < rates[2])
+	# 2) 与主掉落独立：同一只怪「符文命中」不影响「主掉落是否触发」
+	#    （普通怪 drop_chance 8% + 符文 2% 是两次独立 randf；此处只验两者都能单独出现）
+	seed(20260931)
+	var rune_only := 0
+	var loot_only := 0
+	var both := 0
+	var neither := 0
+	for i in 2000:
+		var r := not LootRoller.roll_rune_drop(monsters[1], 7).is_empty()
+		var l := not LootRoller.roll_loot(monsters[1], 7, GameConstants.DifficultyTier.NM1, 7).is_empty()
+		if r and l:
+			both += 1
+		elif r:
+			rune_only += 1
+		elif l:
+			loot_only += 1
+		else:
+			neither += 1
+	_info("      2000 次：符文only %d / 主掉落only %d / 双响 %d / 皆无 %d"
+		% [rune_only, loot_only, both, neither])
+	# 独立 ⇒ 四象限都非空（精英：符文 8% × 掉落 60% ⇒ 双响 ≈ 4.8% ⇒ 期望 ~96 次）
+	_ok("符文与主掉落相互独立（四象限均出现，双响 ≈ 8% × 60%）",
+		rune_only > 0 and loot_only > 0 and both > 0 and neither > 0)
+	# 3) 重复符文转魔石量：与 `_roll_material()` 同口径（1 + (L-1)/5，至少 1）
+	var mat_ok := true
+	for lv in [1, 5, 6, 11, 20]:
+		var expect_mat := maxi(1, 1 + int(float(lv - 1) / GameConstants.MATERIAL_LEVEL_STEP))
+		if LootRoller.rune_duplicate_material_amount(lv) != expect_mat:
+			mat_ok = false
+			_info("      L%d：期望 %d 实际 %d"
+				% [lv, expect_mat, LootRoller.rune_duplicate_material_amount(lv)])
+	_ok("重复符文转魔石量与材料掉落同口径（L1/L5/L6/L11/L20）", mat_ok)
+	_ok("转化量下限保护（L1 → ≥1）", LootRoller.rune_duplicate_material_amount(1) >= 1)
+
+
+# =============================================================================
+# I. 符文拾取（首获解锁 / 重复转魔石）
+# =============================================================================
+
+func _test_rune_pickup() -> void:
+	print("--- I. 符文拾取：首获解锁 / 重复转魔石 ---")
+	var data := SaveManager.current_data
+	_ok("存档对象就绪", data != null)
+	if data == null:
+		return
+	data.unlocked_runes.clear()
+	_player.materials = 0
+	var rid := "rune_projectile"
+	# 首获 → 永久解锁，不产魔石
+	_player.pickup_loot({"type": "rune", "amount": 1, "item_id": rid, "rarity": -1, "item_level": 7})
+	_ok("首获符文写入 unlocked_runes（1 枚）",
+		data.unlocked_runes.size() == 1 and data.unlocked_runes.has(rid))
+	_ok("首获符文不产魔石（materials == 0）", _player.materials == 0)
+	# 重复 → 不重复写入 + 转魔石
+	var expect_mat := LootRoller.rune_duplicate_material_amount(7)
+	_player.pickup_loot({"type": "rune", "amount": 1, "item_id": rid, "rarity": -1, "item_level": 7})
+	_ok("重复符文不重复写入（unlocked_runes 仍 1 枚）", data.unlocked_runes.size() == 1)
+	_ok("重复符文转魔石 +%d（与材料同口径）" % expect_mat, _player.materials == expect_mat)
+	# 结果写回载荷（PickupToastHUD 文案依赖；契约见 `PlayerController._pickup_rune`）
+	var e := {"type": "rune", "amount": 1, "item_id": "rune_chain", "rarity": -1, "item_level": 7}
+	_player.pickup_loot(e)
+	_ok("首获写回载荷：rune_new=true / material_amount=0",
+		bool(e.get("rune_new", false)) and int(e.get("material_amount", -1)) == 0)
+	_player.pickup_loot(e)
+	_ok("重复写回载荷：rune_new=false / material_amount>0",
+		not bool(e.get("rune_new", true)) and int(e.get("material_amount", 0)) > 0)
+	_ok("两枚不同符文均入集合（2 枚）", data.unlocked_runes.size() == 2)
+	# 拾取提示条：符文分支不静默丢弃（旧实现 `_: return` ⇒ 符文拾取毫无反馈）
+	var hud := PickupToastHUD.new()
+	add_child(hud)
+	hud.spawn({"type": "rune", "amount": 1, "item_id": "rune_chain", "rarity": -1, "item_level": 7,
+		"rune_new": true})
+	_ok("拾取提示条消费 rune（生成 1 条提示）", hud.get_child_count() == 1)
+	hud.queue_free()
+
+
 func _finish() -> void:
 	print("")
+	SaveManager.current_data = _prev_save
 	if _fail == 0:
 		print("===== 结果：0 项失败 =====")
 	else:

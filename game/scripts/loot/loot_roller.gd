@@ -4,10 +4,10 @@
 ## 完成「触发 → 件数 → 物品类型 → 稀有度（含难度修正 / 越级惩罚）→ 底材」的 roll。
 ##
 ## 返回的掉落物条目（Dictionary，供 LootDrop 地面物件渲染与玩家拾取）：
-##   { "type": "gold"|"material"|"equipment",
-##     "amount": int,                    # 金币 / 材料数量（装备为 1）
-##     "item_id": String,                # 装备底材 ID（非装备为空）
-##     "rarity": int,                    # GameConstants.Rarity（装备有效；金币/材料 -1）
+##   { "type": "gold"|"material"|"consumable"|"equipment"|"rune",
+##     "amount": int,                    # 金币 / 材料数量（装备 / 消耗品 / 符文为 1）
+##     "item_id": String,                # 装备底材 ID / 消耗品 ID / 符文 ID（金币、材料为空）
+##     "rarity": int,                    # GameConstants.Rarity（装备有效；其余 -1）
 ##     "item_level": int }               # 物品等级 = clamp(怪物等级 ± 三角抖动, 下限 怪-2,
 ##                                       #                     上限 max(怪等级, 玩家等级))（4-W3）
 ##
@@ -133,18 +133,55 @@ static func _roll_consumable(level: int) -> Dictionary:
 		"rarity": -1, "item_level": level }
 
 
-## 符文掉落桶（2-L12 / 2-V12）：精英 8% / BOSS 25% 额外掉一枚随机已解锁符文。
-## 图鉴式符文只取 id；数量 1。表空时返回空表（不掉符文）。
-const RUNE_DROP_CHANCE := {"elite": 0.08, "boss": 0.25}
-static func roll_rune_drop(tier: String) -> Dictionary:
-	var chance: float = float(RUNE_DROP_CHANCE.get(tier, 0.0))
+## 符文掉落桶（2-L12 / 2-V12）。
+##
+## 与主掉落**相互独立**：读本档位掉落表的 `rune_drop_chance`
+## （普通 0.02 / 精英 0.08 / BOSS 0.25，随表读取、不写死），命中则**额外**掉一枚符文。
+## ⇒ 符文命中不会挤掉金币/材料/装备那次 roll，反之亦然（两次独立 `randf()`）。
+##
+## `unlocked` 语义（策划 §11.4 Q2 图鉴式）：
+##   · **roll 端不做任何过滤** —— 重复符文照常掉出，由拾取端判定「首次解锁 / 转魔石」。
+##     这样符文桶永远有效（24 个全解锁后仍持续产出魔石），不会退化成空桶。
+##
+## ⚠️ 旧实现（2026-09-29 B4 埋点）有两个静默脱钩，本次一并修掉：
+##   1. 签名收 `tier: String`，而调用侧只有 `MonsterData.Tier`（**int**）⇒ 永远取不到值；
+##   2. 概率硬编码 `{elite, boss}`，而 `ConfigLoader` 从不读 JSON 的 `rune_drop_chance`
+##      ⇒ 数据侧写了、运行时不生效（第 5 类坑「String 字段静默脱钩」的同族）。
+static func roll_rune_drop(monster: MonsterData, monster_level: int) -> Dictionary:
+	if monster == null:
+		return {}
+	var table: LootTable = ConfigLoader.loot_tables.get(
+		ConfigLoader.LOOT_TABLE_BY_TIER.get(monster.tier, "monster_normal"))
+	if table == null:
+		return {}
+	var chance := clampf(table.rune_drop_chance, 0.0, 1.0)
 	if chance <= 0.0 or randf() > chance:
 		return {}
-	var ids: Array = ConfigLoader.runes.keys() if ConfigLoader.runes is Dictionary else []
+	var ids := all_rune_ids()
 	if ids.is_empty():
 		return {}
-	return { "type": "rune", "amount": 1, "item_id": str(ids[randi() % ids.size()]),
-		"rarity": -1, "item_level": 1 }
+	return { "type": "rune", "amount": 1,
+		"item_id": ids[randi() % ids.size()],
+		"rarity": -1, "item_level": maxi(1, monster_level) }
+
+
+## 全部符文 id（**数据驱动**，遍历 `ConfigLoader.runes` 的键，避免硬编码 24 条列表漂移）。
+## 消费点：`roll_rune_drop()`（掉落）/ 校验脚本（2-V12）。
+static func all_rune_ids() -> Array[String]:
+	var ids: Array[String] = []
+	if ConfigLoader.runes is Dictionary:
+		for k in ConfigLoader.runes.keys():
+			ids.append(str(k))
+	ids.sort() # 稳定顺序：便于验证脚本固定 seed 复现
+	return ids
+
+
+## 重复符文 → 魔石转化数量（策划 §11.4「重复掉落自动转化为魔石，避免垃圾堆积」）。
+##
+## 口径与 `_roll_material()` **完全一致**（1 + (L-1)/5，至少 1）——「一颗重复符文 ≈ 一次材料掉落」，
+## 不另立一套数值，避免两处常量各自漂移（见坑：常數多處複製）。
+static func rune_duplicate_material_amount(monster_level: int) -> int:
+	return maxi(1, 1 + int(float(maxi(1, monster_level) - 1) / GameConstants.MATERIAL_LEVEL_STEP))
 
 
 ## 金币：round(4 × 1.12^(L-1) × randf_range(0.8, 1.2))，至少 1

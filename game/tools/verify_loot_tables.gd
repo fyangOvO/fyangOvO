@@ -4,7 +4,7 @@
 ##   godot --headless --path "D:/七傳說/game" res://tools/verify_loot_tables.tscn
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
-## 覆盖范围（5 个测试段）：
+## 覆盖范围（6 个测试段）：
 ##   A. 权威表逐位断言：三张表 × 10 档与 GDD 6.1 + S12 完全一致（容差 0.001）
 ##   B. 权重和 = 100、橙装概率随怪物档位递增（0.05 → 1.00 → 5.00）
 ##   C. 难度修正规则：NM1 红清零 / NM2+ 红 ×1.5 / 白 ×0.85 / 黄 ×1.15 / 紫橙 ×1.30 /
@@ -12,6 +12,8 @@
 ##   D. 一局节奏仿真（GDD 6.1 基准：150 普通 + 5 精英 + 1 BOSS 掉 3 件，3000 局）：
 ##      橙 ≈ 0.186 / 黄 ≈ 1.95 / 红(NM2) ≈ 0.074 / 绿 ≈ 0.348 件每局
 ##   E. 底材联动：稀有度分布下掉出的装备 item_id 全部 fits（稀有度 / 等级区间）
+##   F. 符文掉落桶（2-D6 / 2-V12）：rune_drop_chance 真的从 JSON 映射进 LootTable /
+##      三表 0.02·0.08·0.25 逐位 / 全表范围合法 + validate() 通过 / 符文池 24 条
 extends Node
 
 var _fail: int = 0
@@ -37,6 +39,14 @@ const EXPECT_PACE := {
 	GameConstants.Rarity.HIDDEN: 0.010,
 }
 
+## 符文掉落桶概率（工单 2-D6 / 校验 2-V12 · 策划 §11.4 / `02-装备属性.md` §D6）。
+## ⚠️ 这是**第二次独立 roll**，与 `drop_chance` 无关（符文是额外惊喜，不挤掉主掉落）。
+const EXPECT_RUNE_DROP := {
+	"monster_normal": 0.02,
+	"monster_elite": 0.08,
+	"monster_boss": 0.25,
+}
+
 
 func _ok(label: String, cond: bool) -> void:
 	if not cond:
@@ -59,6 +69,7 @@ func _ready() -> void:
 	await _test_difficulty_rules()
 	await _test_pace_simulation()
 	await _test_template_linkage()
+	await _test_rune_bucket()
 	_finish()
 
 
@@ -258,6 +269,53 @@ func _test_template_linkage() -> void:
 				red_fit = false
 	_info("红装抽样：%s" % ("出现" if red_seen else "未出现（概率 ~0.6%×3件，可接受）"))
 	_ok("红装底材区间合法（出现时）", red_fit)
+
+
+# =============================================================================
+# F. 符文掉落桶（2-D6 / 2-V12）
+# =============================================================================
+
+## 表侧断言：`rune_drop_chance` 必须从 JSON **真的映射进** 运行时 `LootTable`。
+##
+## ⚠️ 本段盯的是第 5 类静默脱钩：`ConfigLoader._load_loot_table_dir()` 是**逐字段手写映射**，
+##    JSON 里写了 `rune_drop_chance` 而这里漏读 ⇒ 数据侧有、运行时不生效、**零报错**。
+##    （2026-09-29 B4 埋点时就踩了这条：`roll_rune_drop` 用硬编码常量，表字段从未被读。）
+func _test_rune_bucket() -> void:
+	print("--- F. 符文掉落桶（2-D6 / 2-V12） ---")
+	var all_ok := true
+	for table_id in EXPECT_RUNE_DROP:
+		var table: LootTable = ConfigLoader.loot_tables.get(table_id)
+		if table == null:
+			all_ok = false
+			_info("%s 表不存在" % table_id)
+			continue
+		var expect: float = EXPECT_RUNE_DROP[table_id]
+		if absf(table.rune_drop_chance - expect) > 1e-9:
+			all_ok = false
+			_info("%s：期望 %.2f 实际 %.3f" % [table_id, expect, table.rune_drop_chance])
+	_ok("三表 rune_drop_chance 逐位一致（0.02 / 0.08 / 0.25）", all_ok)
+	# 全部表（含深渊 normal/boss = 0.05 / 0.30）范围合法 + validate() 通过
+	var range_ok := true
+	var nonzero := 0
+	var val_ok := true
+	for table_id in ConfigLoader.loot_tables:
+		var t: LootTable = ConfigLoader.loot_tables[table_id]
+		if t.rune_drop_chance < 0.0 or t.rune_drop_chance > 1.0:
+			range_ok = false
+		if t.rune_drop_chance > 0.0:
+			nonzero += 1
+		var errs := t.validate()
+		if not errs.is_empty():
+			val_ok = false
+			_info("%s 校验错误：%s" % [table_id, str(errs)])
+	_ok("全部 %d 张表 rune_drop_chance ∈ [0,1]（其中 %d 张 > 0）"
+		% [ConfigLoader.loot_tables.size(), nonzero], range_ok)
+	_ok("全部掉落表 validate() 通过（含 rune_drop_chance 范围检查）", val_ok)
+	# 符文池：掉落来源必须非空，否则 `roll_rune_drop` 恒返回空表（静默不掉）
+	_ok("符文池 24 条（ConfigLoader.runes 非空）", ConfigLoader.runes.size() == 24)
+	_ok("符文概率随档位单调递增（普通 < 精英 < BOSS）",
+		EXPECT_RUNE_DROP["monster_normal"] < EXPECT_RUNE_DROP["monster_elite"]
+		and EXPECT_RUNE_DROP["monster_elite"] < EXPECT_RUNE_DROP["monster_boss"])
 
 
 func _finish() -> void:

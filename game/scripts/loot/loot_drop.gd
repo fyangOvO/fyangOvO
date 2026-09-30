@@ -10,7 +10,7 @@
 class_name LootDrop
 extends Node2D
 
-## 掉落类型：gold / material / equipment / consumable（LootRoller 产出字段）
+## 掉落类型：gold / material / equipment / consumable / rune（LootRoller 产出字段）
 var drop_type: String = "gold"
 
 ## 数量（金币/材料）
@@ -52,6 +52,16 @@ signal picked_up(entry: Dictionary)
 ## 因为玩家必须能一眼认出「哪个是目标物」，否则 collect 关会变成盲找东西。
 const COLLECTIBLE_COLOR: Color = Color("7FE7D0")
 const COLLECTIBLE_BEAM_HEIGHT: float = 30.0
+
+## 符文掉落物（2-L12）：紫罗兰色 + 光柱高度。
+##
+## ⚠️ 符文没有 `rarity`（-1）⇒ 取不到 `RARITY_BEAM_HEIGHTS`，**必须**给显式高度，
+##    否则 `_draw_beam()` 直接 return，地面上只剩一个孤零零的图标（不显眼）。
+const RUNE_COLOR: Color = Color("9B6BE8")
+const RUNE_BEAM_HEIGHT: float = 28.0
+## 符文图标的**世界尺寸**（源素材 `rune_icon_*_48.png` 是 48×48，缩到 20 才能和 12px 的
+## 装备方块在同一视觉量级；再大就会盖住光柱、并在密集掉落时糊成一团）。
+const RUNE_ICON_WORLD_SIZE: float = 20.0
 
 ## 存活计时（LOOT_DROP_LIFETIME 后消失；收集物不过期）
 var _lifetime: float = 0.0
@@ -155,6 +165,18 @@ func _draw() -> void:
 			var h := GameConstants.RARITY_BEAM_HEIGHTS[rarity] if rarity >= 0 else 0
 			if h > 0:
 				draw_rect(Rect2(-2.0, -h - 6.0, 4.0, 2.0), Color(1.0, 1.0, 1.0, 0.85))
+		"rune":
+			# 符文（2-L12）：紫罗兰光柱 + **真实符文图标**（与图鉴同一张 48×48 素材）。
+			# 先画光柱再画图标，让图标压在柱脚上（否则柱脚会盖住图标下半）。
+			_draw_beam(RUNE_COLOR, RUNE_BEAM_HEIGHT)
+			var rtex := UISkin.rune_icon(item_id)
+			if rtex != null:
+				var s := RUNE_ICON_WORLD_SIZE
+				draw_texture_rect(rtex, Rect2(-s * 0.5, -s * 0.5, s, s), false)
+			else:
+				# 素材缺失兜底：退回紫色方块（`UISkin.rune_icon` 缺档静默回 null，
+				# 不兜底的话地面上就只剩一根光柱，玩家看不见掉的是什么）。
+				_draw_box(Vector2.ZERO, 8, RUNE_COLOR, Color("0B0D10"))
 
 
 ## 色块 + 1px 深描边（像素风铁律：Nearest、描边脱离背景）

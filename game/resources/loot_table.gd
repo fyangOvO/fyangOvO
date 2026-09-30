@@ -42,6 +42,18 @@ extends Resource
 ## 消耗品掉落权重
 @export var consumable_weight: float = 3.0
 
+## 符文掉落概率（0–1）：本次击杀**额外**掉一枚符文的独立概率。
+##
+## ⚠️ 与 `drop_chance` **无关**，是**第二次独立 roll** —— 命中不会挤掉金币/材料/装备那一次判定
+##    （符文是图鉴式解锁物，策划 §11.4 定位为「额外惊喜」而非掉落物之一）。
+##
+## 口径（`01-技能体系.md` §11.4 / `02-装备属性.md` §D6，对应 JSON `rune_drop_chance`）：
+##   普通 0.02 ｜ 精英 0.08 ｜ BOSS 0.25
+##   （深渊表 `abyss_loot_tables.json` 另为 0.05 / 0.30，随表读取，代码不写死。）
+##
+## 消费点：`LootRoller.roll_rune_drop()`（工单 2-L12）。**默认 0.0** ⇒ 未配置的表不掉符文。
+@export var rune_drop_chance: float = 0.0
+
 ## 保底：本次未掉落装备时，是否累积「幸运」并在下次提高稀有度权重
 ## （GDD 0.2 节「变强可感知」保底机制，暂定：精英掉落权重 +20%，最多叠至 +60%）
 @export var pity_enabled: bool = false
@@ -146,4 +158,6 @@ func validate() -> Array[String]:
 		errors.append("掉落表 '%s' 的 drop_chance 应在 [0,1]，实际 %f" % [id, drop_chance])
 	if drop_count_range.x < 0 or drop_count_range.y < drop_count_range.x:
 		errors.append("掉落表 '%s' 的 drop_count_range 非法" % id)
+	if rune_drop_chance < 0.0 or rune_drop_chance > 1.0:
+		errors.append("掉落表 '%s' 的 rune_drop_chance 应在 [0,1]，实际 %f" % [id, rune_drop_chance])
 	return errors

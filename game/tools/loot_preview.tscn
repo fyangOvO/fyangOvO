@@ -21,31 +21,43 @@ zoom = Vector2(2.5, 2.5)
 position = Vector2(-600, 300)
 
 [node name="GoldDrop" parent="." instance=ExtResource("2_loot")]
-position = Vector2(-160, -80)
+position = Vector2(-117, 0)
 
 [node name="MaterialDrop" parent="." instance=ExtResource("2_loot")]
-position = Vector2(-110, -80)
+position = Vector2(-91, 0)
 
 [node name="DropCommon" parent="." instance=ExtResource("2_loot")]
-position = Vector2(-60, -80)
+position = Vector2(-65, 0)
 
 [node name="DropMagic" parent="." instance=ExtResource("2_loot")]
-position = Vector2(-10, -80)
+position = Vector2(-39, 0)
 
 [node name="DropRare" parent="." instance=ExtResource("2_loot")]
-position = Vector2(40, -80)
+position = Vector2(-13, 0)
 
 [node name="DropEpic" parent="." instance=ExtResource("2_loot")]
-position = Vector2(90, -80)
+position = Vector2(13, 0)
 
 [node name="DropLegendary" parent="." instance=ExtResource("2_loot")]
-position = Vector2(140, -80)
+position = Vector2(39, 0)
 
 [node name="DropMythic" parent="." instance=ExtResource("2_loot")]
-position = Vector2(190, -80)
+position = Vector2(65, 0)
 
 [node name="DropSet" parent="." instance=ExtResource("2_loot")]
-position = Vector2(240, -80)
+position = Vector2(91, 0)
 
 [node name="DropHidden" parent="." instance=ExtResource("2_loot")]
-position = Vector2(290, -80)
+position = Vector2(117, 0)
+
+[node name="RuneDrop1" parent="." instance=ExtResource("2_loot")]
+position = Vector2(-39, 50)
+
+[node name="RuneDrop2" parent="." instance=ExtResource("2_loot")]
+position = Vector2(-13, 50)
+
+[node name="RuneDrop3" parent="." instance=ExtResource("2_loot")]
+position = Vector2(13, 50)
+
+[node name="RuneDrop4" parent="." instance=ExtResource("2_loot")]
+position = Vector2(39, 50)

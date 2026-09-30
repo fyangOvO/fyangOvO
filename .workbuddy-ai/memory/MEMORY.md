@@ -15,7 +15,26 @@
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
 | 工程落地 B0–B5 | ✅ B5 特殊玩法八子批全收線（B5-1…B5-8） |
 | **HANDOFF-C UI 打磨復盤** | ✅ **完成**（4 類靜默脫鉤全修 + 2 個既有紅修復） |
-| **HANDOFF-D 符文圖標 v2** | ✅ **完成**（24 張重製為 48×48 高精細 + 符文石石板底座；1 個既有 bug 已定位未修） |
+| **HANDOFF-D 符文圖標 v2** | ✅ **完成**（24 張重製為 48×48 高精細 + 符文石石板底座） |
+| **HANDOFF-E 符文掉落接線** | ✅ **完成**（B6 `2-L12`+`2-V12`：符文真的會掉、圖鑑不再 0/24） |
+
+### HANDOFF-E 符文掉落接線（2026-09-30）
+**接線前的事實**：`roll_rune_drop()` **零呼叫方**、`unlocked_runes` 在真實遊玩路徑**零寫入方**
+⇒ 剛打磨好的符文圖鑑實機永遠 **0 / 24**。
+- **表接線**：`LootTable` 新增 `rune_drop_chance`；`ConfigLoader._load_loot_table_dir()` 補讀 ——
+  **它原本沒讀**（逐字段手寫映射）⇒ JSON 有、運行時物件沒有（靜默脫鉤）。
+- **`roll_rune_drop()` 重寫**：舊簽名收 `tier: String`，而唯一可能的呼叫側只有 `MonsterData.Tier`（**int**）
+  ⇒ 就算接上也恆取 0（鐵律 ㊽「零呼叫方埋點」）。現改收 `MonsterData` + `monster_level`，讀表。
+- **口徑（用戶拍板）**：① 三檔全接（normal 0.02 / elite 0.08 / boss 0.25，**第二次獨立 randf**，
+  不擠掉主掉落，可「雙響」）② **拾取端**判定：首獲永久解鎖 / 重複轉魔石（roll 端**不過濾**，
+  符文桶永不成空桶）③ 地面用**真圖標**（`UISkin.rune_icon()` 縮到 20px）+ 紫羅蘭光柱。
+- **重複轉魔石量 = 與材料掉落同口徑**（`1 + (L-1)/5`，至少 1）⇒ 一顆重複符文 ≈ 一次材料掉落。
+- 落地：`enemy_base._drop_loot()` 抽 `_spawn_loot_drop()` 統一落地；`loot_drop._draw()` / `pickup_loot()` /
+  `pickup_toast.spawn()` 三處 `match` 補 `"rune"` 分支（原本**全都沒有** ⇒ 空白、無反應、無提示）。
+- 驗收：`verify_loot_tables` F 段（2-V12）+ `verify_loot` H/I 段；4000 次/檔實測 **0.021 / 0.079 / 0.246**；
+  段 F 實測 BOSS 秒殺後地面「主掉落 2 件 + 符文 1 枚」並被拾取解鎖。**全量回歸 77 全綠 / 189.9s**。
+- **附帶修復**：`tools/loot_preview.tscn` 10 個掉落物全在相機可見範圍外（zoom 2.5 + 視口 640×360
+  ⇒ 可見世界僅 256×144），抓圖一直是「半張空圖」卻被沿用多批 ⇒ 重排為兩行 + 加符文行（鐵律 ㊾）。
 
 ### HANDOFF-D 符文圖標 v2（2026-09-30）
 - 24 條符文全部重畫：**4–5 階明暗 + 邊緣高光 + 內核輝光 + 微裝飾**，外掛**符文石石板底座**（外斜面 / 內凹槽 / 四角鉚釘）。
@@ -46,7 +65,9 @@
 
 ### 需用戶裁定
 - **`boss_ember_lord.level_min 19 → 13`** 刻意偏離策劃 §1.1 等級帶表（表寫 19–20），為讓 `05-check` C19 轉綠 ⇒ 待裁定「改表 or 改回並放寬 C19」。
-（無）
+- **深淵表的 `rune_drop_chance`（0.05 / 0.30）當前不會被消費** —— `roll_rune_drop` 與 `roll_loot` 一樣只走
+  `ConfigLoader.LOOT_TABLE_BY_TIER`（按 `MonsterData.Tier`），深淵表要經 `LevelData.loot_table_id` 才用得上
+  （只有 `roll_guaranteed_equipment` 支持）。⇒ 待裁定「要不要讓深淵房走自己的掉落表」。
 
 ### 策劃側仍紅（非工程批）
 - `05-check` **C17**（`ch1_l03/l04` 空 layout，屬 `5-W5-9`）· **C20**（creatures 目錄數，素材側）
@@ -54,7 +75,10 @@
 
 ### 工程側待接線（有落點、無消費方 = 死鉤子）
 - **分支 8 個 modifier 未接**（`combo_hits`/`combo_damage_pct`/`linger`/`afterimage`/`pulse`/`summon_count`/`summon_damage_pct`/`buff_potency_pct`，面板標「暫未生效」）
-- **符文掉落接線屬 B6 `2-L12`**（精英 8%/BOSS 25%，`unlocked_runes` 已備落點但無寫入方）
+- ~~符文掉落接線屬 B6 `2-L12`~~ ✅ **HANDOFF-E 已接**（三檔讀表 / 首獲解鎖 / 重複轉魔石 / 地面真圖標 / 提示條）
+- **`material_sub_weights` / `item_level_spread` 仍是死字段**（JSON 有、`LootTable` **沒字段**、`ConfigLoader` **沒讀**）—— `2-D6` 剩餘部分
+- **`item_level_spread` 與實現矛盾**：`_roll_item_level()` 用硬編碼 `ITEM_LEVEL_JITTER = 2`（±2）給**所有檔位**，
+  而 JSON 寫 BOSS 是 `min_mod 3 / mode_mod 5 / max_mod 8` ⇒ BOSS 本應掉 iLvl+5 左右 —— 屬 `2-L13`/`2-V13`
 - **玩家→怪物施加異常未接通**（B4-5 拍板不做）⇒ 雷/暗異常只能由 2 雷怪 / 2 暗怪打玩家觸發
 - **無異常 HUD**（`status_shock`/`status_curse` 素材已在但無消費點）
 - `STAT_SHOCK_DAMAGE`/`STAT_CURSE_DAMAGE` 仍死鉤子（屬詞綴管線）；元素子鍵（`elemental_damage_*`）暫無供給源 ⇒ 恆 0
@@ -85,6 +109,7 @@
 | B5 | B5-1 存檔 **v6**+門票 / B5-2 稀有度 **8→10** / B5-3~8 特殊裝閉環+塔/深淵+校驗 | 06 202/0 · 07 212/0 |
 | HANDOFF-C | UI 視覺打磨（本輪復盤：素材歸位 / 金按鈕上線 / 徽章修復 / 去白框） | 見上 |
 | HANDOFF-D | 符文圖標 v2：24 張重製 48×48 高精細 + 符文石石板底座；`CELL 48→52` + 顯式內容邊距 | 77 Godot 全綠 |
+| HANDOFF-E | 符文掉落接線（B6 `2-L12`/`2-V12`）：`rune_drop_chance` 進表 + `roll_rune_drop` 重寫 + 拾取解鎖/轉魔石 + 地面真圖標 + 提示條；修 `loot_preview` 出畫 bug | 77 Godot 全綠 / 189.9s |
 
 ---
 
@@ -107,9 +132,12 @@
 4. **自洽式偽校驗**（腳本用自己的硬編碼常量算自己的斷言 ⇒ 永遠通過）
 5. **String 字段靜默脫鉤**（`ai_id` 定義 6 種、代碼 0 分支、測試全綠）
 
-**三條判據**：① 看到「永遠通過」的校驗 ⇒ 查常量是**引用**還是**硬編碼副本**
+**五條判據**：① 看到「永遠通過」的校驗 ⇒ 查常量是**引用**還是**硬編碼副本**
 ② 看到 `String` 字段（`ai_id`/`pattern`/`kind`/`behavior`）⇒ 先 grep 代碼分支數，命中 ≤1 = 沒實現
 ③ 改「看起來是配置項」的字段前 ⇒ 先 grep 消費點；只有「埋點/展示/註釋」⇒ 改了不會有行為變化
+④ 看到「有註釋、有常量、有邏輯」的函式 ⇒ **先 grep 呼叫方數**；== 0 = 死代碼，
+**它的註釋與「已對齊策劃」的自我描述都不可信**（從未被執行過）；再看簽名型別能不能對上呼叫側
+⑤ 改完抓圖驗收 ⇒ **數一數圖裡真的出現幾個目標**，不能只看「腳本 err=0 + PNG 有產出」（工具本身也要驗）
 
 ---
 
