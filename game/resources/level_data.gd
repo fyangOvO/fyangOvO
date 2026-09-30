@@ -32,6 +32,14 @@ const OBJECTIVE_KEYS: Array[String] = ["clear_all", "kill_elite", "kill_boss", "
 ## 所属章节（1–3，对应美术规范 1.3 节三章主题色）
 @export var chapter: int = 1
 
+## 关卡模式："story"(默认章节) / "tower"(永恒之塔) / "abyss"(深渊副本)
+## B5-6（6-W6-07）：塔/深渊数据与章节关共用 LevelData，靠 mode 分流，
+## 避免 get_levels_in_chapter 把深渊房间混进章节列表。
+@export var mode: String = "story"
+
+## 模式专属附加数据（塔：layer/step/ticket_cost；深渊：dungeon_id/room/entry_cost）
+@export var mode_data: Dictionary = {}
+
 ## 关卡等级 L1–L20（= 该关掉落装备的 iLvl，GDD 0.3 节 3.6）
 @export var level: int = GameConstants.LEVEL_MIN
 

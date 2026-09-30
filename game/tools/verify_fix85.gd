@@ -81,7 +81,7 @@ func _run() -> void:
 			% [ConfigLoader.monsters.size(), ConfigLoader.skills.size()],
 		ConfigLoader.monsters.size() >= 16 and ConfigLoader.bosses.size() == 2
 		and ConfigLoader.skills.size() >= 36 and ConfigLoader.equipment_templates.size() == 68
-		and ConfigLoader.levels.size() == 20)
+		and ConfigLoader.get_levels_sorted().size() == 20)
 
 
 func _finish() -> void:

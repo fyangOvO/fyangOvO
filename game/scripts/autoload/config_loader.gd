@@ -503,6 +503,8 @@ func _load_level_dir(dir_path: String) -> void:
 			res.id = String(raw.get("id", ""))
 			res.display_name = String(raw.get("display_name", ""))
 			res.chapter = int(raw.get("chapter", 1))
+			res.mode = String(raw.get("mode", "story"))
+			res.mode_data = raw.get("mode_data", {}) if raw.get("mode_data", {}) is Dictionary else {}
 			res.level = int(raw.get("level", 1))
 			res.recommended_player_level = int(raw.get("recommended_player_level", 1))
 			res.objective_type = _to_objective_type(raw.get("objective_type", "clear_all"))
@@ -1123,21 +1125,35 @@ func get_all_affix_pool_ids() -> Array[String]:
 	return ids
 
 
-## 取全部关卡，按 level 升序
+## 取全部剧情关卡（story 模式），按 level 升序。
+## B5-6：塔/深渊关卡按 mode 独立存放，不进这条主线列表，
+## 否则会污染章节选关、关卡生成回归与难度曲线校验。
 func get_levels_sorted() -> Array[LevelData]:
 	var out: Array[LevelData] = []
 	for key in levels:
-		out.append(levels[key])
+		var lv: LevelData = levels[key]
+		if lv.mode == "story":
+			out.append(lv)
 	out.sort_custom(func(a: LevelData, b: LevelData) -> bool: return a.level < b.level)
 	return out
 
 
-## 取某章节的关卡
+## 取某章节的关卡（仅 story 模式；塔/深渊按 mode 查询）
 func get_levels_in_chapter(chapter: int) -> Array[LevelData]:
 	var out: Array[LevelData] = []
 	for lv in get_levels_sorted():
-		if lv.chapter == chapter:
+		if lv.chapter == chapter and lv.mode == "story":
 			out.append(lv)
+	return out
+
+
+## 按模式取关卡（tower / abyss / story）。B5-6。
+func get_levels_by_mode(mode: String) -> Array[LevelData]:
+	var out: Array[LevelData] = []
+	for lv in levels.values():
+		if lv.mode == mode:
+			out.append(lv)
+	out.sort_custom(func(a: LevelData, b: LevelData) -> bool: return a.id < b.id)
 	return out
 
 

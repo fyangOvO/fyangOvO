@@ -56,6 +56,12 @@ func generate_stock(count: int, level: int, rng: RandomNumberGenerator = null) -
 	var mats := ["dust", "essence"]
 	stock.append({"kind": "material", "label": "秘银尘 ×5（分解材料）",
 		"key": "dust", "amount": 5, "price": MATERIAL_PRICE})
+	# B5-6（6-W6-04）：商人卖门票（补 material 购买缺口 + 门票商品）。
+	# 门票是局外货币，这里写进 player.tickets，由 hub 存档回写统一落盘。
+	stock.append({"kind": "ticket", "label": "普通门票 ×1（进塔 1–15 层）",
+		"key": GameConstants.TICKET_NORMAL, "amount": 1, "price": 200.0})
+	stock.append({"kind": "ticket", "label": "高级钥匙 ×1（进塔 16–30 / 深渊 3）",
+		"key": GameConstants.TICKET_ADVANCED, "amount": 1, "price": 500.0})
 
 
 func _pick_template(level: int, rng: RandomNumberGenerator) -> EquipmentData:
@@ -111,6 +117,16 @@ func buy(index: int) -> Dictionary:
 		c[cid] = int(c.get(cid, 0)) + int(entry.get("amount", 1))
 		player["consumables"] = c
 		EventBus.consumables_changed.emit(c.duplicate(), "shop")
+	# B5-6（6-W6-04）：material kind 购买分支（此前缺，材料只扣款不入包）
+	if entry["kind"] == "material":
+		var m: Dictionary = player.get("materials", {}) if player.get("materials") is Dictionary else {}
+		m[str(entry.get("key", "dust"))] = int(m.get(entry.get("key", "dust"), 0)) + int(entry.get("amount", 1))
+		player["materials"] = m
+	# B5-6（6-W6-04）：ticket kind → 局外门票字典
+	if entry["kind"] == "ticket":
+		var t: Dictionary = player.get("tickets", {}) if player.get("tickets") is Dictionary else {}
+		t[str(entry.get("key", ""))] = int(t.get(entry.get("key", ""), 0)) + int(entry.get("amount", 1))
+		player["tickets"] = t
 	player["gold"] = float(player.get("gold", 0.0)) - price
 	EventBus.gold_changed.emit(player["gold"])
 	stock.remove_at(index)

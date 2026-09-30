@@ -1675,6 +1675,30 @@ func _persist(res: RunResult) -> void:
 			data.cleared_levels.append(level_id)
 		data.level_clear_times[level_id] = int(data.level_clear_times.get(level_id, 0)) + 1
 
+		# B5-6（6-W6-03）：塔层首通掉落门票挂点（挂 _persist）。
+		# 普通层奖 ticket_normal、BOSS 层额外奖 key_advanced（数量见 tower.json mode_data）。
+		if _level_def.mode == "tower":
+			var n_ticket: int = int(_level_def.mode_data.get("normal_ticket_reward", 0))
+			var n_key: int = int(_level_def.mode_data.get("advanced_key_reward", 0))
+			if n_ticket > 0:
+				data.tickets[GameConstants.TICKET_NORMAL] = \
+					int(data.tickets.get(GameConstants.TICKET_NORMAL, 0)) + n_ticket
+			if n_key > 0:
+				data.tickets[GameConstants.TICKET_ADVANCED] = \
+					int(data.tickets.get(GameConstants.TICKET_ADVANCED, 0)) + n_key
+			# 塔进度：最高到达层
+			var prog: Dictionary = data.tower_progress
+			var layer := int(_level_def.mode_data.get("layer", 1))
+			var best := int(prog.get("highest_unlocked", 1))
+			if layer >= best:
+				prog["highest_unlocked"] = layer + 1
+			prog["runs"] = int(prog.get("runs", 0)) + 1
+			var cleared: Array = prog.get("cleared_layers", [])
+			if layer not in cleared:
+				cleared.append(layer)
+				cleared.sort()
+			prog["cleared_layers"] = cleared
+
 	var ok := SaveManager.save_to_slot(data.slot, data)
 	if not ok:
 		push_warning("[Level] 结算落盘失败（槽 %d）" % data.slot)

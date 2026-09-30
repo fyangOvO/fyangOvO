@@ -70,7 +70,7 @@ func _spawn_enemy(mid: String, pos: Vector2) -> EnemyBase:
 
 func _test_tables() -> void:
 	print("--- A. 掉落表数据 ---")
-	_ok("掉落表 3 张（普通 / 精英 / BOSS）", ConfigLoader.loot_tables.size() == 3)
+	_ok("掉落表 5 张（普通/精英/BOSS + 深渊 normal/boss · B5-6）", ConfigLoader.loot_tables.size() == 5)
 	var normal: LootTable = ConfigLoader.loot_tables["monster_normal"]
 	var elite: LootTable = ConfigLoader.loot_tables["monster_elite"]
 	var boss: LootTable = ConfigLoader.loot_tables["monster_boss"]

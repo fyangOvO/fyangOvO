@@ -1,0 +1,506 @@
+[
+ {
+  "id": "abyss_verdant_r1",
+  "display_name": "幽林深渊 · 进房",
+  "chapter": 1,
+  "mode": "abyss",
+  "level": 5,
+  "recommended_player_level": 5,
+  "objective_type": "clear_all",
+  "objective_value": 0.0,
+  "monster_entries": [
+   {
+    "monster_id": "spider_cave",
+    "count_min": 20,
+    "count_max": 40,
+    "weight": 100.0,
+    "spawn_group": "ambient"
+   },
+   {
+    "monster_id": "skeleton_warrior",
+    "count_min": 3,
+    "count_max": 13,
+    "weight": 50.0,
+    "spawn_group": "pack"
+   }
+  ],
+  "total_monster_budget": 40,
+  "elite_spawn_enabled": true,
+  "elite_ratio": 0.06,
+  "elite_count": 2,
+  "reward_xp": 3000.0,
+  "reward_gold": [
+   120,
+   200
+  ],
+  "guaranteed_equipment_drops": 1,
+  "ambient_color": "#2A3A2E",
+  "unlock_requires": [],
+  "min_difficulty_tier": 1,
+  "loot_table_id": "abyss_normal",
+  "mode_data": {
+   "dungeon_id": "abyss_verdant",
+   "room": 1,
+   "entry_cost": {
+    "item": "ticket_normal",
+    "amount": 2
+   },
+   "exclusive_affix_ids": [
+    "abyss_verdant_01",
+    "abyss_verdant_02",
+    "abyss_verdant_03",
+    "abyss_verdant_04"
+   ]
+  }
+ },
+ {
+  "id": "abyss_verdant_r2",
+  "display_name": "幽林深渊 · 中房",
+  "chapter": 1,
+  "mode": "abyss",
+  "level": 5,
+  "recommended_player_level": 5,
+  "objective_type": "kill_elite",
+  "objective_value": 3.0,
+  "monster_entries": [
+   {
+    "monster_id": "spider_cave",
+    "count_min": 25,
+    "count_max": 50,
+    "weight": 100.0,
+    "spawn_group": "ambient"
+   },
+   {
+    "monster_id": "skeleton_warrior",
+    "count_min": 3,
+    "count_max": 16,
+    "weight": 50.0,
+    "spawn_group": "pack"
+   }
+  ],
+  "total_monster_budget": 50,
+  "elite_spawn_enabled": true,
+  "elite_ratio": 0.06,
+  "elite_count": 2,
+  "reward_xp": 4000.0,
+  "reward_gold": [
+   180,
+   300
+  ],
+  "guaranteed_equipment_drops": 1,
+  "ambient_color": "#2A3A2E",
+  "unlock_requires": [
+   "abyss_verdant_r1"
+  ],
+  "min_difficulty_tier": 1,
+  "loot_table_id": "abyss_normal",
+  "mode_data": {
+   "dungeon_id": "abyss_verdant",
+   "room": 2,
+   "entry_cost": {
+    "item": "ticket_normal",
+    "amount": 2
+   },
+   "exclusive_affix_ids": [
+    "abyss_verdant_01",
+    "abyss_verdant_02",
+    "abyss_verdant_03",
+    "abyss_verdant_04"
+   ]
+  }
+ },
+ {
+  "id": "abyss_verdant_r3",
+  "display_name": "幽林深渊 · BOSS房",
+  "chapter": 1,
+  "mode": "abyss",
+  "level": 5,
+  "recommended_player_level": 5,
+  "objective_type": "kill_boss",
+  "objective_value": 0.0,
+  "monster_entries": [
+   {
+    "monster_id": "boss_bone_tyrant",
+    "count_min": 1,
+    "count_max": 1,
+    "weight": 1.0,
+    "spawn_group": "guard",
+    "is_boss": true
+   },
+   {
+    "monster_id": "spider_cave",
+    "count_min": 6,
+    "count_max": 12,
+    "weight": 60.0,
+    "spawn_group": "ambient"
+   }
+  ],
+  "total_monster_budget": 60,
+  "elite_spawn_enabled": false,
+  "elite_ratio": 0.06,
+  "elite_count": 0,
+  "reward_xp": 6500.0,
+  "reward_gold": [
+   400,
+   640
+  ],
+  "guaranteed_equipment_drops": 2,
+  "ambient_color": "#2A3A2E",
+  "unlock_requires": [
+   "abyss_verdant_r2"
+  ],
+  "min_difficulty_tier": 1,
+  "loot_table_id": "abyss_boss",
+  "mode_data": {
+   "dungeon_id": "abyss_verdant",
+   "room": 3,
+   "entry_cost": {
+    "item": "ticket_normal",
+    "amount": 2
+   },
+   "exclusive_affix_ids": [
+    "abyss_verdant_01",
+    "abyss_verdant_02",
+    "abyss_verdant_03",
+    "abyss_verdant_04"
+   ]
+  },
+  "boss_id": "boss_bone_tyrant"
+ },
+ {
+  "id": "abyss_molten_r1",
+  "display_name": "熔岩深渊 · 进房",
+  "chapter": 2,
+  "mode": "abyss",
+  "level": 10,
+  "recommended_player_level": 10,
+  "objective_type": "clear_all",
+  "objective_value": 0.0,
+  "monster_entries": [
+   {
+    "monster_id": "golem_ember",
+    "count_min": 27,
+    "count_max": 54,
+    "weight": 100.0,
+    "spawn_group": "ambient"
+   },
+   {
+    "monster_id": "imp_hellfire",
+    "count_min": 3,
+    "count_max": 18,
+    "weight": 50.0,
+    "spawn_group": "pack"
+   }
+  ],
+  "total_monster_budget": 54,
+  "elite_spawn_enabled": true,
+  "elite_ratio": 0.06,
+  "elite_count": 2,
+  "reward_xp": 5600.0,
+  "reward_gold": [
+   220,
+   340
+  ],
+  "guaranteed_equipment_drops": 1,
+  "ambient_color": "#3A2418",
+  "unlock_requires": [],
+  "min_difficulty_tier": 2,
+  "loot_table_id": "abyss_normal",
+  "mode_data": {
+   "dungeon_id": "abyss_molten",
+   "room": 1,
+   "entry_cost": {
+    "item": "ticket_normal",
+    "amount": 3
+   },
+   "exclusive_affix_ids": [
+    "abyss_molten_01",
+    "abyss_molten_02",
+    "abyss_molten_03",
+    "abyss_molten_04"
+   ]
+  }
+ },
+ {
+  "id": "abyss_molten_r2",
+  "display_name": "熔岩深渊 · 中房",
+  "chapter": 2,
+  "mode": "abyss",
+  "level": 10,
+  "recommended_player_level": 10,
+  "objective_type": "survive",
+  "objective_value": 60.0,
+  "monster_entries": [
+   {
+    "monster_id": "golem_ember",
+    "count_min": 30,
+    "count_max": 60,
+    "weight": 100.0,
+    "spawn_group": "ambient"
+   },
+   {
+    "monster_id": "imp_hellfire",
+    "count_min": 3,
+    "count_max": 20,
+    "weight": 50.0,
+    "spawn_group": "pack"
+   }
+  ],
+  "total_monster_budget": 60,
+  "elite_spawn_enabled": true,
+  "elite_ratio": 0.06,
+  "elite_count": 2,
+  "reward_xp": 7000.0,
+  "reward_gold": [
+   300,
+   460
+  ],
+  "guaranteed_equipment_drops": 1,
+  "ambient_color": "#3A2418",
+  "unlock_requires": [
+   "abyss_molten_r1"
+  ],
+  "min_difficulty_tier": 2,
+  "loot_table_id": "abyss_normal",
+  "mode_data": {
+   "dungeon_id": "abyss_molten",
+   "room": 2,
+   "entry_cost": {
+    "item": "ticket_normal",
+    "amount": 3
+   },
+   "exclusive_affix_ids": [
+    "abyss_molten_01",
+    "abyss_molten_02",
+    "abyss_molten_03",
+    "abyss_molten_04"
+   ]
+  }
+ },
+ {
+  "id": "abyss_molten_r3",
+  "display_name": "熔岩深渊 · BOSS房",
+  "chapter": 2,
+  "mode": "abyss",
+  "level": 10,
+  "recommended_player_level": 10,
+  "objective_type": "kill_boss",
+  "objective_value": 0.0,
+  "monster_entries": [
+   {
+    "monster_id": "boss_ember_lord",
+    "count_min": 1,
+    "count_max": 1,
+    "weight": 1.0,
+    "spawn_group": "guard",
+    "is_boss": true
+   },
+   {
+    "monster_id": "golem_ember",
+    "count_min": 6,
+    "count_max": 12,
+    "weight": 60.0,
+    "spawn_group": "ambient"
+   }
+  ],
+  "total_monster_budget": 66,
+  "elite_spawn_enabled": false,
+  "elite_ratio": 0.06,
+  "elite_count": 0,
+  "reward_xp": 11000.0,
+  "reward_gold": [
+   640,
+   1000
+  ],
+  "guaranteed_equipment_drops": 2,
+  "ambient_color": "#3A2418",
+  "unlock_requires": [
+   "abyss_molten_r2"
+  ],
+  "min_difficulty_tier": 2,
+  "loot_table_id": "abyss_boss",
+  "mode_data": {
+   "dungeon_id": "abyss_molten",
+   "room": 3,
+   "entry_cost": {
+    "item": "ticket_normal",
+    "amount": 3
+   },
+   "exclusive_affix_ids": [
+    "abyss_molten_01",
+    "abyss_molten_02",
+    "abyss_molten_03",
+    "abyss_molten_04"
+   ]
+  },
+  "boss_id": "boss_ember_lord"
+ },
+ {
+  "id": "abyss_throne_r1",
+  "display_name": "王庭深渊 · 进房",
+  "chapter": 3,
+  "mode": "abyss",
+  "level": 16,
+  "recommended_player_level": 16,
+  "objective_type": "kill_elite",
+  "objective_value": 3.0,
+  "monster_entries": [
+   {
+    "monster_id": "frozen_husk",
+    "count_min": 31,
+    "count_max": 62,
+    "weight": 100.0,
+    "spawn_group": "ambient"
+   },
+   {
+    "monster_id": "void_priest",
+    "count_min": 3,
+    "count_max": 20,
+    "weight": 50.0,
+    "spawn_group": "pack"
+   }
+  ],
+  "total_monster_budget": 62,
+  "elite_spawn_enabled": true,
+  "elite_ratio": 0.06,
+  "elite_count": 2,
+  "reward_xp": 12000.0,
+  "reward_gold": [
+   480,
+   720
+  ],
+  "guaranteed_equipment_drops": 1,
+  "ambient_color": "#2A2436",
+  "unlock_requires": [],
+  "min_difficulty_tier": 3,
+  "loot_table_id": "abyss_normal",
+  "mode_data": {
+   "dungeon_id": "abyss_throne",
+   "room": 1,
+   "entry_cost": {
+    "item": "key_advanced",
+    "amount": 1
+   },
+   "exclusive_affix_ids": [
+    "abyss_throne_01",
+    "abyss_throne_02",
+    "abyss_throne_03",
+    "abyss_throne_04"
+   ]
+  }
+ },
+ {
+  "id": "abyss_throne_r2",
+  "display_name": "王庭深渊 · 中房",
+  "chapter": 3,
+  "mode": "abyss",
+  "level": 16,
+  "recommended_player_level": 16,
+  "objective_type": "clear_all",
+  "objective_value": 0.0,
+  "monster_entries": [
+   {
+    "monster_id": "frozen_husk",
+    "count_min": 34,
+    "count_max": 68,
+    "weight": 100.0,
+    "spawn_group": "ambient"
+   },
+   {
+    "monster_id": "void_priest",
+    "count_min": 3,
+    "count_max": 22,
+    "weight": 50.0,
+    "spawn_group": "pack"
+   }
+  ],
+  "total_monster_budget": 68,
+  "elite_spawn_enabled": true,
+  "elite_ratio": 0.06,
+  "elite_count": 2,
+  "reward_xp": 15000.0,
+  "reward_gold": [
+   620,
+   940
+  ],
+  "guaranteed_equipment_drops": 1,
+  "ambient_color": "#2A2436",
+  "unlock_requires": [
+   "abyss_throne_r1"
+  ],
+  "min_difficulty_tier": 3,
+  "loot_table_id": "abyss_normal",
+  "mode_data": {
+   "dungeon_id": "abyss_throne",
+   "room": 2,
+   "entry_cost": {
+    "item": "key_advanced",
+    "amount": 1
+   },
+   "exclusive_affix_ids": [
+    "abyss_throne_01",
+    "abyss_throne_02",
+    "abyss_throne_03",
+    "abyss_throne_04"
+   ]
+  }
+ },
+ {
+  "id": "abyss_throne_r3",
+  "display_name": "王庭深渊 · BOSS房",
+  "chapter": 3,
+  "mode": "abyss",
+  "level": 16,
+  "recommended_player_level": 16,
+  "objective_type": "kill_boss",
+  "objective_value": 0.0,
+  "monster_entries": [
+   {
+    "monster_id": "boss_bone_tyrant",
+    "count_min": 1,
+    "count_max": 1,
+    "weight": 1.0,
+    "spawn_group": "guard",
+    "is_boss": true
+   },
+   {
+    "monster_id": "frozen_husk",
+    "count_min": 6,
+    "count_max": 12,
+    "weight": 60.0,
+    "spawn_group": "ambient"
+   }
+  ],
+  "total_monster_budget": 76,
+  "elite_spawn_enabled": false,
+  "elite_ratio": 0.06,
+  "elite_count": 0,
+  "reward_xp": 22000.0,
+  "reward_gold": [
+   1100,
+   1700
+  ],
+  "guaranteed_equipment_drops": 3,
+  "ambient_color": "#2A2436",
+  "unlock_requires": [
+   "abyss_throne_r2"
+  ],
+  "min_difficulty_tier": 3,
+  "loot_table_id": "abyss_boss",
+  "mode_data": {
+   "dungeon_id": "abyss_throne",
+   "room": 3,
+   "entry_cost": {
+    "item": "key_advanced",
+    "amount": 1
+   },
+   "exclusive_affix_ids": [
+    "abyss_throne_01",
+    "abyss_throne_02",
+    "abyss_throne_03",
+    "abyss_throne_04"
+   ]
+  },
+  "boss_id": "boss_bone_tyrant"
+ }
+]

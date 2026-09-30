@@ -27,10 +27,12 @@ const PANEL_TALENT := "talent"
 const PANEL_FORGE := "forge"
 const PANEL_SKILLS := "skills"
 const PANEL_RUNE_CODEX := "rune_codex"
+const PANEL_TOWER := "tower"
+const PANEL_ABYSS := "abyss"
 
 const PANEL_IDS: Array[String] = [
 	PANEL_INVENTORY, PANEL_CHARACTER, PANEL_EQUIP, PANEL_TALENT, PANEL_FORGE, PANEL_SKILLS,
-	PANEL_RUNE_CODEX,
+	PANEL_RUNE_CODEX, PANEL_TOWER, PANEL_ABYSS,
 ]
 const PANEL_TITLES := {
 	PANEL_INVENTORY: "背包 / 仓库",
@@ -40,6 +42,8 @@ const PANEL_TITLES := {
 	PANEL_FORGE: "锻造台",
 	PANEL_SKILLS: "技能",
 	PANEL_RUNE_CODEX: "符文图鉴",
+	PANEL_TOWER: "永恒之塔",
+	PANEL_ABYSS: "深渊",
 }
 
 ## 背包 / 仓库网格（工程侧默认，见 Inventory 头注释）
@@ -311,6 +315,10 @@ func _ensure_panel(panel_id: String) -> bool:
 			panel = SkillPanel.new()
 		PANEL_RUNE_CODEX:
 			panel = RuneCodexPanel.new()
+		PANEL_TOWER:
+			panel = _build_mode_level_list("tower", "永恒之塔 · 选层")
+		PANEL_ABYSS:
+			panel = _build_mode_level_list("abyss", "深渊 · 选副本")
 	if panel == null:
 		return false
 
@@ -342,6 +350,57 @@ func _ensure_panel(panel_id: String) -> bool:
 
 	_bind_panel(panel_id, panel)
 	return true
+
+
+## 塔/深渊选层面板（B5-6 · 05/06）：纯代码 VBox，列出该 mode 下所有关卡，点击直接开。
+## 门票扣除在 level_scene._persist 结算挂点做（03 工单），这里只列入口。
+func _build_mode_level_list(mode: String, title: String) -> Control:
+	var sv := ScrollContainer.new()
+	sv.custom_minimum_size = Vector2(420, 480)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 6)
+	sv.add_child(vb)
+	var head := Label.new()
+	head.text = title
+	head.add_theme_font_size_override("font_size", 22)
+	vb.add_child(head)
+	var levels := ConfigLoader.get_levels_by_mode(mode)
+	for lv in levels:
+		var btn := Button.new()
+		var cost: Dictionary = lv.mode_data.get("ticket_cost", lv.mode_data.get("entry_cost", {}))
+		var cost_txt := ""
+		if not cost.is_empty():
+			cost_txt = "  [耗 %s×%d]" % [cost.get("item", "?"), int(cost.get("amount", 1))]
+		btn.text = "%s（Lv%d）%s" % [lv.display_name, lv.level, cost_txt]
+		var lid := lv.id
+		btn.pressed.connect(func() -> void:
+			_on_mode_level_picked(lid))
+		vb.add_child(btn)
+	if vb.get_child_count() <= 1:
+		var empty := Label.new()
+		empty.text = "（暂无关卡数据）"
+		vb.add_child(empty)
+	return sv
+
+
+## 塔/深渊选层入口：先扣门票（若持有不足则提示），再走统一选关。
+func _on_mode_level_picked(level_id: String) -> void:
+	var lv := ConfigLoader.get_level(level_id)
+	if lv == null:
+		_toast_msg("关卡不存在：%s" % level_id)
+		return
+	var data := SaveManager.current_data
+	var cost: Dictionary = lv.mode_data.get("ticket_cost", lv.mode_data.get("entry_cost", {}))
+	if not cost.is_empty() and data != null:
+		var item := String(cost.get("item", ""))
+		var amount := int(cost.get("amount", 1))
+		var have: int = int(data.tickets.get(item, 0))
+		if have < amount:
+			_toast_msg("门票不足：需要 %s×%d（持有 %d）" % [item, amount, have])
+			return
+		data.tickets[item] = have - amount
+	# 塔层默认从该层开始；深渊从房间 1 开始
+	_on_level_picked(level_id)
 
 
 ## 把数据灌进面板。所有面板都只读 + 回调注入，hub 是唯一的数据来源。

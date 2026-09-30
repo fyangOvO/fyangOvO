@@ -1,0 +1,34 @@
+[
+	{
+		"id": "abyss_normal",
+		"tier": "normal",
+		"drop_chance": 0.20,
+		"drop_count_range": [1, 2],
+		"rarity_weights": [70.00, 20.00, 6.50, 1.60, 0.50, 0.15, 1.00, 0.05, 0.20, 0.00],
+		"equipment_share": 0.70,
+		"gold_weight": 28.0,
+		"material_weight": 35.0,
+		"material_sub_weights": { "forge_stone": 60.0, "enchant_scroll": 25.0, "reroll_crystal": 15.0 },
+		"consumable_weight": 5.0,
+		"rune_drop_chance": 0.05,
+		"item_level_spread": { "min_mod": 0, "max_mod": 5, "mode_mod": 2, "bonus_chance": 0.10, "bonus_mod": 5 },
+		"pity_enabled": true,
+		"_note": "深渊房间 1-2 普通怪；第 9 位 special_tower=0（深渊不掉塔装）"
+	},
+	{
+		"id": "abyss_boss",
+		"tier": "boss",
+		"drop_chance": 1.0,
+		"drop_count_range": [2, 4],
+		"rarity_weights": [25.00, 30.00, 22.00, 12.00, 5.00, 1.50, 3.00, 0.20, 1.30, 0.00],
+		"equipment_share": 0.92,
+		"gold_weight": 20.0,
+		"material_weight": 60.0,
+		"material_sub_weights": { "forge_stone": 40.0, "enchant_scroll": 25.0, "reroll_crystal": 35.0 },
+		"consumable_weight": 8.0,
+		"rune_drop_chance": 0.30,
+		"item_level_spread": { "min_mod": 3, "max_mod": 8, "mode_mod": 5, "bonus_chance": 0.0, "bonus_mod": 0 },
+		"pity_enabled": false,
+		"_note": "深渊房间 3 BOSS；第 8 位 special_abyss=1.30 是深渊装主产出"
+	}
+]

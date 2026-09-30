@@ -295,8 +295,8 @@ func _run_self_check() -> void:
 		ConfigLoader.skills.size() >= 36)
 	_add_check("回归红线：装备 == 68 件（当前 %d；B5-2 补特殊底材 +6）" % ConfigLoader.equipment_templates.size(),
 		ConfigLoader.equipment_templates.size() == 68)
-	_add_check("回归红线：关卡 == 20 关（当前 %d）" % ConfigLoader.levels.size(),
-		ConfigLoader.levels.size() == 20)
+	_add_check("回归红线：剧情关卡 == 20 关（当前 %d；塔/深渊另算）" % ConfigLoader.get_levels_sorted().size(),
+		ConfigLoader.get_levels_sorted().size() == 20)
 	var fix_slot_ok := GameConstants.SAVE_MAX_SLOTS >= 8
 	_add_check("回归红线：存档槽位边界（SAVE_MAX_SLOTS=%d）" % GameConstants.SAVE_MAX_SLOTS, fix_slot_ok)
 
@@ -521,12 +521,12 @@ func _run_self_check() -> void:
 	var shop := RunShop.new()
 	shop.player = {"gold": 9999.0, "inventory": Inventory.create(8, 5)}
 	shop.generate_stock(4, 12, RandomNumberGenerator.new())
-	if shop.stock.size() != 5:
+	if shop.stock.size() != 7:
 		shop_ok = false
 	var kind_seen := {}
 	for entry in shop.stock:
 		kind_seen[entry["kind"]] = true
-	if not (kind_seen.has("equipment") and kind_seen.has("potion") and kind_seen.has("material")):
+	if not (kind_seen.has("equipment") and kind_seen.has("potion") and kind_seen.has("material") and kind_seen.has("ticket")):
 		shop_ok = false
 	var equip_idx := -1
 	for i in shop.stock.size():
@@ -791,7 +791,7 @@ func _run_self_check() -> void:
 
 	# 任务 2.7：掉落与拾取锚点
 	var loot_tables_ok := (
-		ConfigLoader.loot_tables.size() == ConfigLoader.LOOT_TABLE_BY_TIER.size()
+		ConfigLoader.loot_tables.size() >= ConfigLoader.LOOT_TABLE_BY_TIER.size()
 		and ConfigLoader.equipment_templates.size() >= 30)
 	for lt_id in ConfigLoader.LOOT_TABLE_BY_TIER.values():
 		var lt: LootTable = ConfigLoader.loot_tables.get(lt_id)
