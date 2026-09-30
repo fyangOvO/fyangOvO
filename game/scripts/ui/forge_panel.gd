@@ -9,9 +9,13 @@ extends PanelContainer
 ## 背包待锻造物品（EquipmentInstance 数组）
 var items: Array = []
 var materials: int = 0
-## 回调：on_forge(index) / on_reroll(index)
+## 回调：on_forge(index) / on_reroll(index) / on_special_reroll(index, locked)
 var on_forge: Callable = Callable()
 var on_reroll: Callable = Callable()
+var on_special_reroll: Callable = Callable()
+
+## Q6（6-W6-Q6）：每行锁定的词缀下标（按 items 下标分组，最多 4 条）
+var _locks: Dictionary = {}
 
 ## 职业 id（标题配色用；默认战士金）
 var _class_id: String = GameConstants.CLASS_DEFAULT
@@ -120,6 +124,16 @@ func refresh() -> void:
 			if on_reroll.is_valid():
 				on_reroll.call(i))
 		row.add_child(r_btn)
+		# Q6：特殊档（深渊/塔）才显示半重铸入口——洗非专属词缀，专属保护，锁≤4。
+		if SpecialRerollController.can_reroll(item):
+			var cost2 := SpecialRerollController.get_reroll_cost(item)
+			var mat_key: String = str(cost2.keys()[0]) if cost2.size() > 0 else ""
+			var s_btn := _make_row_btn("半重铸", "gold")
+			s_btn.tooltip_text = "消耗 %s×%d；只洗非专属词缀，专属保护，最多锁4条" % [mat_key, cost2.get(mat_key, 0)]
+			s_btn.pressed.connect(func() -> void:
+				if on_special_reroll.is_valid():
+					on_special_reroll.call(i, _locks.get(i, [])))
+			row.add_child(s_btn)
 
 
 ## 行内小按钮（与技能/装备面板同套金/暗按钮皮肤，步骤 5 统一视觉）
