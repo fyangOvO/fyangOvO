@@ -739,27 +739,27 @@ def group_e(data, ck, repo):
         hits = [i + 1 for i, ln in enumerate(txt.splitlines()) if re.search(pattern, ln)]
         ck.ok(not hits, "E4 %s 已无硬编码 8（%s；残留命中行 %s）" % (rel, desc, hits))
 
-    # E5: boss_phase_controller 现为 4 阶段
+    # E5: boss_phase_controller B5-5 已改 2 阶段（N 相数据驱动）
     bpc = read_text(p("game/scripts/enemies/boss_phase_controller.gd"))
     if bpc is None:
         ck.ok(False, "E5 无法读取 boss_phase_controller.gd")
     else:
-        ck.ok("0.75, 0.5, 0.25" in bpc,
-              "E5 DEFAULT_THRESHOLDS 现为 [0.75, 0.5, 0.25]（S11 目标 [0.6]）")
-        ck.ok("Ⅰ" in bpc and "Ⅳ" in bpc,
-              "E5 PHASE_NAMES 现含 Ⅳ（S11 目标仅 Ⅰ/Ⅱ）")
-        ck.ok("1, 4" in bpc or "1,4" in bpc,
-              "E5 current_phase clamp 现为 (1,4)（S11 目标 (1,2)）")
+        ck.ok("[0.6]" in bpc,
+              "E5 DEFAULT_THRESHOLDS 已改 [0.6]（S11 落地）")
+        ck.ok("phase_count" in bpc,
+              "E5 阶段数已由 thresholds 推导（N 相数据驱动，不再硬编码 4）")
+        ck.ok("1, 4" not in bpc and "1,4" not in bpc,
+              "E5 current_phase 不再硬编码 clamp (1,4)")
 
-    # E6: bosses.json 现为 4 阶段
+    # E6: bosses.json B5-5 已改 2 阶段
     bj = read_text(p("game/data/bosses/bosses.json"))
     if bj is None:
         ck.ok(False, "E6 无法读取 bosses.json")
     else:
-        ck.ok(bj.count('"phase_count": 4') == 2,
-              "E6 bosses.json 两 BOSS 均为 4 阶段（S11 目标 2）")
-        ck.ok("arena_change" not in bj,
-              "E6 bosses.json 尚无 arena_change 字段（S11 需新增）")
+        ck.ok(bj.count('"phase_count": 2') == 2,
+              "E6 bosses.json 两 BOSS 均为 2 阶段（S11 落地）")
+        ck.ok("arena_shrink" in bj,
+              "E6 bosses.json 已新增 arena_shrink 二阶段场地收缩配置")
 
     # E7: 门票 / 塔 / 深渊已在 scripts 内落地（B5-1 起；原「零命中」快照已重基线）
     # B5-1 落地点：game_constants.gd 的 TICKET_* 常量 + save_data.gd 的 tickets / tower_progress
@@ -773,12 +773,14 @@ def group_e(data, ck, repo):
                 hits += 1
     ck.ok(hits >= 1, "E7 scripts 内门票/塔/深渊已落地（实得 %d 个文件 ≥ 1）" % hits)
 
-    # E8: verify_boss63 的 4 阶段断言仍存在
+    # E8: verify_boss63 B5-5 已按 2 阶段重写
     vb = read_text(p("game/tools/verify_boss63.gd"))
     if vb is None:
         ck.ok(False, "E8 无法读取 verify_boss63.gd")
     else:
-        ck.ok("== 4" in vb, "E8 verify_boss63 仍含 == 4 阶段断言（工单必要）")
+        ck.ok(("阶段 4" not in vb) and ("_boss_phase == 4" not in vb)
+              and ("current_phase(0.1)" not in vb),
+              "E8 verify_boss63 已无 4 阶段断言（B5-5 重写为 2 阶段）")
 
     # E9: 底材 rarity_max 最大值仍为 7
     max_rmax = -1

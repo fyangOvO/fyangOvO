@@ -504,11 +504,12 @@ def group_repo(D):
         files = os.listdir(lv)
         ck(not any(("tower" in f or "abyss" in f) for f in files), "R14 尚無塔/深淵關卡文件")
 
-    # 二階段未落地：bosses.json 仍為 4 階段
+    # B5-5（2026-09-30）二阶段已落地：bosses.json 由 4 阶段改为 2 阶段（thresholds=[0.6]）
     bj = os.path.join(REPO, "game", "data", "bosses", "bosses.json")
     if os.path.isfile(bj):
         t = read_text(bj)
-        ck("0.75" in t, "R15 bosses.json 仍為 4 階段（thresholds 含 0.75，S11 未落地）")
+        ck("0.6" in t and "0.75" not in t,
+           "R15 bosses.json 已改 2 阶段（thresholds=[0.6]，不再含 0.75）")
 
     # 策劃側未動工程：git 目錄存在
     gd = os.path.join(REPO, ".git")
