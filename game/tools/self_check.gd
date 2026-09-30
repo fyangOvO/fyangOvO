@@ -112,12 +112,12 @@ func _run_self_check() -> void:
 	# 数值锚点回归（GDD 6.3 / 6.4 v1.5 定稿 = 仿真方案 D）
 	# 6.3 的怪物基础值与 6.4 的层级系数是**同一方案的配套、不可拆分使用**，
 	# 这组断言就是防止其中一半被单独改动后没人发现。
-	_add_check("怪物 L20 基准 HP ≈ 11635（GDD 6.3）",
+	_add_check("怪物 L20 基准 HP ≈ 867.3（路线A 1.12 重算）",
 		absf(GameConstants.MONSTER_HP_AT_L1
-			* pow(GameConstants.MONSTER_HP_GROWTH, 19.0) - 11635.0) < 5.0)
-	_add_check("怪物 L20 基准 DMG ≈ 237.83（GDD 6.3）",
+			* pow(GameConstants.MONSTER_HP_GROWTH, 19.0) - 867.3) < 5.0)
+	_add_check("怪物 L20 基准 DMG ≈ 48.32（路线A 1.12 重算）",
 		absf(GameConstants.MONSTER_DMG_AT_L1
-			* pow(GameConstants.MONSTER_DMG_GROWTH, 19.0) - 237.83) < 0.5)
+			* pow(GameConstants.MONSTER_DMG_GROWTH, 19.0) - 48.32) < 0.5)
 	_add_check("梦魇 V 系数 = ×1.36 HP / ×2.29 DMG（GDD 6.4）",
 		absf(GameConstants.difficulty_hp_multiplier(GameConstants.DifficultyTier.NM5) - 1.36) < 0.01
 		and absf(GameConstants.difficulty_dmg_multiplier(GameConstants.DifficultyTier.NM5) - 2.29) < 0.01)
