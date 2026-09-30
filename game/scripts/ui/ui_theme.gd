@@ -112,20 +112,32 @@ static func build() -> Theme:
 		GameConstants.UI_PANEL_BG, GameConstants.UI_PANEL_BORDER, 1, 0.95))
 
 	# ---- 4. 按钮三态 -------------------------------------------------------
-	# 金色雕花九宫格（`btn_gold.png`）：**唯一来源是 `UISkin.button_stylebox_gold()`**
-	# （走 UISkin 的三级解析：用户覆盖 → 随包内置 → 缺素材回 null）。
-	# ⚠️ 不要在这里另写一份路径/边距 —— 2026-09-30 复盘：此处曾写死
-	#    `load("res://assets/ui/btn_gold.png")`，既绕过了 UISkin 的用户覆盖契约，
-	#    九宫格边距也与 UISkin 不一致（两处副本）。
+	# **小尺寸**金按钮九宫格（`btn_gold_normal/hover/pressed_128x24.png`）：
+	# 唯一来源是 `UISkin.btn_styleboxes("gold")`（三级解析：用户覆盖 → 随包内置 → 缺素材回 {} ⇒ 走下面的 StyleBoxFlat 兜底）。
+	# ⚠️ 不要在这里另写一份路径/边距 —— 2026-09-30 HANDOFF-C 复盘：此处曾写死
+	#    `load("res://assets/ui/btn_gold.png")`，既绕过了 UISkin 的用户覆盖契约，边距也成了第二份副本。
+	# 🔴 2026-09-30 HANDOFF-E 第二輪复盘（**本处修的正是它**）：
+	#    当时改成 `UISkin.button_stylebox_gold()` —— 那是**雕花** `btn_gold.png`(432×92)，
+	#    `texture_margin_top/bottom = 14`；而该素材的上下金线实测在**源 y=10 与 y=82-86**
+	#    （y=10 有 227/280 像素是亮金）。默认按钮高度只有 ~24px（字体 12 + content_margin 6/6）
+	#    ⇒ 九宫格上下两带**塌进垂直中央、金线横穿文字**。控制变量实测（`tools/capture_gold_btn.gd`）：
+	#    **h=24/28/32 全破相，h=40 起干净，h=48 完全正常** ⇒ 全局控件承载的是**小**按钮，
+	#    必须用「本来就是为 24px 设计的」128×24 素材。**素材尺寸即用途契约。**
+	#    雕花 `btn_gold.png` 只给 ≥40px 的英雄按钮（主菜单 `BTN_SIZE = 256×48`）。
 	# ⚠️ 样式改了**必须重跑** `tools/gen_ui_theme.tscn` 让 theme.tres 落盘，
 	#    否则游戏挂的还是旧 theme.tres（本处改动静默失效）。
-	var _sb := UISkin.button_stylebox_gold()
-	if _sb != null:
-		t.set_stylebox(&"normal", "Button", _sb)
-		t.set_stylebox(&"hover", "Button", _sb)
-		t.set_stylebox(&"pressed", "Button", _sb)
-		t.set_stylebox(&"focus", "Button", _sb)
-		t.set_stylebox(&"disabled", "Button", _sb)
+	var _boxes := UISkin.btn_styleboxes("gold")
+	if not _boxes.is_empty():
+		var sb_n: StyleBox = _boxes.get("normal")
+		var sb_h: StyleBox = _boxes.get("hover", sb_n)
+		var sb_p: StyleBox = _boxes.get("pressed", sb_n)
+		t.set_stylebox(&"normal", "Button", sb_n)
+		t.set_stylebox(&"hover", "Button", sb_h)
+		t.set_stylebox(&"pressed", "Button", sb_p)
+		t.set_stylebox(&"focus", "Button", sb_h)
+		# 禁用态：同贴图 + `modulate_color` 压暗（`StyleBoxTexture` 没有 alpha 字段，
+		# 压 `modulate_color` 才是真生效的那条路 —— 别写成改了没用的假参数）。
+		t.set_stylebox(&"disabled", "Button", _dim(sb_n, GameConstants.UI_BTN_DISABLED_ALPHA))
 	else:
 		t.set_stylebox(&"normal", "Button", _flat(
 			GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_BORDER, 1))
@@ -194,4 +206,17 @@ static func _flat(bg: Color, border: Color, border_w: int = 1,
 	sb.corner_radius_bottom_right = 0
 	sb.shadow_color = shadow
 	sb.shadow_size = shadow_size
+	return sb
+
+
+## 由 `StyleBoxTexture` 派生「压暗」变体（禁用态用）：同贴图 + `modulate_color`。
+##
+## ⚠️ `StyleBoxTexture` **没有** `bg_color`/alpha 字段 —— 想调透明度只有 `modulate_color` 这一条路
+##    （写成别的参数 = 改了不生效的假参数）。非 `StyleBoxTexture`（StyleBoxFlat 兜底路径）原样返回。
+static func _dim(src: StyleBox, alpha: float) -> StyleBox:
+	if not (src is StyleBoxTexture):
+		return src
+	var sb := (src as StyleBoxTexture).duplicate() as StyleBoxTexture
+	var c := sb.modulate_color
+	sb.modulate_color = Color(c.r, c.g, c.b, alpha)
 	return sb

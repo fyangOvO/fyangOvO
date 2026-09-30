@@ -261,22 +261,54 @@ func _make_label(text: String, fs: int, color: Color) -> Label:
 
 ## 按鈕：套 `UISkin` 三態皮膚（`kind` ∈ {"gold", "dark"}）。素材缺失 → 不覆蓋，
 ## 沿用 `UITheme` 的程序化 StyleBoxFlat 三態（安全降級）。
+##
+## 🆕 2026-09-30 HANDOFF-E 第二輪：**主菜单是全局唯一的「英雄按钮」位**（`BTN_SIZE = 256×48`）——
+##    48px 高**足够**渲染雕花九宫格（`btn_gold.png` 432×92，装饰带深度 ~21px；
+##    实测 h≥40 才干净，见 `tools/capture_gold_btn.gd`）⇒ `kind == "gold"` 走雕花，
+##    其余（`dark` 次级按钮）仍用 128×24 平面金/暗素材。
+##    ⚠️ **别把雕花下放给小按钮**：全局 `Button` 五态用的是 128×24 版（`ui_theme.gd` §4），
+##       24px 上套 92px 雕花会「金线横穿文字」—— 那正是本批修掉的破相。
+## ⚠️ 雕花素材只有一态 ⇒ hover/pressed 用 `modulate_color` 压暗派生（否则点击无反馈）。
 func _make_btn(text: String, kind: String, cb: Callable) -> Button:
 	var btn := Button.new()
 	btn.text = text
 	btn.custom_minimum_size = BTN_SIZE
 	btn.add_theme_font_size_override("font_size", BTN_FONT_SIZE)
-	# 文字色（規範 §1.5）：金底壓深字 `0B0D10`、藍灰底用 `UI_TEXT_BRIGHT`
-	var text_col: Color = Color("0B0D10") if kind == "gold" else GameConstants.UI_TEXT_BRIGHT
+	var boxes: Dictionary = {}
+	var ornate: bool = false
+	if kind == "gold":
+		var orn := UISkin.button_stylebox_gold()
+		if orn != null:
+			ornate = true
+			boxes = {
+				"normal": orn,
+				"hover": _tint(orn, 0.92),
+				"pressed": _tint(orn, 0.78),
+				"focus": _tint(orn, 0.92),
+			}
+	if boxes.is_empty():
+		boxes = UISkin.btn_styleboxes(kind)
+	# 文字色（規範 §1.5）：**平面**金底（亮金板）壓深字 `0B0D10`；藍灰底用 `UI_TEXT_BRIGHT`。
+	# ⚠️ 雕花框（`btn_gold.png`）**中央是暗底** ⇒ 必须配亮字 ——
+	#    本批实测踩到：沿用 `0B0D10` 时「开始游戏」四个字**整颗隐形**（暗字压暗板）。
+	var text_col: Color = Color("0B0D10") if (kind == "gold" and not ornate) \
+		else GameConstants.UI_TEXT_BRIGHT
 	btn.add_theme_color_override("font_color", text_col)
 	btn.add_theme_color_override("font_hover_color", text_col)
 	btn.add_theme_color_override("font_pressed_color", text_col)
 	btn.add_theme_color_override("font_focus_color", text_col)
-	var boxes := UISkin.btn_styleboxes(kind)
 	for state in boxes:
 		btn.add_theme_stylebox_override(state, boxes[state])
 	btn.pressed.connect(cb)
 	return btn
+
+
+## 雕花九宫格的 hover/pressed 派生：同贴图 + `modulate_color` 明暗（素材只有一态）。
+func _tint(src: StyleBoxTexture, factor: float) -> StyleBoxTexture:
+	var sb := src.duplicate() as StyleBoxTexture
+	var c := sb.modulate_color
+	sb.modulate_color = Color(c.r * factor, c.g * factor, c.b * factor, c.a)
+	return sb
 
 
 func _spacer(h: float) -> Control:

@@ -29,7 +29,9 @@
 | 12 | 圖鑑進度文案**硬編碼**「精英 8% · BOSS 25%」漏了普通 2% ⇒ 改**從掉落表實時讀** | `scripts/ui/rune_codex_panel.gd` |
 | 13 | 校驗：`verify_skill_equip` 新增 F 段（5 項）、`verify_skill_ext` 新增文案斷言 | `tools/verify_skill_equip.gd`、`tools/verify_skill_ext.gd` |
 | 14 | 端到端抓圖工具修「**截到凍結畫面**」+ 加 e-7（技能面板未解鎖灰顯） | `tools/capture_rune_drop.gd/.tscn` |
-| 15 | 新增診斷工具 `capture_gold_btn`（金按鈕高度階梯）—— 見 §8 | `tools/capture_gold_btn.gd/.tscn` |
+| 15 | 新增診斷工具 `capture_gold_btn`（按鈕九宮格高度階梯） | `tools/capture_gold_btn.gd/.tscn` |
+| 16 | **修金按鈕 24px 破相**（目視 e-7 時發現的既有破相，用戶裁定「改用 128×24 平面金」）—— 見 §6 | `ui_theme.gd`、`main_menu_panel.gd` + 重跑 `gen_ui_theme` 落盤 `theme.tres` |
+| 17 | 全部受影響截圖**重拍**（舊圖拍的是舊 `theme.tres`，按新鐵律 53 一律作廢） | `c_review_shot/` 5 張 + `e-3…e-8` |
 
 ---
 
@@ -122,7 +124,7 @@
 
 ---
 
-## 6. ⚠️ 目视验收时发现的既有破相：金色按钮在 24px 下「金线横穿文字」（**未修，待裁定**）
+## 6. ⚠️ 目视验收时发现的既有破相：金色按钮在 24px 下「金线横穿文字」（**已修**）
 
 **怎么发现的**：本批目视 `e-7-技能面板-未解锁符文灰显.png` 时，符文选择器里 **26 颗按钮全部**
 「文字被一条金线划掉」。这不是本批改动引入的，但此前**没有任何一张截图看过金按钮的真实尺寸**。
@@ -137,7 +139,7 @@
   `UISkin.btn_styleboxes()` 覆写的裸 `Button` 全部中招。
 
 **证据**：`game/tools/capture_gold_btn.gd/.tscn` 把 24/28/32/40/48 五档并排渲染
-→ `deliverables/gstack/e_loot_shot/e-8-金色按鈕高度階梯診斷.png`。
+→ `deliverables/gstack/e_loot_shot/e-8-按鈕九宮格-高度階梯診斷.png`。
 **h=24/28/32 全破相；h=40 起才干净；h=48 完全正常。**
 
 **影响面**（`grep -c "Button.new()"` vs `btn_styleboxes`）：`scripts/` 下 **40 处** `Button.new()`，
@@ -150,13 +152,21 @@
 ⇒ **那 5 张截图拍的是旧 theme.tres**（当时按钮是平面金，看着很正常）。
 这正是铁律 ㊾「验收工具自己没被验收」的第二次复发。
 
-**候选修法**（待用户裁定，见交付说明）：
+### 6.1 修法（用户裁定「A · 改用 128×24 平面金」）
 
-| 案 | 做法 | 代价 |
-|---|---|---|
-| A | `ui_theme.gd` 的 Button 五态改用 `UISkin.btn_styleboxes("gold")`（现成的 `btn_gold_normal_128x24.png` 平面斜角金，本来就为 24px 高设计） | 全局按钮从「雕花」降级为「平面金」；雕花 `btn_gold.png` 需另行指定给 ≥40px 的英雄按钮，否则成死素材 |
-| B | 重做 `btn_gold.png` 为**薄边框版**（金线贴边 y≈3、饰纹深度 ≤8px），`texture_margin_top/bottom` 降到 8 | 保留雕花风；要重做素材 + 同步 `verify_ui_assets` 的尺寸/边距断言 |
-| C | 全局按钮最小高度拉到 40px | **不可行** —— 符文选择器 24 条 × 40px = 960px，列表放不下 |
+**一句话：素材尺寸即用途契约 —— 24px 的按钮就用为 24px 设计的素材。**
+
+| 落点 | 改动 |
+|---|---|
+| `scripts/ui/ui_theme.gd` §4 | Button 五态改走 `UISkin.btn_styleboxes("gold")`（`btn_gold_normal/hover/pressed_128x24.png`）；`focus` = hover；`disabled` = 同贴图 + **`modulate_color` 压暗**（`StyleBoxTexture` 没有 alpha 字段，新增 `_dim()` 帮手；写成别的参数 = 改了不生效的假参数） |
+| `scripts/ui/main_menu_panel.gd` | 全局唯一的「英雄按钮」位（`BTN_SIZE = 256×48`，**48px 足够**）⇒ `kind == "gold"` 走**雕花** `button_stylebox_gold()`，`hover/pressed` 用 `_tint()`（`modulate_color` 0.92/0.78）派生（素材只有一态，不派生就没有点击反馈） |
+| 同上 · **文字色** | ⚠️ 踩到第二个坑：雕花框**中央是暗底**，而金按钮原字色是深字 `0B0D10` ⇒ 「开始游戏」四个字**整颗隐形**。已改为「只有**平面**金底才压深字，雕花配 `UI_TEXT_BRIGHT`」 |
+| `game/tools/gen_ui_theme.tscn` | **必须重跑**落盘 `theme.tres`（否则游戏挂的还是旧主题，本处改动静默失效）；回读校验已通过 |
+| `deliverables/gstack/c_review_shot/*.png` | **全部重拍**（旧图拍于 16:08，是**旧 theme.tres** ⇒ 按铁律 53 一律作废；旧图已 `mv` 到 `.workbuddy-ai/trash/2026-09-30-舊診斷圖與過期截圖/`） |
+| `e-8-按鈕九宮格-高度階梯診斷.png` | 改为**两组对照**：A 全局 Button（128×24）@24/28/32/40/48 **全干净**；B 雕花 @24 **仍破相** / @48 完美 ⇒ 同时是「修好了」与「雕花不能下放」的双重证据 |
+
+**验收**：`verify_ui` / `verify_ui_assets` / `verify_ui71` / `verify_panel_unify` / `verify_hub` / `verify_skill*` 共 11 脚本全绿（26.6s）；
+全量回归见 §4。目视：`c-1-主菜單.png`（雕花「开始游戏」+ 暗色次级按钮的层级）、`e-7`（符文选择器文字全部可读）。
 
 ---
 
