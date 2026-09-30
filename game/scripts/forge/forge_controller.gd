@@ -84,6 +84,27 @@ static func try_reroll(item: EquipmentInstance, n: int, rng: RandomNumberGenerat
 		"cost": get_reroll_cost(n) }
 
 
+## 3-F1：玩家**可选**洗练——只重掷指定下标的一条词缀（不再写死全洗/第 1 条）。
+## 其余词缀不动；目标下标越界或该词缀不可洗返回 success=false。
+static func try_reroll_one(item: EquipmentInstance, affix_index: int,
+		n: int, rng: RandomNumberGenerator = null) -> Dictionary:
+	if item == null or affix_index < 0 or affix_index >= item.affixes.size():
+		return { "success": false, "rerolled": 0, "cost": get_reroll_cost(n), "reason": "bad_index" }
+	var roll: AffixRoll = item.affixes[affix_index]
+	var template: AffixData = roll.template
+	if template == null:
+		template = ConfigLoader.get_affix(roll.affix_id)
+		roll.template = template
+	if template == null or not template.can_reroll:
+		return { "success": false, "rerolled": 0, "cost": get_reroll_cost(n), "reason": "not_rerollable" }
+	var r := rng if rng != null else RandomNumberGenerator.new()
+	var quality := _roll_quality(r)
+	var base := template.roll_base_value(r)
+	roll.value = base * GameConstants.affix_ilvl_scale(item.item_level) * quality
+	roll.quality = quality
+	return { "success": true, "rerolled": 1, "skipped": 0, "cost": get_reroll_cost(n) }
+
+
 static func _roll_quality(rng: RandomNumberGenerator) -> float:
 	var total := 0.0
 	for w in AffixRoller.QUALITY_WEIGHTS:
