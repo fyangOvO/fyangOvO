@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dngpkrgp37opw"
+uid="uid://cjumisavet3qx"
 valid=false
 
 [deps]
 
-source_file="res://assets/ui/quest/title_emblem.png"
+source_file="res://assets/ui/npc/tailor_raw.png"
 
 [params]
 

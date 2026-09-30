@@ -30,6 +30,8 @@ func show_sets(equipped: Array[EquipmentInstance]) -> void:
 
 
 func _build_ui() -> void:
+	var psb := UISkin.panel_stylebox()
+	if psb != null: add_theme_stylebox_override("panel", psb)
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", 6)
 	add_child(_box)

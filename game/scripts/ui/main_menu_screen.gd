@@ -17,7 +17,7 @@ extends CanvasLayer
 const COVER_BIOME: String = "forest"
 ## 背景壓暗疊層：色取色板內 `0B0D10`（`UI_PANEL_BG`），alpha = 128/255（規範 §1.1）。
 const COVER_DIM_COLOR: Color = Color("0B0D10")
-const COVER_DIM_ALPHA: float = 128.0 / 255.0
+const COVER_DIM_ALPHA: float = 180.0 / 255.0
 ## backdrop 素材缺失時的回退底色（同為色板內近黑，規範 §8.15）。
 const COVER_FALLBACK_BG: Color = Color("0B0D10")
 ## ── 封面裝飾層（2026-09-22 首頁定稿）──────────────────────────────────────

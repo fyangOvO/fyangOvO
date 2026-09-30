@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dngpkrgp37opw"
-valid=false
+uid="uid://b57rod453s6tc"
+path="res://.godot/imported/smith_small.png-6835c19ba8f922b163520e59e80a2aef.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/ui/quest/title_emblem.png"
+source_file="res://assets/ui/npc/smith_small.png"
+dest_files=["res://.godot/imported/smith_small.png-6835c19ba8f922b163520e59e80a2aef.ctex"]
 
 [params]
 

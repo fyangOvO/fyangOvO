@@ -67,6 +67,9 @@ func bind(p_inventory: Inventory, p_stash: Inventory, p_equipped: Array = [],
 
 func _build_ui() -> void:
 	custom_minimum_size = Vector2(400, 315)
+	var psb := UISkin.panel_stylebox()
+	if psb != null:
+		add_theme_stylebox_override("panel", psb)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_right", 14)
@@ -127,6 +130,9 @@ func _make_tool_btn(text: String, cb: Callable) -> Button:
 	btn.text = text
 	btn.custom_minimum_size = Vector2(66, 28)
 	btn.add_theme_font_size_override("font_size", 11)
+	var bsb := UISkin.btn_styleboxes("dark")
+	for state in bsb:
+		btn.add_theme_stylebox_override(state, bsb[state])
 	btn.pressed.connect(cb)
 	return btn
 
@@ -173,16 +179,20 @@ func _render_strip() -> void:
 		_strip_buttons.append(btn)
 
 
-func _strip_box(item) -> StyleBoxFlat:
+func _strip_box(item) -> StyleBox:
+	if item == null:
+		var empty := UISkin.slot_stylebox("slot_normal")
+		if empty != null:
+			return empty
+	elif item.template != null:
+		var rar := UISkin.slot_stylebox_rarity(clampi(item.rarity, 0, GameConstants.RARITY_COUNT - 1))
+		if rar != null:
+			return rar
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color("14171C")
 	sb.set_corner_radius_all(0)
-	if item == null:
-		sb.border_color = Color("3A424F")
-		sb.set_border_width_all(1)
-		return sb
-	sb.border_color = GameConstants.RARITY_FRAME_COLORS[clampi(item.rarity, 0, GameConstants.RARITY_COUNT - 1)]
-	sb.set_border_width_all(2)
+	sb.border_color = Color("3A424F")
+	sb.set_border_width_all(1)
 	return sb
 
 
@@ -218,19 +228,20 @@ func _render_grid() -> void:
 		_cell_buttons.append(cell)
 
 
-func _cell_box(item, selected: bool) -> StyleBoxFlat:
+func _cell_box(item, selected: bool) -> StyleBox:
+	if item == null:
+		var empty := UISkin.slot_stylebox("slot_normal")
+		if empty != null:
+			return empty
+	if item != null:
+		var rar := UISkin.slot_stylebox_rarity(clampi(item.rarity, 0, GameConstants.RARITY_COUNT - 1))
+		if rar != null:
+			return rar
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color("1A1E24") if selected else Color("0F1114")
 	sb.set_corner_radius_all(0)
-	if item == null:
-		sb.border_color = Color("2A2F38")
-		sb.set_border_width_all(1)
-		return sb
-	var frame: Color = GameConstants.RARITY_FRAME_COLORS[clampi(item.rarity, 0, GameConstants.RARITY_COUNT - 1)]
-	if selected:
-		frame = frame.lightened(0.3)
-	sb.border_color = frame
-	sb.set_border_width_all(clampi(GameConstants.RARITY_FRAME_WIDTHS[clampi(item.rarity, 0, GameConstants.RARITY_COUNT - 1)] + 1, 1, 3))
+	sb.border_color = Color("2A2F38")
+	sb.set_border_width_all(1)
 	return sb
 
 

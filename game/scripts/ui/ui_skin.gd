@@ -111,6 +111,11 @@ const TEX: Dictionary = {
 	"portrait_warrior": "portraits/char_warrior.png",
 	"portrait_archer": "portraits/char_archer.png",
 	"portrait_mage": "portraits/char_mage.png",
+	# 據點 NPC 立繪（透明底，2048 原尺寸，場景縮放到 56×84）
+	"npc_smith": "npc/smith_small.png",
+	"npc_tailor": "npc/tailor_small.png",
+	"npc_gem": "npc/gem_small.png",
+	"npc_master": "npc/master_small.png",
 	# ── 2026-09-23 步骤 8A：消耗品药水图标（48×48 像素风，与技能图标同套）──
 	"potion_life": "potion_life_48.png",
 	"potion_mana": "potion_mana_48.png",

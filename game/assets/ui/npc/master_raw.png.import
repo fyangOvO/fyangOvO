@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dngpkrgp37opw"
+uid="uid://x4xytkfb3awj"
 valid=false
 
 [deps]
 
-source_file="res://assets/ui/quest/title_emblem.png"
+source_file="res://assets/ui/npc/master_raw.png"
 
 [params]
 

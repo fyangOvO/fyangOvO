@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dngpkrgp37opw"
-valid=false
+uid="uid://v575lu0h6lsy"
+path="res://.godot/imported/tailor_small.png-713dec3301260b2751b9a19e05bb59c6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/ui/quest/title_emblem.png"
+source_file="res://assets/ui/npc/tailor_small.png"
+dest_files=["res://.godot/imported/tailor_small.png-713dec3301260b2751b9a19e05bb59c6.ctex"]
 
 [params]
 

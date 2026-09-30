@@ -61,19 +61,18 @@ static func build() -> Theme:
 	var t := Theme.new()
 
 	# ---- 1. 字体 ---------------------------------------------------------
-	var body_font: Font = _load_font(GameConstants.UI_FONT_CUBIC11_PATH)
+	var body_font: Font = _load_font(GameConstants.UI_FONT_CHILL_PATH)
 	var title_font: Font = _load_font(GameConstants.UI_FONT_CHILL_PATH)
 
-	t.default_font_size = GameConstants.UI_FONT_SIZES[0] # 11px 正文
+	t.default_font_size = 12
 	if body_font != null:
 		t.default_font = body_font
 	else:
-		push_warning("[UITheme] Cubic-11 未加载，正文回退默认字体（%s）"
-			% GameConstants.UI_FONT_CUBIC11_PATH)
+		push_warning("[UITheme] 字体未加载，正文回退默认字体")
 
 	if title_font != null:
 		t.set_font(&"font", TYPE_TITLE, title_font)
-		t.set_font_size(&"font_size", TYPE_TITLE, 16) # ChillBitmap 16px 标题
+		t.set_font_size(&"font_size", TYPE_TITLE, 18)
 	else:
 		push_warning("[UITheme] ChillBitmap-16px 未加载，标题回退默认字体（%s）"
 			% GameConstants.UI_FONT_CHILL_PATH)

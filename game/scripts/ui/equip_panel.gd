@@ -58,6 +58,8 @@ func bind(p_equipped: Array, p_class_id = GameConstants.CLASS_DEFAULT,
 
 func _build_ui() -> void:
 	custom_minimum_size = Vector2(400, 300)
+	var psb := UISkin.panel_stylebox()
+	if psb != null: add_theme_stylebox_override("panel", psb)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_right", 14)

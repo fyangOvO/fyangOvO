@@ -1,17 +1,16 @@
 ; Engine configuration file.
-; 「七傳說」—— 暗黑类刷宝 ARPG（纯单机 / 2D 俯视 / 像素风）
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
 ;
-; 本文件为 Godot 4.x 项目配置。手写维护，请在 Godot 编辑器中改动后核对本文件差异。
-;
-; 关键规格（对应 GDD 阶段 0）：
-;   - 视口 1920×1080，窗口化，拉伸模式 canvas_items（像素完美 + UI 自适应）
-;   - 默认纹理过滤 Nearest（像素风铁律，禁止线性插值糊化精灵）
-;   - 渲染器 GL Compatibility（2D 场景性能与硬件兼容性最佳）
-;
-; 注意：本文件中的 Input Map 使用 physical_keycode，
-;       保证 WASD 在任意键盘布局下都落在相同的物理位置。
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
@@ -19,10 +18,10 @@ config/name="七傳說"
 config/description="纯单机 2D 俯视刷宝 ARPG。局内三选一成长 + 局外装备锻造双线养成。"
 config/version="0.1.0"
 run/main_scene="res://scenes/main/main.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
-config/icon="res://icon.svg"
-boot_splash/show_image=false
+config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.043, 0.051, 0.063, 1)
+boot_splash/show_image=false
+config/icon="res://icon.svg"
 
 [autoload]
 
@@ -45,9 +44,7 @@ window/size/viewport_width=640
 window/size/viewport_height=360
 window/size/window_width_override=640
 window/size/window_height_override=360
-window/size/resizable=true
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 window/stretch/scale_mode="integer"
 
 [file_customization]
@@ -59,6 +56,10 @@ folder_colors={
 "res://scenes/": "blue",
 "res://scripts/": "red"
 }
+
+[gui]
+
+theme/custom="res://scenes/ui/theme/theme.tres"
 
 [input]
 
@@ -178,19 +179,13 @@ pause={
 
 [physics]
 
-common/physics_ticks_per_second=60
 2d/default_gravity=0.0
-
-[gui]
-
-theme/custom="res://scenes/ui/theme/theme.tres"
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0.043, 0.051, 0.063, 1)
 2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true
-environment/defaults/default_clear_color=Color(0.043, 0.051, 0.063, 1)
-anti_aliasing/quality/msaa_2d=0

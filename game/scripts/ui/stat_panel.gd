@@ -110,6 +110,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	custom_minimum_size = Vector2(400, 0)
+	var psb := UISkin.panel_stylebox()
+	if psb != null: add_theme_stylebox_override("panel", psb)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_right", 14)

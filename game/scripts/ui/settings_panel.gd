@@ -94,6 +94,49 @@ func _build_ui() -> void:
 		DisplayServer.window_set_mode(
 			DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)))
 
+	# 顯示模式：窗口 / 無邊框全屏 / 獨占全屏
+	var mode_l := Label.new()
+	mode_l.text = "顯示模式"
+	mode_l.add_theme_font_size_override("font_size", 12)
+	root.add_child(mode_l)
+	var mode_opt := OptionButton.new()
+	mode_opt.add_item("窗口")
+	mode_opt.add_item("無邊框全屏")
+	mode_opt.add_item("獨占全屏")
+	var saved_mode := int(SettingsStore.get_value("display_mode")) if SettingsStore.get_value("display_mode") != null else 0
+	mode_opt.selected = saved_mode
+	mode_opt.item_selected.connect(func(idx: int) -> void:
+		SettingsStore.set_value("display_mode", idx)
+		if idx == 0:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		elif idx == 1:
+			DisplayServer.window_set_mode(3)  # WINDOW_MODE_BORDERLESS
+		else:
+			DisplayServer.window_set_mode(2)  # WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	)
+	root.add_child(mode_opt)
+
+	# 解析度清單
+	var res_l := Label.new()
+	res_l.text = "解析度"
+	res_l.add_theme_font_size_override("font_size", 12)
+	root.add_child(res_l)
+	var res_opt := OptionButton.new()
+	var RES: Array = [[1280,720],[1600,900],[1920,1080],[2560,1440],[3840,2160]]
+	for r in RES:
+		res_opt.add_item("%d × %d" % [r[0], r[1]])
+	var saved_res: String = str(SettingsStore.get_value("resolution"))
+	var ridx := 2
+	for i in range(RES.size()):
+		if "%d,%d" % [RES[i][0], RES[i][1]] == saved_res:
+			ridx = i
+	res_opt.selected = ridx
+	res_opt.item_selected.connect(func(idx: int) -> void:
+		SettingsStore.set_value("resolution", "%d,%d" % [RES[idx][0], RES[idx][1]])
+		DisplayServer.window_set_size(Vector2i(RES[idx][0], RES[idx][1]))
+	)
+	root.add_child(res_opt)
+
 	# —— 音量 ——
 	root.add_child(_section_label("音量"))
 	var vol := HBoxContainer.new()

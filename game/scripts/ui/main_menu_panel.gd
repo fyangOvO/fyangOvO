@@ -17,7 +17,7 @@ const CONTENT_MIN_SIZE: Vector2 = Vector2(320, 224)
 const PANEL_CONTENT_MARGIN: int = 12
 ## 標題區（2026-09-22 定稿）：金色龍紋徽章底板 `title_emblem`（336×112，3:1），
 ## 副標題已烘焙進徽章底板。舊 `quest_banner_256x48` 2×（512×96）整版退役。
-const BANNER_SIZE: Vector2 = Vector2(336, 112)
+const BANNER_SIZE: Vector2 = Vector2(336, 80)
 ## 燙金像素標題 `title_text`（240×64）在徽章內部的落點（銘牌區域內，規範 §7.1）。
 const TITLE_TEXT_RECT: Rect2 = Rect2(48, 12, 240, 64)
 ## 字號只用像素鐵律白名單 {11, 12, 16, 22, 32}（`GameConstants.UI_FONT_SIZES`，規範 §7.7）。
@@ -208,28 +208,20 @@ func _make_title_banner() -> Control:
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		box.add_child(tr)
-	if title_tex != null:
-		var tt := TextureRect.new()
-		tt.name = "TitleText"
-		tt.texture = title_tex
-		tt.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tt.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tt.stretch_mode = TextureRect.STRETCH_SCALE
-		tt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tt.position = TITLE_TEXT_RECT.position
-		tt.size = TITLE_TEXT_RECT.size
-		box.add_child(tt)
-
-	if emblem_tex == null and title_tex == null:
-		var title := Label.new()
-		title.text = "七傳說"
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		title.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
-		title.add_theme_color_override("font_color", TITLE_COLOR)
-		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		box.add_child(title)
+	# 一律用 Label 渲染「七傳說」：清晰、可放大、不依賴貼圖。
+	var title := Label.new()
+	title.name = "TitleText"
+	title.text = "七傳說"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 44)
+	title.add_theme_color_override("font_color", Color("F2C14E"))
+	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	title.add_theme_constant_override("shadow_offset_x", 2)
+	title.add_theme_constant_override("shadow_offset_y", 2)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.add_child(title)
 	return box
 
 
@@ -305,5 +297,4 @@ func _refresh_account() -> void:
 		mats = int(acc.get("materials", 0))
 		bonus = float(acc.get("chapter_bonus", 0.0))
 	if _account_label != null:
-		_account_label.text = "账号 Lv.%d · 金币 %d · 魔石 %d · 章节声望加成 +%d%%" % [
-			lv, gold, mats, int(bonus * 100.0)]
+		_account_label.text = "Lv.%d　金幣 %d" % [lv, gold]

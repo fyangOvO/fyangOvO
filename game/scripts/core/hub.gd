@@ -797,69 +797,226 @@ func _close_all_panels() -> void:
 # UI 构建
 # =============================================================================
 
+## 據點環形站位（相對畫布中心的極座標：角度 deg / 半徑 px）
+## NPC 環站位：角度 / 半徑 / 對話台詞
+const NPC_RING := [
+	{"pid": PANEL_CHARACTER, "name": "主角", "sprite": "portrait_warrior", "line": "準備好了？先看看自己的數值吧。", "ang": 90.0, "r": 70.0},
+	{"pid": PANEL_FORGE, "name": "鐵匠", "sprite": "npc_smith", "line": "裝備想強化？找我準沒錯。", "ang": 150.0, "r": 155.0},
+	{"pid": PANEL_SKILLS, "name": "技能導師", "sprite": "npc_master", "line": "技能怎麼帶？我幫你調。", "ang": 210.0, "r": 165.0},
+	{"pid": PANEL_TOWER, "name": "守塔人", "sprite": "portrait_archer", "line": "塔層越高，獎勵越豐。", "ang": 270.0, "r": 155.0},
+	{"pid": PANEL_ABYSS, "name": "深淵使者", "sprite": "npc_gem", "line": "深淵之下……你確定要去？", "ang": 330.0, "r": 165.0},
+	{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "sprite": "npc_gem", "line": "看看這些閃亮的寶石。", "ang": 30.0, "r": 155.0},
+	{"pid": PANEL_TALENT, "name": "裁縫", "sprite": "npc_tailor", "line": "要不要縫件新衣服？", "ang": 60.0, "r": 120.0},
+	{"pid": PANEL_INVENTORY, "name": "行囊", "sprite": "portrait_warrior", "line": "看看你撿了些什麼寶貝。", "ang": 120.0, "r": 120.0},
+]
+const NPC_RESERVED := 3  # 預留擴展位
+
 func _build_ui() -> void:
 	var bg := ColorRect.new()
 	bg.color = Color(0.03, 0.03, 0.05, 1.0)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui_layer.add_child(bg)
+	var camp := TextureRect.new()
+	var ctex := load("res://assets/ui/camp_scene.png") as Texture2D
+	if ctex != null:
+		camp.texture = ctex
+		camp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		camp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		camp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		camp.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_ui_layer.add_child(camp)
 
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_bottom", 22)
-	_ui_layer.add_child(margin)
-
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
-	margin.add_child(root)
-
-	var title := Label.new()
-	title.text = "据点 · 七傳說"
-	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", Color(0.95, 0.8, 0.35))
-	root.add_child(title)
-
+	# 頂部狀態條
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 12)
+	top.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	top.offset_left = 16
+	top.offset_top = 10
+	_ui_layer.add_child(top)
 	_status = Label.new()
-	_status.add_theme_font_size_override("font_size", 13)
-	_status.add_theme_color_override("font_color", GameConstants.PALETTE_NEUTRAL[9])
-	root.add_child(_status)
-
-	# 面板按钮条
-	var bar := HBoxContainer.new()
-	bar.add_theme_constant_override("separation", 5)
-	root.add_child(bar)
-	for pid in PANEL_IDS:
-		var btn := Button.new()
-		btn.text = String(PANEL_TITLES[pid])
-		btn.custom_minimum_size = Vector2(80, 34)
-		btn.add_theme_font_size_override("font_size", 13)
-		btn.pressed.connect(_toggle_panel.bind(pid))
-		AudioManager.hook_click(btn)
-		bar.add_child(btn)
+	_status.add_theme_font_size_override("font_size", 12)
+	_status.add_theme_color_override("font_color", Color("DCE2E8"))
+	top.add_child(_status)
 	var back := Button.new()
-	back.text = "回主菜单"
-	back.custom_minimum_size = Vector2(100, 34)
-	back.add_theme_font_size_override("font_size", 13)
+	back.text = "回主菜單"
+	back.custom_minimum_size = Vector2(90, 28)
+	back.add_theme_font_size_override("font_size", 11)
 	back.pressed.connect(_on_back_to_menu)
-	AudioManager.hook_click(back)
-	bar.add_child(back)
+	top.add_child(back)
 
-	# 关卡列表（可滚动）
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(scroll)
-	_level_list = VBoxContainer.new()
-	_level_list.add_theme_constant_override("separation", 4)
-	_level_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_level_list)
+	# 營地整圖已是完整場景，直接在人物位置放隱形熱區（座標對 1920×1080 圖縮放到 640×360）
+	var HOTSPOTS := [
+		{"pid": PANEL_FORGE, "name": "鐵匠", "pos": Vector2(115, 195), "line": "裝備想強化？找我準沒錯。"},
+		{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "pos": Vector2(160, 115), "line": "看看這些閃亮的寶石。"},
+		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "準備好了？先看看自己的數值吧。"},
+		{"pid": PANEL_INVENTORY, "name": "裁縫", "pos": Vector2(435, 200), "line": "要不要縫件新衣服？"},
+		{"pid": PANEL_TALENT, "name": "導師", "pos": Vector2(480, 105), "line": "天賦點數別亂花。"},
+		{"pid": PANEL_SKILLS, "name": "技能師", "pos": Vector2(220, 230), "line": "技能怎麼帶？我幫你調。"},
+		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔層越高，獎勵越豐。"},
+		{"pid": PANEL_ABYSS, "name": "深淵使者", "pos": Vector2(540, 230), "line": "深淵之下……你確定要去？"},
+	]
+	for h in HOTSPOTS:
+		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"])
 
+	# 底部：出關按鈕 + toast
+	var bottom := VBoxContainer.new()
+	bottom.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	bottom.offset_left = -160
+	bottom.offset_right = 160
+	bottom.offset_bottom = -10
+	_ui_layer.add_child(bottom)
+	var start_btn := Button.new()
+	start_btn.text = "▶ 出擊 · 選擇關卡"
+	start_btn.custom_minimum_size = Vector2(320, 36)
+	start_btn.add_theme_font_size_override("font_size", 14)
+	start_btn.pressed.connect(_toggle_level_list)
+	bottom.add_child(start_btn)
 	_toast = Label.new()
 	_toast.add_theme_font_size_override("font_size", 12)
-	_toast.add_theme_color_override("font_color", GameConstants.PALETTE_ACCENT[4])
-	root.add_child(_toast)
+	_toast.add_theme_color_override("font_color", Color("F2C14E"))
+	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bottom.add_child(_toast)
+
+	# 關卡列表面板（預設隱藏，點出擊彈出）
+	_level_list = VBoxContainer.new()
+	_level_list.add_theme_constant_override("separation", 4)
+
+
+var _dialogue_bubble: PanelContainer = null
+var _dialogue_label: Label = null
+
+
+func _add_hotspot(pos: Vector2, pid: String, name: String, line: String) -> void:
+	var area := Button.new()
+	area.custom_minimum_size = Vector2(60, 100)
+	area.position = pos - Vector2(30, 80)
+	area.focus_mode = Control.FOCUS_NONE
+	area.modulate = Color(1, 1, 1, 0.01)
+	area.flat = true
+	area.pressed.connect(func() -> void:
+		_speak(line)
+		EventBus.request_panel_toggle.emit(pid, not is_panel_visible(pid)))
+	_ui_layer.add_child(area)
+	var lab := Label.new()
+	lab.text = name
+	lab.add_theme_font_size_override("font_size", 12)
+	lab.add_theme_color_override("font_color", Color("F2C14E"))
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lab.position = pos + Vector2(-25, 22)
+	lab.size = Vector2(50, 16)
+	_ui_layer.add_child(lab)
+	# 呼吸浮動
+	if DisplayServer.get_name() != "headless":
+		var t := create_tween()
+		t.set_loops()
+		t.tween_interval(randf() * 0.6)
+		t.tween_property(lab, "position:y", lab.position.y - 2, 1.4) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		t.tween_property(lab, "position:y", lab.position.y, 1.4) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _add_npc(pos: Vector2, pid: String, name: String, sprite_key: String, line: String) -> void:
+	var sprite := TextureRect.new()
+	var tex := UISkin.texture(sprite_key)
+	if tex != null:
+		sprite.texture = tex
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	sprite.custom_minimum_size = Vector2(40, 56)
+	sprite.size = Vector2(40, 56)
+	sprite.position = pos - Vector2(20, 56)
+	sprite.mouse_filter = Control.MOUSE_FILTER_STOP
+	sprite.pivot_offset = Vector2(24, 64)
+	# 待機呼吸浮動（錯開相位）
+	if DisplayServer.get_name() != "headless":
+		var tt := create_tween()
+		tt.set_loops()
+		tt.tween_interval(randf() * 0.8)
+		tt.tween_property(sprite, "position:y", sprite.position.y - 3.0, 1.6) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tt.tween_property(sprite, "position:y", sprite.position.y, 1.6) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	sprite.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			_speak(line)
+			EventBus.request_panel_toggle.emit(pid, not is_panel_visible(pid)))
+	_ui_layer.add_child(sprite)
+	# 呼吸浮動（錯開相位）
+	if DisplayServer.get_name() != "headless":
+		var t := create_tween()
+		t.set_loops()
+		t.tween_interval(randf() * 0.8)
+		t.tween_property(sprite, "position:y", pos.y - 64 - 2, 1.6) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		t.tween_property(sprite, "position:y", pos.y - 64, 1.6) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var lab := Label.new()
+	lab.text = name
+	lab.add_theme_font_size_override("font_size", 12)
+	lab.add_theme_color_override("font_color", Color("F2C14E"))
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lab.position = pos - Vector2(24, 0)
+	lab.size = Vector2(48, 16)
+	_ui_layer.add_child(lab)
+
+
+func _speak(text: String) -> void:
+	if _dialogue_bubble == null:
+		_dialogue_bubble = PanelContainer.new()
+		var m := MarginContainer.new()
+		m.add_theme_constant_override("margin_left", 10)
+		m.add_theme_constant_override("margin_right", 10)
+		m.add_theme_constant_override("margin_top", 6)
+		m.add_theme_constant_override("margin_bottom", 6)
+		_dialogue_label = Label.new()
+		_dialogue_label.add_theme_font_size_override("font_size", 13)
+		_dialogue_label.add_theme_color_override("font_color", Color("F5E6C8"))
+		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_dialogue_label.custom_minimum_size = Vector2(300, 0)
+		m.add_child(_dialogue_label)
+		_dialogue_bubble.add_child(m)
+		_ui_layer.add_child(_dialogue_bubble)
+		_dialogue_bubble.position = Vector2(170, 20)
+		_dialogue_bubble.z_index = 50
+	_dialogue_label.text = text
+	_dialogue_bubble.visible = true
+	if DisplayServer.get_name() != "headless":
+		var t := create_tween()
+		t.tween_interval(2.5)
+		t.tween_property(_dialogue_bubble, "visible", false, 0.1)
+
+
+func _add_reserved_npc(pos: Vector2) -> void:
+	var ph := Button.new()
+	ph.custom_minimum_size = Vector2(44, 44)
+	ph.focus_mode = Control.FOCUS_NONE
+	ph.text = "？"
+	ph.add_theme_font_size_override("font_size", 18)
+	ph.modulate = Color(1, 1, 1, 0.35)
+	ph.disabled = true
+	ph.position = pos - Vector2(22, 22)
+	_ui_layer.add_child(ph)
+
+
+func _toggle_level_list() -> void:
+	if _level_list.get_parent() == null:
+		var holder := PanelContainer.new()
+		holder.set_anchors_preset(Control.PRESET_CENTER)
+		var sc := ScrollContainer.new()
+		sc.custom_minimum_size = Vector2(360, 280)
+		sc.add_child(_level_list)
+		holder.add_child(sc)
+		var psb := UISkin.panel_stylebox()
+		if psb != null: holder.add_theme_stylebox_override("panel", psb)
+		_ui_layer.add_child(holder)
+		_level_list.set_meta("holder", holder)
+	else:
+		var h: Control = _level_list.get_meta("holder")
+		h.visible = not h.visible
 
 
 func _on_back_to_menu() -> void:
