@@ -109,6 +109,10 @@ const TEX: Dictionary = {
 	"torch": "torch.png",
 	# 三職業立繪（188×250 透明底；首頁展示戰士，弓/法為步驟 2 角色選擇備用）
 	"panel_gold": "panel_gold.png",
+	"npc_abyss_small": "npc/abyss_small.png",
+	"npc_guard_small": "npc/guard_small.png",
+	"npc_merchant_small": "npc/merchant_small.png",
+	"npc_quest_small": "npc/quest_small.png",
 	"portrait_warrior": "portraits/char_warrior.png",
 	"portrait_archer": "portraits/char_archer.png",
 	"portrait_mage": "portraits/char_mage.png",

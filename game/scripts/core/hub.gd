@@ -852,17 +852,17 @@ func _build_ui() -> void:
 
 	# 營地整圖已是完整場景，直接在人物位置放隱形熱區（座標對 1920×1080 圖縮放到 640×360）
 	var HOTSPOTS := [
-		{"pid": PANEL_FORGE, "name": "鐵匠", "pos": Vector2(115, 195), "line": "裝備想強化？找我準沒錯。"},
-		{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "pos": Vector2(160, 115), "line": "看看這些閃亮的寶石。"},
-		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "準備好了？先看看自己的數值吧。"},
-		{"pid": PANEL_INVENTORY, "name": "裁縫", "pos": Vector2(435, 200), "line": "要不要縫件新衣服？"},
-		{"pid": PANEL_TALENT, "name": "導師", "pos": Vector2(480, 105), "line": "天賦點數別亂花。"},
-		{"pid": PANEL_SKILLS, "name": "技能師", "pos": Vector2(220, 230), "line": "技能怎麼帶？我幫你調。"},
-		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔層越高，獎勵越豐。"},
-		{"pid": PANEL_ABYSS, "name": "深淵使者", "pos": Vector2(540, 230), "line": "深淵之下……你確定要去？"},
+		{"pid": PANEL_FORGE, "name": "鐵匠", "pos": Vector2(115, 195), "line": "裝備想強化？找我準沒錯。", "tex": "smith_small"},
+		{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "pos": Vector2(160, 115), "line": "看看這些閃亮的寶石。", "tex": "gem_small"},
+		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "準備好了？先看看自己的數值吧。", "tex": "portrait_warrior"},
+		{"pid": PANEL_INVENTORY, "name": "裁縫", "pos": Vector2(435, 200), "line": "要不要縫件新衣服？", "tex": "tailor_small"},
+		{"pid": PANEL_TALENT, "name": "導師", "pos": Vector2(480, 105), "line": "天賦點數別亂花。", "tex": "master_small"},
+		{"pid": PANEL_SKILLS, "name": "技能師", "pos": Vector2(220, 230), "line": "技能怎麼帶？我幫你調。", "tex": "quest_small"},
+		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔層越高，獎勵越豐。", "tex": "guard_small"},
+		{"pid": PANEL_ABYSS, "name": "深淵使者", "pos": Vector2(540, 230), "line": "深淵之下……你確定要去？", "tex": "abyss_small"},
 	]
 	for h in HOTSPOTS:
-		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"])
+		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"], h["tex"])
 
 	# 底部：出關按鈕 + toast
 	var bottom := VBoxContainer.new()
@@ -892,7 +892,18 @@ var _dialogue_bubble: PanelContainer = null
 var _dialogue_label: Label = null
 
 
-func _add_hotspot(pos: Vector2, pid: String, name: String, line: String) -> void:
+func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key: String = "") -> void:
+	if tex_key != "":
+		var spr := TextureRect.new()
+		var t := UISkin.texture(tex_key)
+		if t != null:
+			spr.texture = t
+			spr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			spr.custom_minimum_size = Vector2(36, 48)
+			spr.size = Vector2(36, 48)
+			spr.position = pos - Vector2(18, 44)
+			spr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_ui_layer.add_child(spr)
 	var area := Button.new()
 	area.custom_minimum_size = Vector2(60, 100)
 	area.position = pos - Vector2(30, 80)
