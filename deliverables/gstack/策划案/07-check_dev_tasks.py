@@ -498,11 +498,12 @@ def group_repo(D):
         files = os.listdir(eq)
         ck(any("special" in f for f in files), f"R13 已有 special_*.json 底材（實 {[f for f in files if 'special' in f]}）")
 
-    # 塔/深淵關卡不存在
+    # B5-6（2026-09-30）塔/深渊关卡已落地
     lv = os.path.join(REPO, "game", "data", "levels")
     if os.path.isdir(lv):
         files = os.listdir(lv)
-        ck(not any(("tower" in f or "abyss" in f) for f in files), "R14 尚無塔/深淵關卡文件")
+        ck("tower.json" in files and "abyss.json" in files,
+           "R14 已有 tower.json(30层)/abyss.json(9房间)（实 %s）" % files)
 
     # B5-5（2026-09-30）二阶段已落地：bosses.json 由 4 阶段改为 2 阶段（thresholds=[0.6]）
     bj = os.path.join(REPO, "game", "data", "bosses", "bosses.json")
