@@ -321,6 +321,10 @@ func _ensure_panel(panel_id: String) -> bool:
 			panel = _build_mode_level_list("abyss", "深渊 · 选副本")
 	if panel == null:
 		return false
+	# 內面板自身背景透明，讓外層金邊顯現
+	if panel is PanelContainer:
+		var empty := StyleBoxEmpty.new()
+		(panel as PanelContainer).add_theme_stylebox_override("panel", empty)
 
 	# 浮层：半透明底 + 居中面板（面板自己会在 _ready 里建子控件）
 	var holder := Control.new()
