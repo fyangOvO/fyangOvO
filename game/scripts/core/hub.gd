@@ -334,6 +334,9 @@ func _ensure_panel(panel_id: String) -> bool:
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var gsb := UISkin.panel_stylebox_gold()
+	if gsb != null:
+		box.add_theme_stylebox_override("panel", gsb)
 	holder.add_child(box)
 	box.add_child(panel)
 	holder.visible = false
@@ -606,6 +609,9 @@ func _get_compare_popup() -> EquipComparePopup:
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var gsb := UISkin.panel_stylebox_gold()
+	if gsb != null:
+		box.add_theme_stylebox_override("panel", gsb)
 	holder.add_child(box)
 	var popup := EquipComparePopup.new()
 	popup.on_close = func() -> void: holder.visible = false

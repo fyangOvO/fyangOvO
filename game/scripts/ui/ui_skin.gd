@@ -108,6 +108,7 @@ const TEX: Dictionary = {
 	# 壁掛火把（80×80，含火焰；動態氛圍由場景層做 flicker + 火星粒子）
 	"torch": "torch.png",
 	# 三職業立繪（188×250 透明底；首頁展示戰士，弓/法為步驟 2 角色選擇備用）
+	"panel_gold": "panel_gold.png",
 	"portrait_warrior": "portraits/char_warrior.png",
 	"portrait_archer": "portraits/char_archer.png",
 	"portrait_mage": "portraits/char_mage.png",
@@ -410,6 +411,21 @@ static func clear_cache() -> void:
 ## 9-slice 面板樣式（任務面板底板）。缺失 → `null`（調用方沿用 StyleBoxFlat）。
 static func panel_stylebox() -> StyleBoxTexture:
 	return _stylebox("panel", PANEL_MARGIN)
+
+
+## 金色雕花面板（暗黑風）。缺失 → null。
+static func panel_stylebox_gold() -> StyleBoxTexture:
+	var tex := texture("panel_gold")
+	if tex == null:
+		return null
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	sb.set_texture_margin_all(60)
+	sb.content_margin_left = 30
+	sb.content_margin_right = 30
+	sb.content_margin_top = 30
+	sb.content_margin_bottom = 30
+	return sb
 
 
 ## 按鈕三態樣式。`kind` ∈ {"gold", "dark"}。
