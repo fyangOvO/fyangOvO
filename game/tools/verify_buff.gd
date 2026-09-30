@@ -143,7 +143,7 @@ func _test_alias_and_keys() -> void:
 		is_equal_approx(float(attr_only["attack"]), float(naked["attack"]) * 2.0))
 
 	_ok("FINAL_KEYS 含 all_damage（B4 新增）", "all_damage" in StatCalculator.FINAL_KEYS)
-	_ok("FINAL_KEYS 規模 = 53（52 + all_damage）", StatCalculator.FINAL_KEYS.size() == 53)
+	_ok("FINAL_KEYS 規模 = 54（52 + all_damage + block_damage_reduction）", StatCalculator.FINAL_KEYS.size() == 54)
 	_ok("StatPanel.LABELS 覆蓋 all_damage", StatPanel.LABELS.has("all_damage"))
 	_ok("StatPanel.PCT_KEYS 含 all_damage", "all_damage" in StatPanel.PCT_KEYS)
 

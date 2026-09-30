@@ -29,18 +29,30 @@ def run_godot(scene: str) -> tuple[bool, str]:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT, encoding="utf-8", errors="replace")
         out = (p.stdout or "") + (p.stderr or "")
         # 成功口徑：結果行印「0 项失败」或「全部通过」；出現 [FAIL] 或非零失敗數即掛。
-        ok = ("0 项失败" in out or "全部通过" in out or "全部可解析" in out) and "[FAIL]" not in out
+        ok = (("0 项失败" in out or "0 項失敗" in out or "/ 0 失败" in out
+               or "全部通过" in out or "全部通過" in out or "全部可解析" in out)
+              and "[FAIL]" not in out)
         return ok, out[-400:]
     except subprocess.TimeoutExpired:
         return False, "TIMEOUT"
 
 
 def run_py(script: str) -> tuple[bool, str]:
-    cmd = [PY, os.path.join(PLAN, script), "--repo", ROOT]
+    # 01-05 校驗器硬編碼相對路徑、不接 --repo；06/07 接 --repo。
+    if script.startswith(("06", "07")):
+        cmd = [PY, os.path.join(PLAN, script), "--repo", ROOT]
+    else:
+        cmd = [PY, script]
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT, encoding="utf-8", errors="replace")
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT,
+                           encoding="utf-8", errors="replace", cwd=PLAN)
         out = (p.stdout or "") + (p.stderr or "")
-        ok = ("失败 0" in out or "失敗 0" in out) and p.returncode == 0
+        # 口徑：01「落在设计区间」；02/04/05「N 通过 / 0 失败」；06/07「失败 0」。
+        ok = p.returncode == 0 and (
+            "落在设计区间" in out
+            or "/ 0 失败" in out
+            or "失败 0" in out
+            or "失敗 0" in out)
         return ok, out[-400:]
     except subprocess.TimeoutExpired:
         return False, "TIMEOUT"

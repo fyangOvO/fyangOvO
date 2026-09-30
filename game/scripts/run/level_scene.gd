@@ -854,7 +854,8 @@ func _on_boss_phase_changed(_enemy: Node, phase: int, _skills: Array) -> void:
 	layer.name = "PhaseBanner"
 	add_child(layer)
 	var bar := ColorRect.new()
-	bar.color = Color(0.03, 0.04, 0.06, 0.0)
+	bar.color = GameConstants.COLOR_DARK_BG
+	bar.color.a = 0.0
 	bar.position = Vector2(0.0, 20.0)
 	bar.size = Vector2(640.0, 44.0)
 	layer.add_child(bar)
@@ -865,7 +866,7 @@ func _on_boss_phase_changed(_enemy: Node, phase: int, _skills: Array) -> void:
 	lab.add_theme_font_size_override("font_size", 16)
 	lab.add_theme_color_override("font_color", GameConstants.COLOR_ACCENT_GOLD)
 	lab.set_anchors_preset(Control.PRESET_FULL_RECT)
-	lab.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	lab.modulate = Color.TRANSPARENT
 	bar.add_child(lab)
 	var tw := create_tween()
 	tw.tween_property(bar, "color:a", 0.55, 0.15)

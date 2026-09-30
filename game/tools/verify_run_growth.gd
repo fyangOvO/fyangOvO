@@ -54,10 +54,10 @@ func _test_progression() -> void:
 	_ok("10 级后经验不再累积", prog.total_xp < 999999.0 or prog.run_level == 10)
 	prog.reset()
 	_ok("出关清零回 1 级", prog.run_level == 1 and prog.xp_cur == 0.0)
-	# 单级精确：1→2 需要 xp_to_next(1) = 20
+	# 单级精确：1→2 需要 xp_to_next(1) = 50
 	var prog2 := RunProgression.new()
-	prog2.add_xp(20.0)
-	_ok("1→2 级需 20 XP（20×1^1.4）", prog2.run_level == 2 and absf(prog2.xp_cur) < 0.01)
+	prog2.add_xp(50.0)
+	_ok("1→2 级需 50 XP（50×1^1.4）", prog2.run_level == 2 and absf(prog2.xp_cur) < 0.01)
 
 
 # =============================================================================

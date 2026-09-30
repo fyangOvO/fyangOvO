@@ -139,14 +139,14 @@ func _test_element() -> void:
 		and GameConstants.ELEMENTS.has("shadow"))
 	_ok("物理走护甲：ARM 50 @ L1 → 减伤 50%",
 		is_equal_approx(DamageCalc.mitigation_factor(50.0, 0.0, 1, "physical"), 0.5))
-	_ok("元素走抗性：抗性 50 @ L1 → 减伤 50%（同构公式）",
-		is_equal_approx(DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire"), 0.5))
+	_ok("元素走抗性：抗性 50 @ L1 → DR 50/(50+25)=2/3（剩余 1/3）",
+		is_equal_approx(DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire"), 1.0 / 3.0))
 	_ok("护甲不影响元素伤害：ARM 50 对 fire 无效",
 		is_equal_approx(DamageCalc.mitigation_factor(50.0, 0.0, 1, "fire"), 1.0))
 	var r := DamageCalc.compute_hit(12.0, 0.0, 150.0, "fire",
 		0.0, 0.0, 50.0, 1, 0.0)
-	_ok("火伤 12 → 火抗 50 @ L1 → final = 6",
-		is_equal_approx(r.final_damage, 6.0))
+	_ok("火伤 12 → 火抗 50 @ L1 → final = 4（×1/3）",
+		is_equal_approx(r.final_damage, 4.0))
 	var r2 := DamageCalc.compute_hit(12.0, 0.0, 150.0, "fire",
 		50.0, 0.0, 0.0, 1, 0.0)
 	_ok("元素伤害加成 +50% → final = 18",
@@ -228,8 +228,8 @@ func _test_integration() -> void:
 	_dummy.resists["fire"] = 50.0
 	_ok("火元素裂斩施放成功", _skills.try_cast("cleave"))
 	var f_dmg := _dummy.total_damage_taken
-	_ok("火裂斩 → 火抗 50 @ L1 → 伤害减半 ∈ {21, 31.5}",
-		is_equal_approx(f_dmg, 21.0) or is_equal_approx(f_dmg, 31.5))
+	_ok("火裂斩 → 火抗 50 @ L1 → 伤害 ×1/3 ∈ {14, 21}",
+		is_equal_approx(f_dmg, 14.0) or is_equal_approx(f_dmg, 21.0))
 	_ok("火元素事件正确透传", not _last_event.is_empty() and String(_last_event[3]) == "fire")
 
 
@@ -260,19 +260,19 @@ func _test_gdd_anchors() -> void:
 func _test_penetration_and_phys() -> void:
 	print("--- G1. 抗性穿透 2-L10 / 物理相乘 2-L11 ---")
 	# 2-L11：物理减伤 = 护甲 DR × 物抗 DR（**相乘，不相加**；否则坦克流无敌）
-	# 护甲 50 @ L1 → DR 50%；物抗 50 @ L1 → DR 50% ⇒ 剩余 = 0.5 × 0.5 = 0.25
-	_ok("物理：护甲 50% × 物抗 50% 相乘 → 剩余 0.25",
-		is_equal_approx(DamageCalc.mitigation_factor(50.0, 50.0, 1, "physical"), 0.25))
+	# 护甲 50 @ L1 → DR 50%；物抗 50 @ L1 → DR 50/(50+25)=2/3 ⇒ 剩余 = 0.5 × 1/3 = 1/6
+	_ok("物理：护甲 50% × 物抗 1/3 相乘 → 剩余 1/6",
+		is_equal_approx(DamageCalc.mitigation_factor(50.0, 50.0, 1, "physical"), 1.0 / 6.0))
 	_ok("物理相乘 ≠ 相加（剩余 > 0，不免疫）",
 		DamageCalc.mitigation_factor(50.0, 50.0, 1, "physical") > 0.0)
 	# 元素不吃护甲
 	_ok("元素不吃护甲（ARM 9999 对 fire 剩余 = 1）",
 		is_equal_approx(DamageCalc.mitigation_factor(9999.0, 0.0, 1, "fire"), 1.0))
 	# 2-L10：穿透削抗性，口径 = max(0, resist - penetration)
-	# 火抗 50 @ L1 → DR 50%；穿透 30 ⇒ 有效抗性 20 ⇒ 剩余 = 1 − 20/70
+	# 火抗 50 @ L1 → DR；穿透 30 ⇒ 有效抗性 20 ⇒ 剩余 = 1 − 20/(20+25) = 5/9
 	var with_pen := DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire", 30.0)
-	_ok("火抗 50 被穿透 30 → 有效抗性 20（剩余 = 1 − 20/70）",
-		is_equal_approx(with_pen, 1.0 - 20.0 / 70.0))
+	_ok("火抗 50 被穿透 30 → 有效抗性 20（剩余 = 5/9）",
+		is_equal_approx(with_pen, 5.0 / 9.0))
 	_ok("穿透后剩余 > 未穿透剩余（伤害真的变高）",
 		with_pen > DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire"))
 	_ok("穿透 999 超量 → 有效抗性 clamp 0（剩余 = 1，无负抗性增伤）",
@@ -283,8 +283,8 @@ func _test_penetration_and_phys() -> void:
 			DamageCalc.mitigation_factor(0.0, 50.0, 1, "fire")))
 	# compute_hit 透传穿透
 	var r := DamageCalc.compute_hit(100.0, 0.0, 150.0, "fire", 0.0, 0.0, 50.0, 1, 0.0, 30.0)
-	_ok("compute_hit 透传穿透 → final = 100 × (1 − 20/70)",
-		is_equal_approx(r.final_damage, 100.0 * (1.0 - 20.0 / 70.0)))
+	_ok("compute_hit 透传穿透 → final = 100 × 5/9",
+		is_equal_approx(r.final_damage, 100.0 * 5.0 / 9.0))
 	# 穿透只削抗性、不削护甲（物理侧须显式走 pierced_armor）
 	_ok("穿透不削护甲（物理侧 armor 分支不受 pen 影响）",
 		is_equal_approx(DamageCalc.mitigation_factor(50.0, 0.0, 1, "physical", 30.0),

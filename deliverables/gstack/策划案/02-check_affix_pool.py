@@ -43,6 +43,7 @@ BRANCHES_FILE = _HERE / "01-branches.json"
 EQUIP_FILES = [
     "weapons.json", "armor.json", "jewelry.json",
     "set_pieces_emberpath.json", "set_pieces_frostbite.json", "set_pieces_oathkeeper.json",
+    "special_abyss.json", "special_tower.json",
 ]
 
 # ---------------------------------------------------------------------------
@@ -378,7 +379,7 @@ def section_f() -> None:
 def collect_affixes() -> dict:
     """汇总 4 张词缀表 -> {id: info}（并附上来源文件名）。"""
     out: dict = {}
-    for fname in ("attack.json", "defense.json", "resource.json", "special.json"):
+    for fname in ("attack.json", "defense.json", "resource.json", "special.json", "special_sources.json"):
         path = AFFIX_DIR / fname
         if not path.exists():
             print(f"  [WARN] 缺少 {fname}")
