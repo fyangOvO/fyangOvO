@@ -110,6 +110,7 @@ const TEX: Dictionary = {
 	# 三職業立繪（188×250 透明底；首頁展示戰士，弓/法為步驟 2 角色選擇備用）
 	"panel_gold": "panel_gold.png",
 	"btn_gold": "btn_gold.png",
+	"quest_item": "quest_item.png",
 	"npc_abyss_small": "npc/abyss_small.png",
 	"npc_guard_small": "npc/guard_small.png",
 	"npc_merchant_small": "npc/merchant_small.png",

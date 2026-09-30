@@ -113,18 +113,33 @@ static func build() -> Theme:
 
 	# ---- 4. 按钮三态 -------------------------------------------------------
 	# Normal 1E232B / Hover 2A313B+描边高光 / Pressed 14171C+内阴影 / 禁用降透明
-	t.set_stylebox(&"normal", "Button", _flat(
-		GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_BORDER, 1))
-	t.set_stylebox(&"hover", "Button", _flat(
-		GameConstants.UI_BTN_HOVER, GameConstants.UI_BTN_HOVER_BORDER, 1))
-	t.set_stylebox(&"pressed", "Button", _flat(
-		GameConstants.UI_BTN_PRESSED, GameConstants.UI_BTN_BORDER, 1,
-		1.0, GameConstants.UI_PANEL_BG, 2))
-	t.set_stylebox(&"focus", "Button", _flat(
-		GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_HOVER_BORDER, 1))
-	t.set_stylebox(&"disabled", "Button", _flat(
-		GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_BORDER, 1,
-		GameConstants.UI_BTN_DISABLED_ALPHA))
+	var _btn := load("res://assets/ui/btn_gold.png") as Texture2D
+	if _btn != null:
+		var _sb := StyleBoxTexture.new()
+		_sb.texture = _btn
+		_sb.set_texture_margin_all(28)
+		_sb.content_margin_left = 14
+		_sb.content_margin_right = 14
+		_sb.content_margin_top = 6
+		_sb.content_margin_bottom = 6
+		t.set_stylebox(&"normal", "Button", _sb)
+		t.set_stylebox(&"hover", "Button", _sb)
+		t.set_stylebox(&"pressed", "Button", _sb)
+		t.set_stylebox(&"focus", "Button", _sb)
+		t.set_stylebox(&"disabled", "Button", _sb)
+	else:
+		t.set_stylebox(&"normal", "Button", _flat(
+			GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_BORDER, 1))
+		t.set_stylebox(&"hover", "Button", _flat(
+			GameConstants.UI_BTN_HOVER, GameConstants.UI_BTN_HOVER_BORDER, 1))
+		t.set_stylebox(&"pressed", "Button", _flat(
+			GameConstants.UI_BTN_PRESSED, GameConstants.UI_BTN_BORDER, 1,
+			1.0, GameConstants.UI_PANEL_BG, 2))
+		t.set_stylebox(&"focus", "Button", _flat(
+			GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_HOVER_BORDER, 1))
+		t.set_stylebox(&"disabled", "Button", _flat(
+			GameConstants.UI_BTN_NORMAL, GameConstants.UI_BTN_BORDER, 1,
+			GameConstants.UI_BTN_DISABLED_ALPHA))
 
 	# ---- 5. 输入框 ----------------------------------------------------------
 	t.set_stylebox(&"normal", "LineEdit", _flat(
