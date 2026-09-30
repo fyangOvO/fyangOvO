@@ -235,6 +235,7 @@ func _load_affix_dir(dir_path: String) -> void:
 			res.min_rarity = int(raw.get("min_rarity", -1))
 			res.weight = float(raw.get("weight", 100.0))
 			res.obtainable_from_craft = bool(raw.get("obtainable_from_craft", true))
+			res.source = String(raw.get("source", ""))
 			_register(affixes, res.id, res, entry)
 			_validate(res, entry)
 

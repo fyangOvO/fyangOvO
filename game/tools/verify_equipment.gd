@@ -104,9 +104,9 @@ func _test_affixes() -> void:
 		else:
 			suffix_count += 1
 	_ok("词缀总数 ≥ 30（GDD 词缀池基准）", ConfigLoader.affixes.size() >= 30)
-	# 2-V1：第二步合并后应为 33 + 15 = 48（规范值，非从数据反推）
-	_ok("词缀总数 == 48（第二步合并后 · 2-V1，实际 %d）" % ConfigLoader.affixes.size(),
-		ConfigLoader.affixes.size() == 48)
+	# 2-V1 基准 48；B5-4 加 18 条专属词缀（深渊9+塔9）⇒ 66
+	_ok("词缀总数 == 66（2-V1 基准 48 + B5-4 专属 18，实际 %d）" % ConfigLoader.affixes.size(),
+		ConfigLoader.affixes.size() == 66)
 	_ok("全部词缀数据合法", all_valid)
 	_ok("前/后缀都有分布（前 %d / 后 %d）" % [prefix_count, suffix_count], prefix_count > 0 and suffix_count > 0)
 	# 互斥组引用不悬空（组名要么是自身 id 要么是存在的词缀 id）

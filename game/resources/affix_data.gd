@@ -68,6 +68,14 @@ extends Resource
 ## 是否可出现在商店 / 锻造产出中（阶段 3 使用）
 @export var obtainable_from_craft: bool = true
 
+## 词缀来源（B5-4 · 6-W6-18）：
+##   ""       = 通用，任何装备都可能抽到；
+##   "abyss"  = 深渊专属，仅 rarity=SPECIAL_ABYSS(8) 的装备可roll；
+##   "tower"  = 塔专属，仅 rarity=SPECIAL_TOWER(9) 的装备可roll。
+## ⚠️ 本字段是来源过滤的唯一依据。不扩它就没有「专属」可言——
+##    专属词缀会和通用词缀一样出现在所有装备上，且全程零报错。
+@export var source: String = ""
+
 
 ## 取 iLvl = 1 时的基准值（区间内均匀随机）
 func roll_base_value(rng: RandomNumberGenerator = null) -> float:

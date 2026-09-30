@@ -135,6 +135,24 @@
         "hidden_echo_strike", "add_skill_level", "add_all_resist",
         "add_resist_penetration", "add_ailment_chance"
       ]
+    },
+    {
+      "id": "abyss_pool",
+      "display_name": "深渊·专属池",
+      "affix_ids": [
+        "abyss_void_edge", "abyss_dread_pierce", "abyss_curse_mastery",
+        "abyss_leech", "abyss_thorns", "abyss_crit_damage",
+        "abyss_ailment_effect", "abyss_luck", "abyss_vigor"
+      ]
+    },
+    {
+      "id": "tower_pool",
+      "display_name": "塔·专属池",
+      "affix_ids": [
+        "tower_pct_armor", "tower_bastion", "tower_all_resist",
+        "tower_block", "tower_dodge", "tower_regen",
+        "tower_cooldown", "tower_pierce_attack", "tower_essence"
+      ]
     }
   ]
 }

@@ -35,8 +35,15 @@ func spawn(entry: Dictionary) -> void:
 			var item_id := str(entry.get("item_id", ""))
 			var tpl: EquipmentData = ConfigLoader.get_equipment_template(item_id)
 			var nm := tpl.display_name if tpl != null else item_id
-			text = "已拾取：%s" % nm
 			var r := int(entry.get("rarity", GameConstants.Rarity.COMMON))
+			# B5-4：特殊档加来源前缀，玩家一眼区分深渊 / 塔专属掉落
+			match r:
+				GameConstants.Rarity.SPECIAL_ABYSS:
+					text = "【深渊】已拾取：%s" % nm
+				GameConstants.Rarity.SPECIAL_TOWER:
+					text = "【镇塔】已拾取：%s" % nm
+				_:
+					text = "已拾取：%s" % nm
 			color = GameConstants.rarity_color(r)
 		_:
 			return

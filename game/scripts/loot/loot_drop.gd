@@ -168,6 +168,9 @@ func _draw_box(center: Vector2, size: float, fill: Color, outline: Color) -> voi
 ##
 ## `height_override >= 0` 时用它。收集物没有 `rarity`（-1），取不到稀有度光柱高度，
 ## 必须显式给一个，否则光柱画不出来 ⇒ 目标物在场景里不显眼。
+##
+## B5-4（6-W6-19）：按 BeamShape 分支绘制。此前无论什么稀有度都画同一根渐变柱，
+## 深渊（PRISM）与塔（SPIRE）两档视觉完全相同 ⇒ 玩家无法在地面一眼区分来源。
 func _draw_beam(c: Color, height_override: float = -1.0) -> void:
 	var h: float
 	if height_override >= 0.0:
@@ -178,7 +181,15 @@ func _draw_beam(c: Color, height_override: float = -1.0) -> void:
 		return
 	if h <= 0.0:
 		return
-	# 渐变柱：分段绘制制造纵向渐隐（顶部淡）
+	var shape: int = GameConstants.rarity_beam_shape(rarity) if height_override < 0.0 else GameConstants.BeamShape.LINE
+	match shape:
+		GameConstants.BeamShape.SPECIAL_PRISM:
+			_draw_prism_beam(h, c)
+			return
+		GameConstants.BeamShape.SPECIAL_SPIRE:
+			_draw_spire_beam(h, c)
+			return
+	# 普通档：渐变柱（分段纵向渐隐，顶部淡）
 	var seg := 4
 	for i in seg:
 		var y0 := -h + float(i) * float(h) / float(seg)
@@ -187,3 +198,40 @@ func _draw_beam(c: Color, height_override: float = -1.0) -> void:
 		draw_rect(Rect2(-1.0, y0, 2.0, y1 - y0), Color(c, alpha))
 	# 底部一圈（物件发光）
 	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(c, 0.7))
+
+
+## 深渊光柱（SPECIAL_PRISM）：深紫主柱 + 青/品红分层切面，每 8px 一个切面。
+## 静态可辨（不依赖动画），靠「双色分层」和普通单柱拉开差距。
+func _draw_prism_beam(h: float, c: Color) -> void:
+	var cyan := Color("37E6D8")
+	var magenta := Color("C74BD8")
+	# 主柱（深紫，3px 宽，比普通柱粗）
+	for i in 5:
+		var y0 := -h + float(i) * h / 5.0
+		var y1 := -h + float(i + 1) * h / 5.0
+		var alpha := 0.6 * (1.0 - float(i) / 5.0)
+		draw_rect(Rect2(-1.5, y0, 3.0, y1 - y0), Color(c, alpha))
+	# 每 8px 一个侧切面：左右交替青色 / 品红
+	var y := -h
+	var toggle := true
+	while y < -2.0:
+		var side := -3.5 if toggle else 0.5
+		var facet := cyan if toggle else magenta
+		draw_rect(Rect2(side, y, 2.0, 3.0), Color(facet, 0.8))
+		y += 8.0
+		toggle = not toggle
+	draw_rect(Rect2(-5.0, 0.0, 10.0, 1.0), Color(c, 0.8))
+
+
+## 塔光柱（SPECIAL_SPIRE）：青白主色，分 3 段递窄，段间 2px 暗色分隔。
+## 越往上越细，剪影像一座塔，区别于深渊的双色棱柱。
+func _draw_spire_beam(h: float, c: Color) -> void:
+	var segs := [3.0, 2.0, 1.0]  # 底→顶逐段宽度
+	var seg_h := h / 3.0
+	for i in 3:
+		var w: float = segs[i]
+		var y0 := -h + float(i) * seg_h + (2.0 if i > 0 else 0.0)  # 段间 2px 暗缝
+		var y1 := -h + float(i + 1) * seg_h
+		var alpha := 0.7 - float(i) * 0.15
+		draw_rect(Rect2(-w * 0.5, y0, w, y1 - y0), Color(c, alpha))
+	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(c, 0.8))

@@ -47,6 +47,7 @@ func _ready() -> void:
 	await _test_mythic_slot()
 	await _test_loot_integration()
 	await _test_key_unification()
+	await _test_source_filter()
 	_finish()
 
 
@@ -309,6 +310,63 @@ func _test_key_unification() -> void:
 	_ok("全表无 affix 使用 legacy 键 armor_penetration（残留 %d 条）" % legacy.size(), legacy.is_empty())
 	for l in legacy:
 		_info("残留: %s" % l)
+
+
+# =============================================================================
+# I. 来源过滤（B5-4 · 6-W6-18）：深渊专属只上深渊装、塔专属只上塔装、
+#    普通装永不抽到专属词缀。本测试盯死「source 字段没接上 ⇒ 专属词缀静默到处跑」。
+# =============================================================================
+
+func _test_source_filter() -> void:
+	print("--- I. 专属词缀来源过滤 ---")
+	var abyss_tpl := ConfigLoader.get_equipment_template("abyss_blade")
+	var tower_tpl := ConfigLoader.get_equipment_template("tower_spire_staff")
+	var normal_tpl := ConfigLoader.get_equipment_template("sword_iron")
+	_ok("深渊底材存在", abyss_tpl != null)
+	_ok("塔底材存在", tower_tpl != null)
+	# 18 条专属词缀确实带 source
+	var abyss_n := 0
+	var tower_n := 0
+	for key in ConfigLoader.affixes:
+		var a: AffixData = ConfigLoader.affixes[key]
+		if a != null and a.source == "abyss":
+			abyss_n += 1
+		elif a != null and a.source == "tower":
+			tower_n += 1
+	_ok("深渊专属词缀 = 9 条（实际 %d）" % abyss_n, abyss_n == 9)
+	_ok("塔专属词缀 = 9 条（实际 %d）" % tower_n, tower_n == 9)
+	# 深渊装反复 roll：永不出现 tower 词缀
+	var leak_tower := false
+	var abyss_hit := false
+	for i in range(80):
+		for roll in AffixRoller.roll_affixes(abyss_tpl, 20, GameConstants.Rarity.SPECIAL_ABYSS, _rng):
+			var a: AffixData = ConfigLoader.get_affix(roll.affix_id)
+			if a != null and a.source == "tower":
+				leak_tower = true
+			if a != null and a.source == "abyss":
+				abyss_hit = true
+	_ok("深渊装绝不roll到塔专属词缀", not leak_tower)
+	_ok("深渊装有roll到深渊专属词缀（80次抽样）", abyss_hit)
+	# 塔装反复 roll：永不出现 abyss 词缀
+	var leak_abyss := false
+	var tower_hit := false
+	for i in range(80):
+		for roll in AffixRoller.roll_affixes(tower_tpl, 20, GameConstants.Rarity.SPECIAL_TOWER, _rng):
+			var a: AffixData = ConfigLoader.get_affix(roll.affix_id)
+			if a != null and a.source == "abyss":
+				leak_abyss = true
+			if a != null and a.source == "tower":
+				tower_hit = true
+	_ok("塔装绝不roll到深渊专属词缀", not leak_abyss)
+	_ok("塔装有roll到塔专属词缀（80次抽样）", tower_hit)
+	# 普通装（橙）永不出现任何专属词缀
+	var leak_special := false
+	for i in range(80):
+		for roll in AffixRoller.roll_affixes(normal_tpl, 20, GameConstants.Rarity.LEGENDARY, _rng):
+			var a: AffixData = ConfigLoader.get_affix(roll.affix_id)
+			if a != null and a.source != "":
+				leak_special = true
+	_ok("普通橙装绝不roll到专属词缀", not leak_special)
 
 
 func _finish() -> void:

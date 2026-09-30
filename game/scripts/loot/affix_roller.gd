@@ -113,11 +113,14 @@ static func _roll_affix_split(rarity: int, rng: RandomNumberGenerator) -> Vector
 	return Vector2i(prefix_count, total - prefix_count)
 
 
-## 候选池收集：装备 affix_pool_ids 的全部池 → 去重 → 部位 / 稀有度过滤。
+## 候选池收集：装备 affix_pool_ids 的全部池 → 去重 → 部位 / 稀有度 / 来源过滤。
 ## 神话词缀不在此收集（独立槽单独处理），避免红装普通位出现神话词缀。
+## B5-4：按词缀 source 过滤——深渊专属只上深渊装、塔专属只上塔装，
+## 通用（source=""）两者皆可。这是「专属词缀」唯一生效点，见 AffixData.source。
 static func _collect_candidates(template: EquipmentData, rarity: int) -> Array[AffixData]:
 	var out: Array[AffixData] = []
 	var seen := {}
+	var item_source := _source_of_rarity(rarity)
 	for pool_id in template.affix_pool_ids:
 		for affix in ConfigLoader.get_affixes_in_pool(String(pool_id), template.slot):
 			if seen.has(affix.id):
@@ -127,8 +130,20 @@ static func _collect_candidates(template: EquipmentData, rarity: int) -> Array[A
 				continue
 			if affix.id == MYTHIC_AFFIX_ID:
 				continue
+			# 来源过滤：非通用词缀必须与本件装备来源一致
+			if affix.source != "" and affix.source != item_source:
+				continue
 			out.append(affix)
 	return out
+
+
+## 由稀有度推装备来源标签（B5-4）。特殊档之外一律 ""（通用装）。
+static func _source_of_rarity(rarity: int) -> String:
+	if rarity == GameConstants.Rarity.SPECIAL_ABYSS:
+		return "abyss"
+	if rarity == GameConstants.Rarity.SPECIAL_TOWER:
+		return "tower"
+	return ""
 
 
 ## 权重 + 互斥组 pick。position 用于按前后缀分别抽池（词缀的 position 必须匹配）。

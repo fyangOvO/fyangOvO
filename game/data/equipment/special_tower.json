@@ -11,7 +11,8 @@
   },
   "affix_pool_ids": [
    "weapon_caster",
-   "weapon_generic"
+   "weapon_generic",
+   "tower_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -32,7 +33,8 @@
   },
   "affix_pool_ids": [
    "armor_defense",
-   "armor_generic"
+   "armor_generic",
+   "tower_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
@@ -54,7 +56,8 @@
   },
   "affix_pool_ids": [
    "armor_offense",
-   "armor_generic"
+   "armor_generic",
+   "tower_pool"
   ],
   "item_level_min": 15,
   "item_level_max": 20,
