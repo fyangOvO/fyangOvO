@@ -564,6 +564,11 @@ func _test_codex_panel() -> void:
 	await get_tree().process_frame
 	_ok("注入 2 个已解锁 ⇒ 进度 = 2 / 24",
 		panel.unlock_progress() == Vector2i(2, 24))
+	# HANDOFF-E：进度文案必须**从掉落表实时读**（此前写死「精英 8% · BOSS 25%」，
+	# 而 `monster_loot_tables.json` 里普通怪早已是 2% ⇒ 文案与实现脱钩，玩家看到的来源是错的）
+	var ptxt: String = panel._progress.text
+	_ok("进度文案含三档掉落概率（普通 2% / 精英 8% / BOSS 25%）",
+		ptxt.contains("普通 2%") and ptxt.contains("精英 8%") and ptxt.contains("BOSS 25%"))
 	_ok("is_rune_unlocked 钩子：swift 已解锁 / pierce 未解锁",
 		panel.is_rune_unlocked("rune_swift") and not panel.is_rune_unlocked("rune_pierce"))
 	panel.select_rune("rune_pierce")

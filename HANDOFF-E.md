@@ -20,6 +20,17 @@
 | 8 | 校驗：`verify_loot_tables` F 段（2-V12）+ `verify_loot` H/I 段 | `tools/verify_loot_tables.gd`、`tools/verify_loot.gd` |
 | 9 | 掉落预览工具：符文行 + **修好「所有掉落物在画面外」的既有 bug** | `tools/loot_preview.gd/.tscn` |
 
+### 1b. 第二輪（遺漏掃描「繼續往下做」時挖出來的）
+
+| # | 改動 | 檔案 |
+|---|---|---|
+| 10 | **策劃自相矛盾**：`01-技能体系.md §11.4` 寫普通怪 0%，而 `02-装备属性.md §6.1` + JSON + 校驗器全寫 0.02 ⇒ 保留 2%，回頭同步 §11.4（節奏重算 + 收集者問題說明） | `01-技能体系.md`、`02-装备属性.md`、`02-check_affix_pool.py`、`07-dev-tasks.json`、`07-开发总表.md` |
+| 11 | **技能面板不看得解鎖狀態** ⇒ 未解鎖符文照樣能裝（掉落變擺設）：`hub` 注入 `unlocked_runes`，picker 灰顯不可選 | `scripts/core/hub.gd`、`scripts/ui/skill_panel.gd` |
+| 12 | 圖鑑進度文案**硬編碼**「精英 8% · BOSS 25%」漏了普通 2% ⇒ 改**從掉落表實時讀** | `scripts/ui/rune_codex_panel.gd` |
+| 13 | 校驗：`verify_skill_equip` 新增 F 段（5 項）、`verify_skill_ext` 新增文案斷言 | `tools/verify_skill_equip.gd`、`tools/verify_skill_ext.gd` |
+| 14 | 端到端抓圖工具修「**截到凍結畫面**」+ 加 e-7（技能面板未解鎖灰顯） | `tools/capture_rune_drop.gd/.tscn` |
+| 15 | 新增診斷工具 `capture_gold_btn`（金按鈕高度階梯）—— 見 §8 | `tools/capture_gold_btn.gd/.tscn` |
+
 ---
 
 ## 2. 符文掉落全链路（本批后的真实数据流）
@@ -66,6 +77,14 @@
 （装备方块是 12px，金/材料 8px ⇒ 20 是同一视觉量级的上限；再大会盖住光柱、密集掉落时糊成一团）。
 缺档时兜底成紫方块（`UISkin` 缺档静默回 null，不兜底就只剩一根光柱）。
 
+### 3.4 未解锁的符文**不能装配**（第二輪補上）
+只把「掉落 → 图鉴」接通还不够：技能面板的符文选择器原本**遍历全部 24 个**，未解锁的也能插上
+⇒ 图鉴只是计数器，「掉落」对玩法毫无意义。现在 `hub._skill_panel_ctx()` 注入 `unlocked_runes`，
+选择器三档灰显**优先显示「未解锁」**（未解锁 > 不适用形态 > 同组互斥），文案「（未解锁 · 需掉落获得）」。
+
+门槛写法与技能解锁**同一套**：`_rune_unlock_enforced = p_ctx.has("unlocked_runes")` ——
+**看键在不在，不看值**。旧调用 / 无头测试不传该键 ⇒ 全放行（向后兼容，`verify_skill_equip` A~E 段不受影响）。
+
 ---
 
 ## 4. 验收
@@ -78,7 +97,17 @@
 | `verify_loot` I 段 | 首获写入 1 枚 / 不产魔石；重复不重写 + 转魔石 ×2；载荷写回两态；提示条消费 rune |
 | `verify_loot` F 段实测 | BOSS 秒杀后地面 **主掉落 2 件 + 符文 1 枚**，走近拾取 → `[Loot] 解锁符文 rune_swift（图鉴 1 枚）` |
 | 掉落预览抓图 | `game/build/loot_preview.png` + `loot_preview_runes_4x.png`（4× 最近邻放大逐像素目视） |
-| 策划侧 | `02-check_affix_pool.py` 14/0 ｜ `07-check_dev_tasks.py --repo` 212/0 |
+| 策划侧 | `02-check_affix_pool.py` 14/0 ｜ `07-check_dev_tasks.py --repo` 212/0 ｜ `01-check_skill_dps.py` 27 条全在区间 |
+
+**第二輪复跑（2026-09-30）**
+
+| 项 | 结果 |
+|---|---|
+| 全量回归 `run_regression.py` | **77 脚本全绿 / 182.3s / exit 0** |
+| `verify_skill_equip` F 段 | 5/5 —— 无 `unlocked_runes` ⇒ 全放行；带 `["rune_swift"]` ⇒ swift 可选 / rune_fire disabled + 文案含「未解锁」；空集 ⇒ 24 条**全部**不可选 |
+| `verify_skill_ext` 文案断言 | 进度文案含「普通 2% / 精英 8% / BOSS 25%」（从表实时读） |
+| `capture_rune_drop` 端到端 | **0 项失败 / 8 张截图**，每张都比上一张「画面不同」（防冻结画面断言生效） |
+| 策划侧复跑 | `02-check` 14/0 ｜ `07-check --repo` 212/0 ｜ `01-check` 27 条全在区间 |
 
 ---
 
@@ -93,7 +122,45 @@
 
 ---
 
-## 6. 遗留（**不在本批范围**，但已定位）
+## 6. ⚠️ 目视验收时发现的既有破相：金色按钮在 24px 下「金线横穿文字」（**未修，待裁定**）
+
+**怎么发现的**：本批目视 `e-7-技能面板-未解锁符文灰显.png` 时，符文选择器里 **26 颗按钮全部**
+「文字被一条金线划掉」。这不是本批改动引入的，但此前**没有任何一张截图看过金按钮的真实尺寸**。
+
+**根因（已用控制变量渲染证实）**：
+
+- `ui_theme.gd` 把 Button 五态**全部**指向 `UISkin.button_stylebox_gold()` = 华丽雕花 `btn_gold.png`(432×92)，
+  `texture_margin_top/bottom = 14`。
+- 该素材的上下金线在**源 y=10 与 y=82/86**（实测：y=10 有 227/280 像素是亮金）。
+- 按钮高度 < 28 时上下带重叠；高度 < ~40 时金线落进按钮垂直中央 ⇒ **正好压在文字上**。
+- 而**默认按钮高度就是 ~24px**（字体 12 + `content_margin` 6/6）⇒ 所有**没有**用
+  `UISkin.btn_styleboxes()` 覆写的裸 `Button` 全部中招。
+
+**证据**：`game/tools/capture_gold_btn.gd/.tscn` 把 24/28/32/40/48 五档并排渲染
+→ `deliverables/gstack/e_loot_shot/e-8-金色按鈕高度階梯診斷.png`。
+**h=24/28/32 全破相；h=40 起才干净；h=48 完全正常。**
+
+**影响面**（`grep -c "Button.new()"` vs `btn_styleboxes`）：`scripts/` 下 **40 处** `Button.new()`，
+只有 **11 处** `btn_styleboxes()` 覆写。裸按钮集中在
+`skill_panel`（9 处，含符文选择器 26 颗）、`rune_codex_panel`、`choice_panel`、`result_panel`、
+`shop_panel`、`talent_panel`、`main_menu_screen`。
+
+**为什么没人发现**：HANDOFF-C 的 `c_review_shot/*.png` 拍于 **16:08–16:09**，而
+「金按钮真的上线」（重跑 `gen_ui_theme` 落盘 `theme.tres`）在 **16:24** 的提交里
+⇒ **那 5 张截图拍的是旧 theme.tres**（当时按钮是平面金，看着很正常）。
+这正是铁律 ㊾「验收工具自己没被验收」的第二次复发。
+
+**候选修法**（待用户裁定，见交付说明）：
+
+| 案 | 做法 | 代价 |
+|---|---|---|
+| A | `ui_theme.gd` 的 Button 五态改用 `UISkin.btn_styleboxes("gold")`（现成的 `btn_gold_normal_128x24.png` 平面斜角金，本来就为 24px 高设计） | 全局按钮从「雕花」降级为「平面金」；雕花 `btn_gold.png` 需另行指定给 ≥40px 的英雄按钮，否则成死素材 |
+| B | 重做 `btn_gold.png` 为**薄边框版**（金线贴边 y≈3、饰纹深度 ≤8px），`texture_margin_top/bottom` 降到 8 | 保留雕花风；要重做素材 + 同步 `verify_ui_assets` 的尺寸/边距断言 |
+| C | 全局按钮最小高度拉到 40px | **不可行** —— 符文选择器 24 条 × 40px = 960px，列表放不下 |
+
+---
+
+## 7. 遗留（**不在本批范围**，但已定位）
 
 | 项 | 说明 | 归属 |
 |---|---|---|

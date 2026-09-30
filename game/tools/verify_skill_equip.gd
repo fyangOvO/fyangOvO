@@ -18,6 +18,8 @@
 ##   D. 保存：on_save 回呼收到 = 面板状态；落盘 + 读回一致；空栏拒绝
 ##   E. **端到端**：on_save 写 SaveManager.current_data.skill_bar（模拟 hub.gd::_on_skill_bar_saved）
 ##      → SkillController._load_skills() → get_skill_data != null → try_cast 成功
+##   F. 符文装配门槛（HANDOFF-E）：ctx 有/无 `unlocked_runes` ⇒ 启用/不启用；
+##      未解锁符文灰显 + 文案「未解锁」；空解锁集 ⇒ 24 条全不可选
 ##
 ## ⚠️ 结果行固定印「N 项失败」（简体）——回归驱动只认「项失败 / 全部通过（」，用繁体
 ##    「全部通過」会被误判 NO-RESULT（本项目已有 verify_class_select 踩过这坑）。
@@ -55,6 +57,7 @@ func _ready() -> void:
 	await _test_bar_unequip()
 	await _test_save_callback()
 	await _test_end_to_end_cast()
+	await _test_rune_unlock_gate()
 	_cleanup()
 	print("===== 技能装备流程实测 结束：%d 项失败 =====" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
@@ -274,6 +277,61 @@ func _press_save() -> void:
 	var btn := _find_button(_sp, "保存配置")
 	if btn != null:
 		btn.pressed.emit()
+
+
+# =============================================================================
+# F. 符文装配门槛（图鉴解锁 · HANDOFF-E）
+# =============================================================================
+
+## 口径（`01-技能体系.md` §11.4 Q2「图鉴式解锁」）：**未解锁的符文不能装配**。
+##
+## ⚠️ 门槛写法与技能解锁**同款**：看 `ctx` 里**有没有** `unlocked_runes` 这个键 ——
+##    有（哪怕空数组）= 启用门槛；没有 = 全放行（向后兼容旧调用 / 无头测试）。
+##    本脚本 A~E 段的 `bind()` 都不传该键 ⇒ 不受影响。
+func _test_rune_unlock_gate() -> void:
+	print("--- F. 符文装配门槛（未解锁不能装）---")
+	if _sp == null:
+		_ok("SkillPanel 就绪（F 段前置）", false)
+		return
+	var pool := ConfigLoader.class_skill_ids(CLASS_ID)
+	# 1) ctx **不带** unlocked_runes ⇒ 不启用门槛（向后兼容）
+	_sp.bind(CLASS_ID, pool, _saved_bar, _on_save, { "skill_level": 6 })
+	await _wait_frames(1)
+	var swift := _open_rune_picker("fireball")
+	_ok("ctx 无 unlocked_runes ⇒ 不启用门槛（rune_swift 可选）",
+		swift != null and not swift.disabled)
+	# 2) ctx 带 unlocked_runes = ["rune_swift"] ⇒ 只放行 swift
+	_sp.bind(CLASS_ID, pool, _saved_bar, _on_save,
+		{ "skill_level": 6, "unlocked_runes": ["rune_swift"] })
+	await _wait_frames(1)
+	swift = _open_rune_picker("fireball")
+	var fire := _find_button_by_name(_sp, "RunePick_rune_fire")
+	_ok("ctx 带 unlocked_runes ⇒ 已解锁的 rune_swift 可选",
+		swift != null and not swift.disabled)
+	_ok("未解锁的 rune_fire 灰显不可选（disabled）", fire != null and fire.disabled)
+	_ok("未解锁项文案含「未解锁」（%s）" % (fire.text if fire != null else "—"),
+		fire != null and fire.text.contains("未解锁"))
+	# 3) 空解锁集 ⇒ 全部不可选（新档的真实状态）
+	_sp.bind(CLASS_ID, pool, _saved_bar, _on_save,
+		{ "skill_level": 6, "unlocked_runes": [] })
+	await _wait_frames(1)
+	_open_rune_picker("fireball")
+	var pickable: Array[String] = []
+	for rid_v in ConfigLoader.runes.keys():
+		var b := _find_button_by_name(_sp, "RunePick_%s" % rid_v)
+		if b != null and not b.disabled:
+			pickable.append(String(rid_v))
+	_ok("空解锁集 ⇒ 24 条符文全部灰显不可选（实际可选 %d 条）" % pickable.size(),
+		pickable.is_empty())
+	_sp._close_detail()
+
+
+## 打开某技能的符文选择器（第 1 槽），返回指定符文按钮。
+## 需要 `skill_level ≥ 3` 才解锁第 1 槽（`runes.json._meta.slot_unlock_skill_level = [3,6,9]`）。
+func _open_rune_picker(sid: String) -> Button:
+	_sp._open_detail(sid)
+	_sp._on_rune_slot_pressed(0, true)
+	return _find_button_by_name(_sp, "RunePick_rune_swift")
 
 
 ## 卸下第 index 个出战槽：B4-4 / 1-L14 起，点出战槽 = **打开技能详情**，

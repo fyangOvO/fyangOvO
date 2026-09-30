@@ -147,7 +147,7 @@
     { "id": "2-V9", "step": 2, "priority": "P0", "batch": "B3", "title": "stat_calculator 輸出含 skill_level", "files": "tools/verify_stat_calculator.gd", "depends_on": ["2-L2"], "verify": "—" },
     { "id": "2-V10", "step": 2, "priority": "P0", "batch": "B3", "title": "元素傷害接線後 damage > 未接線 damage", "files": "tools/verify_damage.gd", "depends_on": ["2-L7", "2-L8"], "verify": "—" },
     { "id": "2-V11", "step": 2, "priority": "P0", "batch": "B3", "title": "冷卻 / 減耗 70% 硬頂", "files": "tools/verify_skill*", "depends_on": ["2-L5", "2-L6"], "verify": "—" },
-    { "id": "2-V12", "step": 2, "priority": "P2", "batch": "B6", "title": "掉落表符文桶存在且精英 8% / BOSS 25%", "files": "tools/verify_loot_tables.gd", "depends_on": ["2-L12"], "verify": "—" },
+    { "id": "2-V12", "step": 2, "priority": "P2", "batch": "B6", "title": "掉落表符文桶存在（普通 2% / 精英 8% / BOSS 25%）", "files": "tools/verify_loot_tables.gd", "depends_on": ["2-L12"], "verify": "—" },
     { "id": "2-V13", "step": 2, "priority": "P2", "batch": "B6", "title": "掉落 iLvl ∈ [min_mon+min_mod, max_mon+max_mod]", "files": "tools/verify_loot_tables.gd", "depends_on": ["2-L13"], "verify": "—" },
     { "id": "2-V14", "step": 2, "priority": "P1", "batch": "B3", "title": "6 系元素全部有抗性鍵映射", "files": "tools/verify_damage.gd", "depends_on": ["2-L9"], "verify": "—" },
     { "id": "2-V15", "step": 2, "priority": "P2", "batch": "B6", "title": "01-branches.json reset_cost_gold == 0", "files": "02-check_affix_pool.py", "depends_on": ["2-D7"], "verify": "02-check F1" },

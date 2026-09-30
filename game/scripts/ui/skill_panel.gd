@@ -57,6 +57,15 @@ var _account_level: int = 1
 var _cleared_levels: Array = []
 ## 是否强制解锁判定。hub 恒注入 `account_level` ⇒ true；旧调用 / 无头测试 ⇒ false（全放行）。
 var _unlock_enforced: bool = false
+## 已解锁符文 id（`SaveData.unlocked_runes`，由 hub 注入）。
+##
+## 门槛语义（**与技能解锁同一套写法**）：hub 恒注入 `unlocked_runes` 键 ⇒ `_rune_unlock_enforced = true`，
+## 未解锁符文在选择器里**灰显不可选**；旧调用 / 无头测试不传该键 ⇒ false（全放行，向后兼容）。
+##
+## 口径（`01-技能体系.md` §11.4 Q2）：符文**图鉴式解锁** —— 首次掉落获得即永久解锁，
+## 未解锁的符文**不能装配**（否则「掉落」对玩法毫无意义，图鉴只是摆设）。
+var _unlocked_runes: Array[String] = []
+var _rune_unlock_enforced: bool = false
 ## 当前全局技能等级（1–10；由 hub 从 `StatCalculator` 结算结果注入，缺省 1）。
 ## ⚠️ 技能等级是**全局**的（非单技能），故详情里所有技能显示同一等级。
 var _skill_level_value: int = 1
@@ -216,7 +225,8 @@ func _make_btn(text: String, kind: String) -> Button:
 
 ## hub 注入数据；每次打开（refresh）都会重新调用。
 ##
-## `p_ctx`（可选）键：`runes` / `branches` / `account_level` / `cleared_levels` / `on_config_saved`。
+## `p_ctx`（可选）键：`runes` / `branches` / `account_level` / `cleared_levels` /
+## `skill_level` / `unlocked_runes` / `on_config_saved`。
 ## 缺省 ⇒ 空符文、未选分支、全解锁（向后兼容旧调用与无头测试）。
 func bind(p_class_id: String, p_pool: Array[String], p_bar: Array[String],
 		p_on_save: Callable, p_ctx: Dictionary = {}) -> void:
@@ -229,6 +239,11 @@ func bind(p_class_id: String, p_pool: Array[String], p_bar: Array[String],
 	_account_level = int(p_ctx.get("account_level", 1))
 	_cleared_levels = (p_ctx.get("cleared_levels", []) as Array).duplicate()
 	_unlock_enforced = p_ctx.has("account_level")
+	# 符文解锁门槛（与技能解锁同款写法：**看键在不在**，而不是看值）
+	_unlocked_runes.clear()
+	for u in (p_ctx.get("unlocked_runes", []) as Array):
+		_unlocked_runes.append(str(u))
+	_rune_unlock_enforced = p_ctx.has("unlocked_runes")
 	_skill_level_value = clampi(int(p_ctx.get("skill_level", 1)),
 		GameConstants.SKILL_LEVEL_BASE, GameConstants.SKILL_LEVEL_MAX)
 	_on_config_saved = p_ctx.get("on_config_saved", Callable())
@@ -559,6 +574,9 @@ func _render_detail() -> void:
 
 
 ## 符文选择列表（详情浮层的子视图）：只列该技能形态允许的符文；不匹配 / 同组冲突灰显。
+##
+## ⚠️ 三档灰显，**优先显示「未解锁」**（最可操作的那条）：
+##   未解锁（图鉴没收集到）> 不适用该形态 > 与已插符文同组互斥。
 func _render_rune_picker(vb: VBoxContainer, sid: String, sd: SkillData) -> void:
 	var back := Button.new()
 	back.text = "← 返回详情"
@@ -593,6 +611,7 @@ func _render_rune_picker(vb: VBoxContainer, sid: String, sd: SkillData) -> void:
 	for rid_v in ids:
 		var rid := String(rid_v)
 		var rune: Dictionary = ConfigLoader.runes[rid]
+		var unlocked := _is_rune_unlocked(rid)
 		var ok_type := _rune_type_ok(sd, rune)
 		var conflict := _rune_group_conflict(sid, rid)
 		var b := Button.new()
@@ -600,16 +619,27 @@ func _render_rune_picker(vb: VBoxContainer, sid: String, sd: SkillData) -> void:
 		b.custom_minimum_size = Vector2(0, 24)
 		b.add_theme_font_size_override("font_size", 12)
 		var suffix := ""
-		if not ok_type:
+		if not unlocked:
+			suffix = "（未解锁 · 需掉落获得）"
+		elif not ok_type:
 			suffix = "（不适用该形态）"
 		elif conflict:
 			suffix = "（与已插符文同组互斥）"
 		b.text = "%s  [%s]%s" % [String(rune.get("display_name", rid)),
 			String(rune.get("category", "")), suffix]
-		b.disabled = (not ok_type) or conflict
+		b.disabled = (not unlocked) or (not ok_type) or conflict
+		if not unlocked:
+			b.modulate = Color(0.5, 0.5, 0.55, 1)
 		b.tooltip_text = String(rune.get("description", ""))
 		b.pressed.connect(func() -> void: _assign_rune(sid, _rune_pick_slot, rid))
 		list.add_child(b)
+
+
+## 该符文是否可装配（图鉴解锁门槛）。
+##
+## `_rune_unlock_enforced == false`（hub 未注入 `unlocked_runes`，如旧调用 / 无头测试）⇒ **全放行**。
+func _is_rune_unlocked(rid: String) -> bool:
+	return (not _rune_unlock_enforced) or _unlocked_runes.has(rid)
 
 
 func _hr() -> HSeparator:

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/capture_gold_btn.gd" id="1_cap"]
+
+[node name="CaptureGoldBtn" type="Node2D"]
+script = ExtResource("1_cap")

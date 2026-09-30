@@ -6,8 +6,9 @@
 ## 布局：左「6×4 = 24 格网格」（每格 52×52，**内容区恒 48×48**，与 `rune_icon_*_48.png`
 ##       逐像素 1:1）+ 右「详情」（48×48 图标 + 名称 / 互斥组 / 适用形态 / 效果文案 / 解锁状态）。
 ##
-## 解锁口径（§11.4 · Q2 图鉴式）：**首次获得即永久解锁**，来源为精英 8% / BOSS 25% 掉落。
-##   解锁集合由 `SaveData.unlocked_runes` 提供（掉落接线见 B6 `2-L12`）。
+## 解锁口径（§11.4 · Q2 图鉴式）：**首次获得即永久解锁**，来源为掉落表的
+##   `rune_drop_chance`（普通 2% / 精英 8% / BOSS 25%，**文案从表实时读**，见 `_drop_sources_text()`）。
+##   解锁集合由 `SaveData.unlocked_runes` 提供（掉落接线见 B6 `2-L12`，HANDOFF-E 已完成）。
 ##   ⚠️ 未解锁 = 灰显 + 锁标记；**图鉴不是装配入口**（装配在技能面板的详情浮层）。
 ##
 ## 数据流：hub 是唯一数据源。`bind(unlocked, skill_level)` 注入；本面板**零写操作**。
@@ -150,8 +151,37 @@ func _render_grid() -> void:
 			lock.position = Vector2(CELL - 16.0, CELL - 18.0)
 			btn.add_child(lock)
 
-	_progress.text = "收集进度 %d / %d　（精英 8%% · BOSS 25%% 掉落，首次获得即永久解锁）" % [
-		_unlocked.size(), ids.size()]
+	_progress.text = "收集进度 %d / %d　（%s，首次获得即永久解锁）" % [
+		_unlocked.size(), ids.size(), _drop_sources_text()]
+
+
+## 掉落来源文案（「普通 2% · 精英 8% · BOSS 25% 掉落」）。
+##
+## ⚠️ **从掉落表实时读**，不要硬编码 —— 此前写死「精英 8% · BOSS 25%」，
+##    而 `monster_loot_tables.json` 的 `rune_drop_chance` 早已包含普通怪 2%
+##    ⇒ 文案与实现脱钩（玩家看到的掉落来源是错的）。
+##    表一改，这里自动跟着变（单一数据源）。
+func _drop_sources_text() -> String:
+	var parts: Array[String] = []
+	for pair in [["monster_normal", "普通"], ["monster_elite", "精英"], ["monster_boss", "BOSS"]]:
+		var t: LootTable = ConfigLoader.loot_tables.get(pair[0])
+		if t == null or t.rune_drop_chance <= 0.0:
+			continue
+		parts.append("%s %s%%" % [pair[1], _fmt_pct(t.rune_drop_chance)])
+	if parts.is_empty():
+		return "暂无掉落来源"
+	var out := parts[0]
+	for i in range(1, parts.size()):
+		out += " · " + parts[i]
+	return out + " 掉落"
+
+
+## 百分比格式化：0.08 → "8"；0.005 → "0.5"
+func _fmt_pct(v: float) -> String:
+	var pct := v * 100.0
+	if absf(pct - roundf(pct)) < 0.001:
+		return str(int(roundf(pct)))
+	return "%.1f" % pct
 
 
 ## 单元格点击：选中并刷新格网高亮 + 详情。

@@ -449,6 +449,9 @@ func _bind_panel(panel_id: String, panel: Control) -> void:
 
 
 ## SkillPanel 的第二层上下文（符文 / 分支 / 解锁 / 等级 / 落盘回调）
+##
+## ⚠️ `unlocked_runes` 是**符文装配门槛**（`skill_panel._rune_unlock_enforced` 看这个键在不在）：
+##    不传 ⇒ 未解锁的符文也能装，掉落就失去玩法意义（图鉴只剩计数）。见 `01-技能体系.md` §11.4。
 func _skill_panel_ctx(data: SaveData) -> Dictionary:
 	return {
 		"runes": data.skill_runes,
@@ -456,6 +459,7 @@ func _skill_panel_ctx(data: SaveData) -> Dictionary:
 		"account_level": data.account_level,
 		"cleared_levels": data.cleared_levels,
 		"skill_level": int(last_stats.get("skill_level", GameConstants.SKILL_LEVEL_BASE)),
+		"unlocked_runes": data.unlocked_runes,
 		"on_config_saved": _on_skill_config_saved,
 	}
 

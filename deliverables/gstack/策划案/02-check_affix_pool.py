@@ -333,7 +333,8 @@ def section_e(draft: dict, base_affix_ids: set[str]) -> None:
         has_ilvl = "item_level_spread" in lp
         check(has_rune and has_ilvl,
               f"E10 {lp.get('id')} 含 rune_drop_chance + item_level_spread")
-    # 符文掉率与第一步 §11.4 对齐
+    # 符文掉率：elite/boss 对齐第一步 §11.4 原值；normal 2% 是本步新增，
+    # 已于 2026-09-30 回头把第一步 §11.4 的表格同步为 2%（两处口径现已一致）。
     want = {"monster_normal": 0.02, "monster_elite": 0.08, "monster_boss": 0.25}
     for lp in lpatches:
         exp = want.get(lp.get("id"))
