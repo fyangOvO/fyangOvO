@@ -109,6 +109,7 @@ const TEX: Dictionary = {
 	"torch": "torch.png",
 	# 三職業立繪（188×250 透明底；首頁展示戰士，弓/法為步驟 2 角色選擇備用）
 	"panel_gold": "panel_gold.png",
+	"btn_gold": "btn_gold.png",
 	"npc_abyss_small": "npc/abyss_small.png",
 	"npc_guard_small": "npc/guard_small.png",
 	"npc_merchant_small": "npc/merchant_small.png",
@@ -429,6 +430,21 @@ static func panel_stylebox_gold() -> StyleBoxTexture:
 	sb.content_margin_right = 30
 	sb.content_margin_top = 30
 	sb.content_margin_bottom = 30
+	return sb
+
+
+## 金色按鈕九宮格。缺失 → null。
+static func button_stylebox_gold() -> StyleBoxTexture:
+	var tex := texture("btn_gold")
+	if tex == null:
+		return null
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	sb.set_texture_margin_all(30)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	return sb
 
 
