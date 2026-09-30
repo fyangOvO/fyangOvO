@@ -15,6 +15,15 @@
 | 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
 | 工程落地 B0–B5 | ✅ B5 特殊玩法八子批全收線（B5-1…B5-8） |
 | **HANDOFF-C UI 打磨復盤** | ✅ **完成**（4 類靜默脫鉤全修 + 2 個既有紅修復） |
+| **HANDOFF-D 符文圖標 v2** | ✅ **完成**（24 張重製為 48×48 高精細 + 符文石石板底座；1 個既有 bug 已定位未修） |
+
+### HANDOFF-D 符文圖標 v2（2026-09-30）
+- 24 條符文全部重畫：**4–5 階明暗 + 邊緣高光 + 內核輝光 + 微裝飾**，外掛**符文石石板底座**（外斜面 / 內凹槽 / 四角鉚釘）。
+- 尺寸 32×32 → **48×48 原生**（原 32→48 是 1.5× 非整數縮放，違反像素鐵律）。
+- 產線 `deliverables/gstack/素材開發/gen_rune_icons_v2.py`（`--base {vector,slab,frame}` / `--sample` / `--only` + `check_compliance()` 對照**權威色板**）。
+- 消費端全庫唯一 = `rune_codex_panel.gd`；`ui_skin.gd` TEX 表 24 條改 `_48.png`。
+- **關鍵坑**：`StyleBoxFlat.content_margin_*` 預設 = 邊框寬 ⇒ 格子內容區會隨「選中 1→2px」在 46/44 間跳、圖標變形。修法 `CELL 48→52` + 顯式 `set_content_margin_all(2)` ⇒ 內容區恆 48×48。
+- 驗收：新增 `game/tools/capture_rune_codex.gd/.tscn`（斷言 24 張貼圖 48×48 + 兩態內容區 48 + 詳情圖標 48 + 4× 最近鄰放大目視）；**12 項全 OK**；全量回歸 77 Godot 全綠 / 189.0s。
 
 ### HANDOFF-C 復盤（2026-09-30）
 **4 類靜默脫鉤**（都不報錯、只是不生效）：
@@ -36,9 +45,11 @@
 
 ### 需用戶裁定
 - **`boss_ember_lord.level_min 19 → 13`** 刻意偏離策劃 §1.1 等級帶表（表寫 19–20），為讓 `05-check` C19 轉綠 ⇒ 待裁定「改表 or 改回並放寬 C19」。
+- **符文圖鑑選中格子的金框永遠不出現**（HANDOFF-D 發現，**已定位未修**）：`_on_cell_pressed()`（`rune_codex_panel.gd:158`）與 `select_rune()`（:257）都只重繪詳情、**不重繪格網**，而 `_render_grid()` 只在 `_render()`（←`_build_ui`/`bind`）被呼叫 ⇒ `_selected` 改了但格子 stylebox 從不更新。已抓圖目視證實（詳情切到「增幅」，左上格子無金框）。一行修法：補 `_render_grid()`。**屬 `game/` 改動，待確認。**
 
 ### 策劃側仍紅（非工程批）
 - `05-check` **C17**（`ch1_l03/l04` 空 layout，屬 `5-W5-9`）· **C20**（creatures 目錄數，素材側）
+- 另 **C12**（工程側關卡數 == 20）· **C13**（budget == Σcount_max）同屬既有口徑差，`05 --repo` 合計 **82/4**
 
 ### 工程側待接線（有落點、無消費方 = 死鉤子）
 - **分支 8 個 modifier 未接**（`combo_hits`/`combo_damage_pct`/`linger`/`afterimage`/`pulse`/`summon_count`/`summon_damage_pct`/`buff_potency_pct`，面板標「暫未生效」）
@@ -72,6 +83,7 @@
 | B4 | B4-1 BuffComponent / B4-2 套裝特效 / B4-3 BOSS 技能+關卡目標 6 種 / B4-4 技能擴展 UI（**SAVE v5**）/ B4-5 元素飄字+異常 / B4-6 校驗補齊 | 76 腳本 |
 | B5 | B5-1 存檔 **v6**+門票 / B5-2 稀有度 **8→10** / B5-3~8 特殊裝閉環+塔/深淵+校驗 | 06 202/0 · 07 212/0 |
 | HANDOFF-C | UI 視覺打磨（本輪復盤：素材歸位 / 金按鈕上線 / 徽章修復 / 去白框） | 見上 |
+| HANDOFF-D | 符文圖標 v2：24 張重製 48×48 高精細 + 符文石石板底座；`CELL 48→52` + 顯式內容邊距 | 77 Godot 全綠 |
 
 ---
 
@@ -125,6 +137,8 @@ cd D:/七傳說/game && APPDATA='C:\Users\11265\AppData\Roaming' python tools/pa
 ```
 - ⚠️ `APPDATA` 空串 ⇒ 導出失敗 + **靜默漏清存檔**（Godot 把數據目錄解析成 `./Godot/`）
 - Python：`C:/Users/11265/.workbuddy-ai/binaries/python/versions/3.13.12/python.exe`（系統 `python`/`/tmp` 不可用）
+  - ⚠️ **管理版無 numpy**；素材生成/圖像腳本一律用 `C:/Users/11265/.workbuddy-ai/binaries/python/envs/default/Scripts/python.exe`（PIL 12.3 + numpy 2.5）
+- 策劃校驗器（`deliverables/gstack/策划案/0N-check_*.py`，共 7 個）帶 `--repo D:/七傳說`（**專案根**，它自己拼 `game/`）
 - Godot console：`C:\Users\11265\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe`
 - 全量回歸：`python tools/run_regression.py`（口徑：`[FAIL]==0 且 exit==0`）
 - 驗證探針（`game/tools/`）：`probe_tex`（TEX 載入）/ `probe_fx`（fx 表契約）/ `probe_clips`（精靈幀集）/ `probe_level`（關卡體檢）

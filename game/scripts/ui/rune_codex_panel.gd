@@ -3,8 +3,8 @@
 ## 位置：据点面板按钮条第 **7** 项（`PANEL_RUNE_CODEX`），与背包/角色/装备/天赋/锻造/技能并列。
 ## 职责：**只读**展示 24 条符文的收集进度与详情（`01-技能体系.md` §13.3）。
 ##
-## 布局：左「6×4 = 24 格网格」（每格 48×48，像素铁律 1×）+ 右「详情」（名称 / 互斥组 /
-##       适用形态 / 效果文案 / 解锁状态）。
+## 布局：左「6×4 = 24 格网格」（每格 52×52，**内容区恒 48×48**，与 `rune_icon_*_48.png`
+##       逐像素 1:1）+ 右「详情」（48×48 图标 + 名称 / 互斥组 / 适用形态 / 效果文案 / 解锁状态）。
 ##
 ## 解锁口径（§11.4 · Q2 图鉴式）：**首次获得即永久解锁**，来源为精英 8% / BOSS 25% 掉落。
 ##   解锁集合由 `SaveData.unlocked_runes` 提供（掉落接线见 B6 `2-L12`）。
@@ -17,8 +17,14 @@ extends PanelContainer
 ## 网格列/行（§13.3：6×4 = 24）
 const COLS: int = 6
 const ROWS: int = 4
-## 每格边长（§13.3：48×48）
-const CELL: float = 48.0
+## 每格边长。**2026-09-30 v2：48 → 52**。
+## ⚠️ 不是 48：格子 StyleBox 的边框宽在「选中」时会从 1 变 2，而 `StyleBoxFlat` 的
+##    内容边距默认 = 边框宽 ⇒ 内容区会在 46/48 之间跳、图标跟着非整数缩放变形。
+##    现改为 CELL=52 + **显式内容边距 2** ⇒ 内容区恒为 52-2×2 = **48×48**，
+##    与 `rune_icon_*_48.png` 逐像素 1:1（边框 1/2px 都落在边距外，互不遮挡）。
+const CELL: float = 52.0
+## 格子内容边距（见上：恒定 2 ⇒ 内容区恒 48×48）
+const CELL_PAD: float = 2.0
 ## 详情区宽度
 const DETAIL_W: float = 224.0
 
@@ -44,7 +50,8 @@ func _ready() -> void:
 # =============================================================================
 
 func _build_ui() -> void:
-	custom_minimum_size = Vector2(560, 300)
+	# 14×2 边距 + 6×52+5×4 网格 + 16 间距 + 224 详情 = 600
+	custom_minimum_size = Vector2(600, 320)
 	var psb := UISkin.panel_stylebox()
 	if psb != null: add_theme_stylebox_override("panel", psb)
 	var margin := MarginContainer.new()
@@ -181,7 +188,7 @@ func _render_detail() -> void:
 	_detail.add_child(head)
 	var ico := TextureRect.new()
 	ico.texture = UISkin.rune_icon(rid)
-	ico.custom_minimum_size = Vector2(32, 32)
+	ico.custom_minimum_size = Vector2(48, 48)   # v2：32 → 48（与素材同尺寸 ⇒ 1:1）
 	ico.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ico.modulate = Color(1, 1, 1, 1) if unlocked else Color(0.4, 0.4, 0.45, 1)
 	head.add_child(ico)
@@ -303,4 +310,5 @@ func _cell_box(selected: bool, hover: bool, unlocked: bool) -> StyleBoxFlat:
 	else:
 		box.border_color = Color("4A3F3A")
 	box.set_border_width_all(2 if selected else 1)
+	box.set_content_margin_all(int(CELL_PAD))   # ⚠️ 必须显式设：默认取边框宽 ⇒ 内容区会跳
 	return box

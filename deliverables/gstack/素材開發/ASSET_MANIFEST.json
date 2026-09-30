@@ -16,7 +16,7 @@
    "palette_scope": "按 pixel_pipeline/README.md §二 兩路線（角色48 / fx·UI 44）",
    "recommend_fix_plan": "總表 §5.5#7 與 #10 兩行與現行素材包不符，建議回頭修正"
   },
-  "last_updated": "2026-09-28",
+  "last_updated": "2026-09-30",
   "note": "狀態以 deliverables/gstack/素材開發/README.md §7 為準；本清單為跨步去重後的執行映射，數量口徑依 07-开发总表.md §5。"
  },
  "engine_contract": {
@@ -439,13 +439,14 @@
    "group": "UI 圖標",
    "name": "符文圖標",
    "files_new": 24,
-   "canvas": "32x32",
+   "canvas": "48x48",
    "palette": "44(嚴格)",
    "dest": "game/assets/ui/quest/",
-   "name_contract": "rune_icon_<rune_id>_32.png",
+   "name_contract": "rune_icon_<rune_id>_48.png",
    "method": "procedural",
    "priority": "P1",
    "source": "01-技能体系.md 附錄A §A.8",
+   "generator": "deliverables/gstack/素材開發/gen_rune_icons_v2.py（--base slab）",
    "detail": [
     "rune_projectile",
     "rune_chain",
@@ -472,7 +473,8 @@
     "rune_mana",
     "rune_amplify"
    ],
-   "status": "done(2026-09-24) 符文圖標"
+   "status": "done(2026-09-30 v2) 符文圖標 · 高精細重製 + 符文石底座（48×48 原生）",
+   "note": "v1 = 32×32 平塗 1–2 階（已移入 .workbuddy-ai/trash/2026-09-30-rune-icon-v1/）；v2 為 4–5 階明暗 + 邊緣高光 + 內核輝光 + 微裝飾，外加符文石石板底座（斜面 / 內凹槽 / 四角鉚釘）。尺寸升到 48 是為了與圖鑑格子內容區 1:1（32→48 的 1.5× 非整數縮放違反像素鐵律）。消費端見 rune_codex_panel.gd（CELL=52 + 內容邊距 2 ⇒ 內容區恆 48）。"
   },
   {
    "id": "D3",

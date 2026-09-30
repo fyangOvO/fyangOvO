@@ -24,11 +24,17 @@
 | **A3** | 玩家 hurt 8 方向 | **42**（+6 既有 = 48） | 192×192 | `char_<class>_hurt_<dir>_<NN>.png` | `assets/pack/creatures/<class>/` |
 | **A4** | 玩家 death 8 方向 | **84**（+12 既有 = 96） | 192×192 | `char_<class>_death_<dir>_<NN>.png` | 同上 |
 | **D1** | 技能圖標（**一技能一圖標**） | **32**（+4 既有 = 36） | 48×48 | `skill_icon_<skill_id>_48.png` | `assets/ui/quest/` |
-| **D2** | 符文圖標 | **24** | 32×32 | `rune_icon_<short>_32.png` | `assets/ui/quest/` |
+| **D2** | 符文圖標 | **24** | **48×48**（v2 重製） | `rune_icon_<short>_48.png` | `assets/ui/quest/` |
 | **E3** | 系統標識 3 + 材料 3 | **5** | 48×48 / 32×32 | `forge_icon_48.png` … `crystal_reroll_32.png` | `assets/ui/quest/` |
 | **E2** | 固定檔位裝備獨立圖標 | **5** | 48×48 | `equip_<base_id>_48.png` | `assets/icons/equipment/` |
 
-產線：`gen_player_hurt_death.py`（A3/A4）、`gen_icons_p1.py`（D1/D2/E2/E3）；全部 **零 AI 成本**。
+產線：`gen_player_hurt_death.py`（A3/A4）、`gen_icons_p1.py`（D1/E2/E3）；全部 **零 AI 成本**。
+
+> **D2 於 2026-09-30 重製（v2）**：產線改為 `gen_rune_icons_v2.py --base slab`。
+> 24 張全部重畫為高精細像素畫（4–5 階明暗 + 邊緣高光 + 內核輝光 + 微裝飾），
+> 並加上**符文石石板底座**（外斜面 / 內凹槽 / 四角鉚釘）；尺寸 32×32 → **48×48 原生**，
+> 與圖鑑格子內容區 1:1（原 32→48 是 1.5× 非整數縮放，違反像素鐵律）。
+> v1 的 24 張已移入 `.workbuddy-ai/trash/2026-09-30-rune-icon-v1/`（非直刪）。
 
 **A3/A4 的衍生方式（依附錄A §A.3 的幀序設計）**
 - `hurt`：① 後仰 → ② 回復中。**位移方向與受擊方向一致**（沿朝向反向水平位移 ±2px）+ 頭後傾。

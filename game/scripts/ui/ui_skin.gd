@@ -226,32 +226,33 @@ const TEX: Dictionary = {
 	"skill_icon_thunder_storm": "skill_icon_thunder_storm_48.png",
 	"skill_icon_mana_surge": "skill_icon_mana_surge_48.png",
 	"skill_icon_void_rift": "skill_icon_void_rift_48.png",
-	# ── 2026-09-24 步骤 1：符文图标 24 张（32×32，图鉴式解锁）──
+	# ── 2026-09-24 步骤 1：符文图标 24 张（图鉴式解锁；2026-09-30 v2 升为 48×48）──
 	# 命名去掉冗余的 `rune_` 前缀：id `rune_projectile` → 键 `rune_icon_projectile`。取用見 `rune_icon()`。
-	"rune_icon_projectile": "rune_icon_projectile_32.png",
-	"rune_icon_chain": "rune_icon_chain_32.png",
-	"rune_icon_split": "rune_icon_split_32.png",
-	"rune_icon_pierce": "rune_icon_pierce_32.png",
-	"rune_icon_ground": "rune_icon_ground_32.png",
-	"rune_icon_echo": "rune_icon_echo_32.png",
-	"rune_icon_fire": "rune_icon_fire_32.png",
-	"rune_icon_cold": "rune_icon_cold_32.png",
-	"rune_icon_lightning": "rune_icon_lightning_32.png",
-	"rune_icon_poison": "rune_icon_poison_32.png",
-	"rune_icon_shadow": "rune_icon_shadow_32.png",
-	"rune_icon_wider": "rune_icon_wider_32.png",
-	"rune_icon_swift": "rune_icon_swift_32.png",
-	"rune_icon_thrifty": "rune_icon_thrifty_32.png",
-	"rune_icon_heavy": "rune_icon_heavy_32.png",
-	"rune_icon_leech": "rune_icon_leech_32.png",
-	"rune_icon_stun": "rune_icon_stun_32.png",
-	"rune_icon_freeze": "rune_icon_freeze_32.png",
-	"rune_icon_burn": "rune_icon_burn_32.png",
-	"rune_icon_execute": "rune_icon_execute_32.png",
-	"rune_icon_opener": "rune_icon_opener_32.png",
-	"rune_icon_barrier": "rune_icon_barrier_32.png",
-	"rune_icon_mana": "rune_icon_mana_32.png",
-	"rune_icon_amplify": "rune_icon_amplify_32.png",
+	# 2026-09-30 v2：32×32 → **48×48 原生**（含符文石底座），與圖鑑格子 1:1。
+	"rune_icon_projectile": "rune_icon_projectile_48.png",
+	"rune_icon_chain": "rune_icon_chain_48.png",
+	"rune_icon_split": "rune_icon_split_48.png",
+	"rune_icon_pierce": "rune_icon_pierce_48.png",
+	"rune_icon_ground": "rune_icon_ground_48.png",
+	"rune_icon_echo": "rune_icon_echo_48.png",
+	"rune_icon_fire": "rune_icon_fire_48.png",
+	"rune_icon_cold": "rune_icon_cold_48.png",
+	"rune_icon_lightning": "rune_icon_lightning_48.png",
+	"rune_icon_poison": "rune_icon_poison_48.png",
+	"rune_icon_shadow": "rune_icon_shadow_48.png",
+	"rune_icon_wider": "rune_icon_wider_48.png",
+	"rune_icon_swift": "rune_icon_swift_48.png",
+	"rune_icon_thrifty": "rune_icon_thrifty_48.png",
+	"rune_icon_heavy": "rune_icon_heavy_48.png",
+	"rune_icon_leech": "rune_icon_leech_48.png",
+	"rune_icon_stun": "rune_icon_stun_48.png",
+	"rune_icon_freeze": "rune_icon_freeze_48.png",
+	"rune_icon_burn": "rune_icon_burn_48.png",
+	"rune_icon_execute": "rune_icon_execute_48.png",
+	"rune_icon_opener": "rune_icon_opener_48.png",
+	"rune_icon_barrier": "rune_icon_barrier_48.png",
+	"rune_icon_mana": "rune_icon_mana_48.png",
+	"rune_icon_amplify": "rune_icon_amplify_48.png",
 	# ── 2026-09-24 步骤 2（装备）：强化/洗练/重铸 系统入口标识（48×48）与材料图标（32×32）──
 	"forge_icon": "forge_icon_48.png",
 	"enchant_icon": "enchant_icon_48.png",
@@ -512,7 +513,9 @@ static func skill_icon(skill_id: String) -> Texture2D:
 	return texture(str(GameConstants.SKILL_ICON.get(skill_id, "")))
 
 
-## 2026-09-24 · 符文圖標（32×32）。`rune_id` 形如 `rune_projectile`（會自動去掉冗餘前綴）。
+## 2026-09-24 · 符文圖標（**2026-09-30 v2：48×48 原生**，含符文石底座）。
+## `rune_id` 形如 `rune_projectile`（會自動去掉冗餘前綴）。
+## ⚠️ 消費端（`rune_codex_panel`）的格子內容區必須是 48×48，否則會非整數縮放。
 static func rune_icon(rune_id: String) -> Texture2D:
 	var short := rune_id.trim_prefix("rune_")
 	return texture("rune_icon_%s" % short)
