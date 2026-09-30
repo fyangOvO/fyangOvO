@@ -162,9 +162,10 @@ func _test_hub_panel() -> void:
 	if _hub == null:
 		return
 	_ok("技能面板已构建（据点 _enter 预建全部面板）", _hub.get_panel("skills") != null)
-	# 通过据点按钮条打开（真按钮）
-	var btn := _find_button(_hub, "技能")
-	_ok("据点半按钮条含「技能」", btn != null)
+	# 2026-09-30：據點已由「文字按鈕條」改成營地整圖 + 透明熱區（熱區鈕**不設 text**，
+	# 否則文字會撐大按鈕最小尺寸、改變點擊區）⇒ 改用 `Hotspot_<panel_id>` 命名取鈕。
+	var btn := _find_button_by_name(_hub, "Hotspot_skills")
+	_ok("據點含「技能」熱區（Hotspot_skills）", btn != null)
 	if btn == null:
 		return
 	btn.pressed.emit()
@@ -183,8 +184,8 @@ func _test_hub_panel() -> void:
 	_ok("「恢复默认」「保存配置」按钮存在",
 		_find_button(sp, "恢复默认") != null and _find_button(sp, "保存配置") != null)
 	# 符文图鉴（第 7 项）
-	var codex_btn := _find_button(_hub, "符文图鉴")
-	_ok("据点半按钮条含「符文图鉴」（第 7 项）", codex_btn != null)
+	var codex_btn := _find_button_by_name(_hub, "Hotspot_rune_codex")
+	_ok("據點含「符文圖鑑」熱區（Hotspot_rune_codex，第 7 项）", codex_btn != null)
 	_ok("符文图鉴面板已构建（据点 _enter 预建全部面板）",
 		_hub.get_panel("rune_codex") != null)
 	if codex_btn != null:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://djk5810qsb6vg"
-path="res://.godot/imported/abyss_small.png-b9f5fb99b91a8fa745f35e655ce02b56.ctex"
+uid="uid://dq66m6rgu6j4c"
+path="res://.godot/imported/tailor_small.png-b0278e3abf51f8b2451535361aa68a02.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/abyss_small.png"
-dest_files=["res://.godot/imported/abyss_small.png-b9f5fb99b91a8fa745f35e655ce02b56.ctex"]
+source_file="res://assets/ui/quest/npc/tailor_small.png"
+dest_files=["res://.godot/imported/tailor_small.png-b0278e3abf51f8b2451535361aa68a02.ctex"]
 
 [params]
 

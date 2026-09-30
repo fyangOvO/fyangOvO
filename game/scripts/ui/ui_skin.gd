@@ -434,18 +434,24 @@ static func panel_stylebox_gold() -> StyleBoxTexture:
 	return sb
 
 
-## 金色按鈕九宮格。缺失 → null。
+## 金色按鈕九宮格（`btn_gold.png`，實測 432×92：四角卷草 + 上下金邊 + 中央菱形飾）。
+## 缺失 → `null`；調用方拿到 `null` 就沿用 `UITheme` 的 StyleBoxFlat 三態。
+## ⚠️ 邊距按**素材實測**設定：左右 76px 保住卷草角飾、上下 14px 保住金邊。
+##    再大會在 28–48px 高的按鈕上讓中段壓成負值（Godot 會把角飾擠成一團）。
 static func button_stylebox_gold() -> StyleBoxTexture:
 	var tex := texture("btn_gold")
 	if tex == null:
 		return null
 	var sb := StyleBoxTexture.new()
 	sb.texture = tex
-	sb.set_texture_margin_all(30)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
+	sb.texture_margin_left = 76.0
+	sb.texture_margin_right = 76.0
+	sb.texture_margin_top = 14.0
+	sb.texture_margin_bottom = 14.0
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
 	return sb
 
 

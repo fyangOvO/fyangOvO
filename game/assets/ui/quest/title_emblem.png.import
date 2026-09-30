@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dngpkrgp37opw"
-valid=false
+uid="uid://cqcqroji43pp6"
+path="res://.godot/imported/title_emblem.png-c4d47740e68626c2b9a662fa22b27ec5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/quest/title_emblem.png"
+dest_files=["res://.godot/imported/title_emblem.png-c4d47740e68626c2b9a662fa22b27ec5.ctex"]
 
 [params]
 

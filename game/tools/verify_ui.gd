@@ -9,8 +9,9 @@
 ##   B. 主题构建：build() 返回 Theme；面板 / 按钮 / 进度条 / 输入框样式齐全
 ##   B2. theme.tres 产物：生成器落盘文件存在、可加载、关键项齐全、与代码构建对齐、
 ##       project.godot 已注册 gui/theme/custom
-##   C. 字体：Cubic-11 挂默认字体、ChillBitmap-16px 挂标题变体；
-##          抗锯齿 / hinting / 子像素定位全部关闭；默认字号 11、标题 16
+##   C. 字体：ChillBitmap-16px 挂默认字体与标题变体；
+##          抗锯齿 / hinting / 子像素定位全部关闭；默认字号 12、标题 18
+##          （2026-09-30 全局换字：细体 Cubic_11 → 粗体 ChillBitmap_16）
 ##   D. 像素铁律：全部 StyleBoxFlat 圆角 = 0；描边 1px；底色与描边色（RGB）均取自色板
 ##   E. 窗口挂载：apply_to_window 不崩溃且返回 Theme（项目默认主题才是权威机制）
 ##   F. 冒烟：真实 Button / Label 在项目默认主题下解析出主题样式与字体
@@ -83,13 +84,17 @@ func _test_build() -> void:
 	if t == null:
 		_finish()
 		return
-	_ok("默认字号 = 11px", t.default_font_size == 11)
+	_ok("默认字号 = 12px", t.default_font_size == 12)
 	_ok("面板样式（PanelContainer/panel）存在", t.has_stylebox(&"panel", "PanelContainer"))
 	_ok("按钮 4 态样式齐全",
 		t.has_stylebox(&"normal", "Button")
 		and t.has_stylebox(&"hover", "Button")
 		and t.has_stylebox(&"pressed", "Button")
 		and t.has_stylebox(&"disabled", "Button"))
+	# 2026-09-30：Button 三态改由金色九宫格（`btn_gold.png`）承载 ⇒ 必须是 StyleBoxTexture。
+	# 素材缺失才回退 StyleBoxFlat（安全降级）。
+	_ok("按钮 normal = 金色九宫格 StyleBoxTexture（btn_gold 已接管）",
+		t.get_stylebox(&"normal", "Button") is StyleBoxTexture)
 	_ok("进度条 background/fill 样式存在",
 		t.has_stylebox(&"background", "ProgressBar")
 		and t.has_stylebox(&"fill", "ProgressBar"))
@@ -97,8 +102,8 @@ func _test_build() -> void:
 		t.has_stylebox(&"normal", "LineEdit")
 		and t.has_stylebox(&"focus", "LineEdit"))
 	_ok("提示面板 TooltipPanel 样式存在", t.has_stylebox(&"panel", "TooltipPanel"))
-	_ok("标题变体 TitleLabel 字号 = 16px",
-		t.get_font_size(&"font_size", "TitleLabel") == 16)
+	_ok("标题变体 TitleLabel 字号 = 18px",
+		t.get_font_size(&"font_size", "TitleLabel") == 18)
 
 
 # =============================================================================
@@ -113,7 +118,7 @@ func _test_theme_artifact() -> void:
 	_ok("theme.tres 可加载为 Theme", res is Theme)
 	if res is Theme:
 		var lt := res as Theme
-		_ok("产物：默认字号 11", lt.default_font_size == 11)
+		_ok("产物：默认字号 12", lt.default_font_size == 12)
 		_ok("产物：面板 / 按钮 / 进度条样式齐全",
 			lt.has_stylebox(&"panel", "PanelContainer")
 			and lt.has_stylebox(&"normal", "Button")
@@ -126,6 +131,15 @@ func _test_theme_artifact() -> void:
 	var loaded_t: Theme = load(path) if ResourceLoader.exists(path) else null
 	_ok("产物与代码构建默认字号一致（生成器未过期）",
 		loaded_t != null and loaded_t.default_font_size == code_t.default_font_size)
+	# ⚠️ 2026-09-30 復盤：只比字號**抓不到**「改了样式忘了重跑生成器」——
+	#    本批把 Button 换成金九宫格 StyleBoxTexture 却没重生成 theme.tres，
+	#    字號一致 ⇒ 旧断言全绿，游戏里按钮毫无变化。必须比**型别**。
+	if loaded_t != null:
+		var want_sb := code_t.get_stylebox(&"normal", "Button")
+		var got_sb := loaded_t.get_stylebox(&"normal", "Button")
+		_ok("产物与代码 Button/normal 型别一致（生成器未过期）",
+			want_sb != null and got_sb != null
+			and want_sb.get_class() == got_sb.get_class())
 
 
 # =============================================================================
@@ -189,7 +203,8 @@ func _test_pixel_rules() -> void:
 				bad_color.append("%s/%s bg=%s" % [typ, name, f.bg_color.to_html(false)])
 			if not _color_in_palette_rgb(f.border_color):
 				bad_color.append("%s/%s border=%s" % [typ, name, f.border_color.to_html(false)])
-	_ok("已检查 %d 个 StyleBoxFlat 样式" % checked, checked >= 12)
+	# 2026-09-30：Button 五态已改为 StyleBoxTexture（本段只统计 StyleBoxFlat）⇒ 门槛 12 → 8。
+	_ok("已检查 %d 个 StyleBoxFlat 样式" % checked, checked >= 8)
 	_ok("全部圆角 = 0（像素风禁圆角）", bad_corner.is_empty())
 	if not bad_corner.is_empty():
 		_info("异常：%s" % ", ".join(bad_corner))
@@ -236,14 +251,15 @@ func _test_smoke() -> void:
 	await get_tree().process_frame
 
 	var sb := btn.get_theme_stylebox(&"normal")
-	_ok("Button 解析出 normal 样式（StyleBoxFlat）", sb is StyleBoxFlat)
-	if sb is StyleBoxFlat:
-		_ok("按钮底色 = UI_BTN_NORMAL（1E232B）",
-			(sb as StyleBoxFlat).bg_color == GameConstants.UI_BTN_NORMAL)
+	# 2026-09-30：项目默认主题（theme.tres）的 Button 已换成金色九宫格 ⇒ StyleBoxTexture。
+	_ok("Button 解析出 normal 样式（金色九宫格 StyleBoxTexture）", sb is StyleBoxTexture)
+	if sb is StyleBoxTexture:
+		_ok("按钮样式带贴图（btn_gold 已挂）", (sb as StyleBoxTexture).texture != null)
 	var resolved_font: Font = lbl.get_theme_font(&"font")
-	_ok("Label 解析出默认字体（Cubic-11）", resolved_font != null and resolved_font == UITheme.build().default_font)
+	_ok("Label 解析出默认字体（ChillBitmap-16px）",
+		resolved_font != null and resolved_font == UITheme.build().default_font)
 	var resolved_size := lbl.get_theme_font_size(&"font_size")
-	_ok("Label 默认字号 = 11px", resolved_size == 11)
+	_ok("Label 默认字号 = 12px", resolved_size == 12)
 
 	btn.queue_free()
 	lbl.queue_free()

@@ -112,16 +112,15 @@ static func build() -> Theme:
 		GameConstants.UI_PANEL_BG, GameConstants.UI_PANEL_BORDER, 1, 0.95))
 
 	# ---- 4. 按钮三态 -------------------------------------------------------
-	# Normal 1E232B / Hover 2A313B+描边高光 / Pressed 14171C+内阴影 / 禁用降透明
-	var _btn := load("res://assets/ui/btn_gold.png") as Texture2D
-	if _btn != null:
-		var _sb := StyleBoxTexture.new()
-		_sb.texture = _btn
-		_sb.set_texture_margin_all(28)
-		_sb.content_margin_left = 14
-		_sb.content_margin_right = 14
-		_sb.content_margin_top = 6
-		_sb.content_margin_bottom = 6
+	# 金色雕花九宫格（`btn_gold.png`）：**唯一来源是 `UISkin.button_stylebox_gold()`**
+	# （走 UISkin 的三级解析：用户覆盖 → 随包内置 → 缺素材回 null）。
+	# ⚠️ 不要在这里另写一份路径/边距 —— 2026-09-30 复盘：此处曾写死
+	#    `load("res://assets/ui/btn_gold.png")`，既绕过了 UISkin 的用户覆盖契约，
+	#    九宫格边距也与 UISkin 不一致（两处副本）。
+	# ⚠️ 样式改了**必须重跑** `tools/gen_ui_theme.tscn` 让 theme.tres 落盘，
+	#    否则游戏挂的还是旧 theme.tres（本处改动静默失效）。
+	var _sb := UISkin.button_stylebox_gold()
+	if _sb != null:
 		t.set_stylebox(&"normal", "Button", _sb)
 		t.set_stylebox(&"hover", "Button", _sb)
 		t.set_stylebox(&"pressed", "Button", _sb)

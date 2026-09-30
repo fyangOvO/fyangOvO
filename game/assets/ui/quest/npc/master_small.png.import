@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ce5gfxyxkt8cw"
-path="res://.godot/imported/smith.png-c90a507d12eb3e78cc974254446a9d78.ctex"
+uid="uid://bwuw85jlhlvv6"
+path="res://.godot/imported/master_small.png-c18fcfe604038099ad4f5446405a6bab.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/smith.png"
-dest_files=["res://.godot/imported/smith.png-c90a507d12eb3e78cc974254446a9d78.ctex"]
+source_file="res://assets/ui/quest/npc/master_small.png"
+dest_files=["res://.godot/imported/master_small.png-c18fcfe604038099ad4f5446405a6bab.ctex"]
 
 [params]
 

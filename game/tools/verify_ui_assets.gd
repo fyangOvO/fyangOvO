@@ -111,6 +111,37 @@ func _test_skin_assets() -> void:
 	_ok("全部 %d 張素材載入且尺寸正確（%d/%d）"
 		% [EXPECT_TEX.size(), loaded, EXPECT_TEX.size()], loaded == EXPECT_TEX.size())
 
+	# ── 2026-09-30 復盤補覆蓋 ────────────────────────────────────────────────
+	# ⚠️ 本批新增的 11 個鍵（金面板 / 金按鈕 / 任務條 / 7 個 NPC 小立繪）**沒進 EXPECT_TEX**，
+	#    而它們當時放在 `assets/ui/` 根（UISkin 的內建根是 `assets/ui/quest/`）⇒
+	#    `texture()` 全部回 null（面板金邊、NPC 立繪一個都沒顯示），測試卻全綠。
+	#    這裡把「尺寸固定」的三件釘死（九宮格邊距依尺寸設定）；NPC 立繪是 AI 生圖、
+	#    尺寸會浮動 ⇒ 只驗「載得到 + 不超過 120×160」。
+	var pinned: Dictionary = {
+		"panel_gold": Vector2i(512, 512),
+		"btn_gold": Vector2i(432, 92),
+		"quest_item": Vector2i(477, 129),
+	}
+	for pk in pinned:
+		var ptex := UISkin.texture(pk)
+		var pwant: Vector2i = pinned[pk]
+		var pgot := Vector2i.ZERO if ptex == null else Vector2i(ptex.get_width(), ptex.get_height())
+		_ok("新增素材 %s = %s（實得 %s）" % [pk, str(pwant), str(pgot)],
+			ptex != null and pgot == pwant)
+	var npc_keys: Array[String] = [
+		"smith_small", "tailor_small", "gem_small", "master_small",
+		"quest_small", "guard_small", "abyss_small", "merchant_small",
+	]
+	var npc_ok := 0
+	for nk in npc_keys:
+		var ntex := UISkin.texture(nk)
+		if ntex != null and ntex.get_width() <= 120 and ntex.get_height() <= 160:
+			npc_ok += 1
+		else:
+			_info("NPC 立繪 %s：%s" % [nk, "null" if ntex == null else str(ntex.get_size())])
+	_ok("NPC 小立繪 %d/%d 載入且不超過 120×160" % [npc_ok, npc_keys.size()],
+		npc_ok == npc_keys.size())
+
 	# 用戶覆蓋路徑確實走 ContentPaths（CLASS_UI）
 	_ok("path_for(\"panel\") 命中 res:// 內建路徑",
 		UISkin.path_for("panel") == "res://assets/ui/quest/quest_panel_9slice.png")
@@ -217,9 +248,9 @@ func _test_cover() -> void:
 				forest != null and backdrop.texture == forest)
 
 	var bg := menu.get_node_or_null("Bg") as ColorRect
-	# 規範 §1.1：疊層色取色板內 0B0D10，alpha = 128/255
-	_ok("壓暗疊層 = 0B0D10 @ 128/255（規範 §1.1）",
-		bg != null and absf(bg.color.a - 128.0 / 255.0) < 0.01
+	# 疊層色取色板內 0B0D10；alpha 2026-09-30 由 128/255 調深到 180/255（暗黑像素風打磨）。
+	_ok("壓暗疊層 = 0B0D10 @ 180/255（2026-09-30 定稿）",
+		bg != null and absf(bg.color.a - 180.0 / 255.0) < 0.01
 		and Color(bg.color.r, bg.color.g, bg.color.b) == Color("0B0D10"))
 
 	var boxes := _find_vbox_with_min(menu)

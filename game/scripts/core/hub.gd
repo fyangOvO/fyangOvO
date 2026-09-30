@@ -807,20 +807,9 @@ func _close_all_panels() -> void:
 # UI 构建
 # =============================================================================
 
-## 據點環形站位（相對畫布中心的極座標：角度 deg / 半徑 px）
-## NPC 環站位：角度 / 半徑 / 對話台詞
-const NPC_RING := [
-	{"pid": PANEL_CHARACTER, "name": "主角", "sprite": "portrait_warrior", "line": "準備好了？先看看自己的數值吧。", "ang": 90.0, "r": 70.0},
-	{"pid": PANEL_FORGE, "name": "鐵匠", "sprite": "npc_smith", "line": "裝備想強化？找我準沒錯。", "ang": 150.0, "r": 155.0},
-	{"pid": PANEL_SKILLS, "name": "技能導師", "sprite": "npc_master", "line": "技能怎麼帶？我幫你調。", "ang": 210.0, "r": 165.0},
-	{"pid": PANEL_TOWER, "name": "守塔人", "sprite": "portrait_archer", "line": "塔層越高，獎勵越豐。", "ang": 270.0, "r": 155.0},
-	{"pid": PANEL_ABYSS, "name": "深淵使者", "sprite": "npc_gem", "line": "深淵之下……你確定要去？", "ang": 330.0, "r": 165.0},
-	{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "sprite": "npc_gem", "line": "看看這些閃亮的寶石。", "ang": 30.0, "r": 155.0},
-	{"pid": PANEL_TALENT, "name": "裁縫", "sprite": "npc_tailor", "line": "要不要縫件新衣服？", "ang": 60.0, "r": 120.0},
-	{"pid": PANEL_INVENTORY, "name": "行囊", "sprite": "portrait_warrior", "line": "看看你撿了些什麼寶貝。", "ang": 120.0, "r": 120.0},
-]
-const NPC_RESERVED := 3  # 預留擴展位
-
+## 據點熱區：營地整圖 + 透明按鈕（座標對 640×360 邏輯畫布）。
+## ⚠️ 熱區按鈕**不設 `text`** —— 它會撐大按鈕的最小尺寸、改變點擊區。
+##    自動化一律用 `name = "Hotspot_<panel_id>"` 取鈕（與關卡列表 `btn.name = lv.id` 同一約定）。
 func _build_ui() -> void:
 	var bg := ColorRect.new()
 	bg.color = Color(0.03, 0.03, 0.05, 1.0)
@@ -909,6 +898,7 @@ func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key
 			spr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_ui_layer.add_child(spr)
 	var area := Button.new()
+	area.name = "Hotspot_%s" % pid
 	area.custom_minimum_size = Vector2(60, 100)
 	area.position = pos - Vector2(30, 80)
 	area.focus_mode = Control.FOCUS_NONE
@@ -938,53 +928,6 @@ func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-func _add_npc(pos: Vector2, pid: String, name: String, sprite_key: String, line: String) -> void:
-	var sprite := TextureRect.new()
-	var tex := UISkin.texture(sprite_key)
-	if tex != null:
-		sprite.texture = tex
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
-	sprite.custom_minimum_size = Vector2(40, 56)
-	sprite.size = Vector2(40, 56)
-	sprite.position = pos - Vector2(20, 56)
-	sprite.mouse_filter = Control.MOUSE_FILTER_STOP
-	sprite.pivot_offset = Vector2(24, 64)
-	# 待機呼吸浮動（錯開相位）
-	if DisplayServer.get_name() != "headless":
-		var tt := create_tween()
-		tt.set_loops()
-		tt.tween_interval(randf() * 0.8)
-		tt.tween_property(sprite, "position:y", sprite.position.y - 3.0, 1.6) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		tt.tween_property(sprite, "position:y", sprite.position.y, 1.6) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	sprite.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			_speak(line)
-			EventBus.request_panel_toggle.emit(pid, not is_panel_visible(pid)))
-	_ui_layer.add_child(sprite)
-	# 呼吸浮動（錯開相位）
-	if DisplayServer.get_name() != "headless":
-		var t := create_tween()
-		t.set_loops()
-		t.tween_interval(randf() * 0.8)
-		t.tween_property(sprite, "position:y", pos.y - 64 - 2, 1.6) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		t.tween_property(sprite, "position:y", pos.y - 64, 1.6) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	var lab := Label.new()
-	lab.text = name
-	lab.add_theme_font_size_override("font_size", 12)
-	lab.add_theme_color_override("font_color", Color("F2C14E"))
-	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lab.position = pos - Vector2(24, 0)
-	lab.size = Vector2(48, 16)
-	_ui_layer.add_child(lab)
-
-
 func _speak(text: String) -> void:
 	if _dialogue_bubble == null:
 		_dialogue_bubble = PanelContainer.new()
@@ -1009,18 +952,6 @@ func _speak(text: String) -> void:
 		var t := create_tween()
 		t.tween_interval(2.5)
 		t.tween_property(_dialogue_bubble, "visible", false, 0.1)
-
-
-func _add_reserved_npc(pos: Vector2) -> void:
-	var ph := Button.new()
-	ph.custom_minimum_size = Vector2(44, 44)
-	ph.focus_mode = Control.FOCUS_NONE
-	ph.text = "？"
-	ph.add_theme_font_size_override("font_size", 18)
-	ph.modulate = Color(1, 1, 1, 0.35)
-	ph.disabled = true
-	ph.position = pos - Vector2(22, 22)
-	_ui_layer.add_child(ph)
 
 
 func _toggle_level_list() -> void:

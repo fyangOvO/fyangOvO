@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cvob175f3clfu"
-path="res://.godot/imported/gem.png-2df81f6b2268564b96ca521883c8150e.ctex"
+uid="uid://ce5gfxyxkt8cw"
+path="res://.godot/imported/smith.png-2705107b815084dc8e267650c0060974.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/gem.png"
-dest_files=["res://.godot/imported/gem.png-2df81f6b2268564b96ca521883c8150e.ctex"]
+source_file="res://assets/ui/quest/npc/smith.png"
+dest_files=["res://.godot/imported/smith.png-2705107b815084dc8e267650c0060974.ctex"]
 
 [params]
 

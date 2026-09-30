@@ -2,16 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c06xsih6qum4q"
-path="res://.godot/imported/gem_small.png-edadcc8473faca06cd6d58c54247cfc8.ctex"
-metadata={
-"vram_texture": false
-}
+uid="uid://b4wdieotc2qw1"
+valid=false
 
 [deps]
 
-source_file="res://assets/ui/npc/gem_small.png"
-dest_files=["res://.godot/imported/gem_small.png-edadcc8473faca06cd6d58c54247cfc8.ctex"]
+source_file="res://assets/ui/quest/npc/npc_mentor.png"
 
 [params]
 

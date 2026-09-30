@@ -75,10 +75,13 @@ func _ready() -> void:
 	_finish()
 
 
+## 等 **真實時間**（秒）。
+##
+## ⚠️ 不可用「等 N 幀」近似時間：無頭模式 V-Sync 會把 FPS 鎖到顯示器刷新率，
+##    「秒 → 幀數」換算在高刷機上會嚴重低估真實時長（同一坑已在 verify_buff 實測踩中）。
 func _step(seconds: float) -> void:
-	var frames := int(ceil(seconds * 60.0))
-	for i in range(frames):
-		await get_tree().process_frame
+	if seconds > 0.0:
+		await get_tree().create_timer(seconds).timeout
 
 
 func _spawn_enemy(mid: String, pos: Vector2) -> EnemyBase:

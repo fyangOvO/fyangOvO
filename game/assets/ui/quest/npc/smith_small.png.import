@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bx76ir3p6gwc"
-path="res://.godot/imported/merchant_small.png-2240cdd190ecf3a101fd48cbbe03661a.ctex"
+uid="uid://bd55k6mccvc3d"
+path="res://.godot/imported/smith_small.png-b63299155aad9c68c6fbfebf29158512.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/merchant_small.png"
-dest_files=["res://.godot/imported/merchant_small.png-2240cdd190ecf3a101fd48cbbe03661a.ctex"]
+source_file="res://assets/ui/quest/npc/smith_small.png"
+dest_files=["res://.godot/imported/smith_small.png-b63299155aad9c68c6fbfebf29158512.ctex"]
 
 [params]
 

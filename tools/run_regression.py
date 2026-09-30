@@ -23,6 +23,11 @@ GODOT = r"C:\Users\11265\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.God
 TIMEOUT = 120
 
 
+def tail_lines(text: str, n: int = 25) -> str:
+    lines = text.rstrip().splitlines()
+    return "\n".join(lines[-n:])
+
+
 def run_godot(scene: str) -> tuple[bool, str]:
     cmd = [GODOT, "--headless", "--path", GAME, f"res://tools/{scene}.tscn"]
     try:
@@ -32,7 +37,7 @@ def run_godot(scene: str) -> tuple[bool, str]:
         ok = (("0 项失败" in out or "0 項失敗" in out or "/ 0 失败" in out
                or "全部通过" in out or "全部通過" in out or "全部可解析" in out)
               and "[FAIL]" not in out)
-        return ok, out[-400:]
+        return ok, tail_lines(out)
     except subprocess.TimeoutExpired:
         return False, "TIMEOUT"
 
@@ -53,7 +58,7 @@ def run_py(script: str) -> tuple[bool, str]:
             or "/ 0 失败" in out
             or "失败 0" in out
             or "失敗 0" in out)
-        return ok, out[-400:]
+        return ok, tail_lines(out)
     except subprocess.TimeoutExpired:
         return False, "TIMEOUT"
 
@@ -76,6 +81,10 @@ def main() -> int:
         print(("[PASS] " if ok else "[FAIL] ") + sc)
         if not ok:
             fails.append(sc)
+            # 失败必须留下现场，否则只能看到「失败 N 项」而无法定位（本行 2026-09-30 加）。
+            print("        ── 输出尾部 ──")
+            for line in tail.rstrip().splitlines():
+                print("        | " + line)
 
     # 3. Python 校驗器 01-07
     pys = sorted(f for f in os.listdir(PLAN) if f.startswith(("0", "1")) and f.endswith(".py"))
@@ -84,6 +93,9 @@ def main() -> int:
         print(("[PASS] " if ok else "[FAIL] ") + s)
         if not ok:
             fails.append(s)
+            print("        ── 输出尾部 ──")
+            for line in tail.rstrip().splitlines():
+                print("        | " + line)
 
     print("=" * 60)
     print("耗時 %.1fs；失敗 %d 項" % (time.time() - t0, len(fails)))

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://di7x40hfu60bj"
-valid=false
+uid="uid://cp8c25n5lmcrx"
+path="res://.godot/imported/quest_small.png-d116c20843d9b5fbab0a800f63480972.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/ui/npc/npc_blacksmith.png"
+source_file="res://assets/ui/quest/npc/quest_small.png"
+dest_files=["res://.godot/imported/quest_small.png-d116c20843d9b5fbab0a800f63480972.ctex"]
 
 [params]
 

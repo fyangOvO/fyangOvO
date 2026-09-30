@@ -16,10 +16,9 @@ const CONTENT_MIN_SIZE: Vector2 = Vector2(320, 224)
 ## 內容內距 12px（= 8px 框 + 4px 呼吸）；素材缺失時退回 UITheme 的 StyleBoxFlat 面板。
 const PANEL_CONTENT_MARGIN: int = 12
 ## 標題區（2026-09-22 定稿）：金色龍紋徽章底板 `title_emblem`（336×112，3:1），
-## 副標題已烘焙進徽章底板。舊 `quest_banner_256x48` 2×（512×96）整版退役。
-const BANNER_SIZE: Vector2 = Vector2(336, 80)
-## 燙金像素標題 `title_text`（240×64）在徽章內部的落點（銘牌區域內，規範 §7.1）。
-const TITLE_TEXT_RECT: Rect2 = Rect2(48, 12, 240, 64)
+## 「七傳說」燙金字與副標題都已烘焙進徽章底板 ⇒ **1:1 顯示、不再另疊文字**。
+## ⚠️ 336×112 不可改：徽章是 3:1，換比例會把龍紋拉扁（2026-09-30 曾誤改 80 ⇒ 變形 + 封面節奏位移）。
+const BANNER_SIZE: Vector2 = Vector2(336, 112)
 ## 字號只用像素鐵律白名單 {11, 12, 16, 22, 32}（`GameConstants.UI_FONT_SIZES`，規範 §7.7）。
 const TITLE_FONT_SIZE: int = 32
 const ACCOUNT_FONT_SIZE: int = 11
@@ -187,8 +186,8 @@ func _make_panel_body() -> VBoxContainer:
 	return vb
 
 
-## 標題區（2026-09-22 定稿）：金色龍紋徽章底板 + 燙金像素「七傳說」。
-## 副標題已烘焙進徽章底板（`title_emblem.png` 銘牌區內）。
+## 標題區（2026-09-22 定稿）：金色龍紋徽章底板 `title_emblem`（336×112，3:1）。
+## 「七傳說」燙金字與副標題都已烘焙在徽章內 ⇒ 不再另疊文字（疊了會雙重標題）。
 ## 素材缺失 → 只回傳文字標題（安全降級，與 `UISkin` 契約一致）。
 func _make_title_banner() -> Control:
 	var box := Control.new()
@@ -197,7 +196,6 @@ func _make_title_banner() -> Control:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var emblem_tex := UISkin.texture("title_emblem")
-	var title_tex := UISkin.texture("title_text")
 	if emblem_tex != null:
 		var tr := TextureRect.new()
 		tr.name = "Emblem"
@@ -208,14 +206,16 @@ func _make_title_banner() -> Control:
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		box.add_child(tr)
-	# 一律用 Label 渲染「七傳說」：清晰、可放大、不依賴貼圖。
+		return box
+	# 徽章缺失 → 純文字標題（安全降級）。
+	# ⚠️ 字號取白名單常量（規範 §7.7：只允許 11/12/16/22/32），**不得硬編碼**。
 	var title := Label.new()
 	title.name = "TitleText"
 	title.text = "七傳說"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 44)
-	title.add_theme_color_override("font_color", Color("F2C14E"))
+	title.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
+	title.add_theme_color_override("font_color", TITLE_COLOR)
 	title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
 	title.add_theme_constant_override("shadow_offset_x", 2)
 	title.add_theme_constant_override("shadow_offset_y", 2)
@@ -288,13 +288,10 @@ func _spacer(h: float) -> Control:
 func _refresh_account() -> void:
 	var lv := 1
 	var gold := 0
-	var mats := 0
-	var bonus := 0.0
 	if SaveManager != null and SaveManager.has_method("get_account_data"):
 		var acc: Dictionary = SaveManager.get_account_data()
 		lv = int(acc.get("level", 1))
 		gold = int(acc.get("gold", 0))
-		mats = int(acc.get("materials", 0))
-		bonus = float(acc.get("chapter_bonus", 0.0))
 	if _account_label != null:
-		_account_label.text = "Lv.%d　金幣 %d" % [lv, gold]
+		# ⚠️ 游戏内 UI 文案一律**简体**（注释/文档才用繁體）；断言见 `verify_ui71.gd`。
+		_account_label.text = "Lv.%d　金币 %d" % [lv, gold]

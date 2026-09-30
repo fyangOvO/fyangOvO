@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwuw85jlhlvv6"
-path="res://.godot/imported/master_small.png-b0ddf204cf9c9ee3b6188413202d95e4.ctex"
+uid="uid://owpwxggtx3v3"
+path="res://.godot/imported/master.png-3b8d53af87c397084d7535be1a4d11c3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/master_small.png"
-dest_files=["res://.godot/imported/master_small.png-b0ddf204cf9c9ee3b6188413202d95e4.ctex"]
+source_file="res://assets/ui/quest/npc/master.png"
+dest_files=["res://.godot/imported/master.png-3b8d53af87c397084d7535be1a4d11c3.ctex"]
 
 [params]
 

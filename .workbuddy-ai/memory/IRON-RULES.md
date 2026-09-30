@@ -466,6 +466,44 @@ R11 → `"tickets" in t`），使 `06 --repo` / `07 --repo` 全程保持全綠�
 
 ---
 
+### 🆕 2026-09-30（HANDOFF-C 復盤）新踩六坑
+
+**㊳ 「檔案存在」≠「載得到」—— 素材路徑必須與登記表逐字一致**
+`UISkin.TEX` 登記 `assets/ui/quest/<rel>`（`BUILTIN_ROOT`），素材卻被放在 `assets/ui/` **根** ⇒
+`texture()` 全回 null ⇒ **面板金邊 / NPC 立繪從未顯示過**（用戶反覆反映「面板沒變」的根因，無人報錯）。
+⇒ 搬素材後必須：① 改寫 `.import` 的 `source_file` ② 刪舊 `.import` ③ 跑 `--headless --path . --import`
+④ 用 `probe_tex` 實測「登記名 → 載得到」。
+**通則：改素材路徑後，驗收必須是「真載入 + 真渲染抓圖」，不是「檔案在不在」。**
+
+**㊴ 改了「看起來是全域設定」的代碼 ≠ 生效 —— 先確認「遊戲實際掛載的是哪一份」**
+Button 五態寫在 `ui_theme.gd`（運行時函數 `UITheme.build()`），但 `project.godot` 實際掛的是
+`scenes/ui/theme/theme.tres`，由生成器 `gen_ui_theme.gd` 落盤 ⇒ 代碼改了等於沒改。
+⇒ 改主題/配色前先查 `project.godot → gui/theme/custom` 指向誰，以及那份資源**由誰生成**。
+⚠️ 生成器回讀校驗必須 `ResourceLoader.load(path, "Theme", ResourceLoader.CACHE_MODE_IGNORE)`，否則命中舊快取 ⇒ 假陰性。
+
+**㊵ import `valid=false` 是「貼圖靜默消失」的頭號原因**
+`title_emblem.png` 3548×1181（**邊長 > 2048**）⇒ import 標 `valid=false` ⇒ 貼圖載不到、徽章消失，
+還連帶把封面垂直節奏從 360 打成 328。⇒ 任何「貼圖沒顯示」先查 `.import` 的 `valid` 欄位，再查尺寸。
+
+**㊶ 無頭模式 V-Sync 把 FPS 鎖到顯示器刷新率 ⇒「秒 → 幀數」的等待不可靠**
+`verify_buff._step(seconds)` 用 `ceil(seconds*60)` 等 `process_frame`，高刷機上 24 幀 << 0.2s
+⇒「增益到期」斷言**假紅**（實測 `--fixed-fps 1000` 必紅 3 條 / `--fixed-fps 30` 必綠）。
+⇒ 凡「等一段真實時間」一律 `get_tree().create_timer(s).timeout`（與 `_process` 同源 delta）；
+`physics_frame`（固定 60Hz）可用，但**同一測試內別混用**。
+⚠️ `--fixed-fps` 會讓依賴 `SceneManager` 過場的測試（如 `verify_e2e`）連第一步都掛 ⇒ 它不是通用探針。
+
+**㊷ 回歸工具丟棄失敗輸出 ⇒ 只能看到「失敗 N 項」無法定位**
+`tools/run_regression.py` 把失敗輸出的 `tail` 算出來卻**沒印**，排查時只能靠猜。
+⇒ 已加印失敗輸出最後 25 行。**通則：任何「匯總型」工具，失敗時必須留下現場。**
+
+**㊸ 懒挂載的 UI 節點，在「未觸發挂載」前不在樹上 ⇒ `_find_button(root,…)` 找不到**
+`hub._level_list` 在 `_build_ui()` 只 `new()`、**不 `add_child`**；要點「▶ 出擊」才由 `_toggle_level_list()`
+挂進 UI 層。而 `verify_e2e` 直接 `_find_button(_hub, display_name)` ⇒ 找不到（`verify_hub` 用
+`hub.get("_level_list")` **直取引用**所以能過）。⇒ 測試要麼走真實玩家路徑（先點開面板），
+要麼直取引用；**「按鈕在不在樹上」和「按鈕存不存在」是兩回事**。
+
+---
+
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
 | 路徑 | 機制 | 適用 | 判斷依據 |
 |---|---|---|---|

@@ -238,8 +238,20 @@ class E2ERunner extends Node:
 		var lv_def: LevelData = ConfigLoader.get_level(LEVEL_ID)
 		_ok("④ 目标关数据存在：%s（%s）" % [LEVEL_ID, lv_def.display_name if lv_def != null else "?"],
 			lv_def != null)
-		var btn := _find_button(_hub, lv_def.display_name) if lv_def != null else null
-		_ok("④ 据点数单里找到该关按钮（按显示名匹配）", btn != null)
+		if lv_def == null:
+			return
+		# ⚠️ 关卡列表是**懒挂载**的：`hub._build_ui()` 只造好 `_level_list`（一个孤立的
+		#    VBoxContainer，未入树），点「▶ 出擊 · 選擇關卡」才由 `_toggle_level_list()`
+		#    把它挂进 UI 层。因此 `_find_button(_hub, ...)` 在**点出擊之前**永远找不到关卡按钮。
+		#    这里必须复现真实玩家路径的**第一步**（点出擊），否则 ④ 会假红并连带 ⑤⑥⑦⑧⑨ 全红。
+		var open_btn := _find_button(_hub, "出擊")
+		_ok("④ 据点「出擊 · 選擇關卡」按钮存在", open_btn != null)
+		if open_btn == null:
+			return
+		open_btn.pressed.emit()           # → _toggle_level_list()（挂载并显示列表）
+		await _wait_frames(2)
+		var btn := _find_button(_hub, lv_def.display_name)
+		_ok("④ 点出擊后据点列表里找到该关按钮（按显示名匹配）", btn != null)
 		if btn == null:
 			return
 		_ok("④ 该关按钮可点（已解锁）", not btn.disabled)
@@ -329,8 +341,10 @@ class E2ERunner extends Node:
 		for d in drops:
 			if is_instance_valid(d) and d is LootDrop:
 				(d as LootDrop).global_position = _player.global_position
-		# LOOT_POP_DELAY(0.25s) + 拾取判定需要若干物理/处理帧
-		await _wait_frames(40)
+		# ⚠️ 这里等的是**真实时间**（LOOT_POP_DELAY 期间掉落物不参与拾取判定），
+		#    不能按帧数近似 —— 无头模式 V-Sync 会把 FPS 锁到显示器刷新率，
+		#    高刷机上 40 帧可能远小于 0.25s ⇒ 拾取尚未开放就断言 ⇒ 假红。
+		await get_tree().create_timer(GameConstants.LOOT_POP_DELAY + 0.15).timeout
 
 		_equip_picked = _player.inventory.size()
 		var picked_delta := _player.inventory.size() - inv_before

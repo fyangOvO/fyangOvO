@@ -30,12 +30,17 @@
   - 背景：`game/assets/ui/camp_scene.png`（遠景，5 人圍篝火，已縮 1920×810）
   - 8 個功能熱區：半透明 Button（60×100）覆蓋人物位置，點擊彈台詞 + 開對應面板
   - 熱區位置在人物上方畫 36×48 小像素立繪（主角除外，已移除）
-- 8 個 NPC 小立繪（`game/assets/ui/npc/*_small.png`，已摳背景，120×160 內）：
+- 8 個 NPC 小立繪（**實測落點 `game/assets/ui/quest/npc/*_small.png`**，已摳背景，120×160 內）：
   smith_small / tailor_small / gem_small / master_small / quest_small / guard_small / abyss_small / merchant_small
-- 金色雕花面板框 `panel_gold.png`（512×512，卷草紋四角+寶石飾）
-- 金色按鈕九宮格 `btn_gold.png`（512×180），已在 ui_theme 全局套用
-- 任務列表項金邊 `quest_item.png`（512×140）
+- 金色雕花面板框 `game/assets/ui/quest/panel_gold.png`（512×512，卷草紋四角+寶石飾）
+- 金色按鈕九宮格 `game/assets/ui/quest/btn_gold.png`（**432×92，已去白底 + bbox 裁切**），**已進 `theme.tres` 全局套用**
+- 任務列表項金邊 `game/assets/ui/quest/quest_item.png`（**477×129，已去白底 + bbox 裁切**）
 - UISkin 工廠：`panel_stylebox_gold()` / `button_stylebox_gold()`
+
+> ⚠️ **路徑更正（2026-09-30 復盤）**：上述素材原本落在 `game/assets/ui/` **根目錄**，
+> 而 `UISkin.TEX` 登記的是 `assets/ui/quest/<rel>`（`BUILTIN_ROOT`）⇒ `texture()` 全回 null
+> ⇒ **面板金邊 / NPC 立繪從未顯示過**（這就是用戶反覆反映「面板沒變」的根因）。
+> 已用 `git mv` 全部遷入 `assets/ui/quest/`（NPC 進 `quest/npc/`），並改寫 19 個 `.import` 的 `source_file`。
 
 ## 4. 關鍵文件
 
@@ -47,7 +52,7 @@
 ## 5. 未完成清單（接手照做）
 
 ### 高優先
-1. **面板金邊實際顯示驗證**：用戶多次反映「面板沒變」。已修：內面板透明 + 外層金邊。接手後必須實機開背包/天賦確認金邊真的顯示，若仍不顯示，檢查 panel_gold.png 的 valid 狀態與九宮格 texture margin（現 60）
+1. ~~**面板金邊實際顯示驗證**~~ ✅ **已修並目視驗證（2026-09-30 復盤）**。根因不是 margin，是**素材路徑錯位**（見 §3 更正）＋ 按鈕九宮格寫在死路徑（見 §8）。現 `panel_gold.png` / `btn_gold.png` 皆已進 `theme.tres`，`deliverables/gstack/c_review_shot/` 5 張截圖可證金邊顯示。
 2. **NPC 熱區座標對齊**：HOTSPOTS 座標是對舊營地圖估的，換背景或人物位置後需重新對齊（人物實際位置 vs 熱區/貼圖位置）
 3. **營地人物與背景重複**：camp_scene.png 已內建 5 個人物，熱區又疊了一層小立繪，可能視覺重複。需決定：要麼用整張圖（移除熱區貼圖只留熱區），要麼用純背景 + 獨立 NPC 貼圖
 
@@ -73,3 +78,34 @@
 - 跑 `godot --headless --path . --import` 無報錯
 - 實機進據點：8 個 NPC 可見、點擊彈台詞並開面板、面板顯示金邊
 - 全量回歸（若存在 run_regression.py）保持通過
+
+## 8. 復盤修正記錄（2026-09-30 接手復盤）
+
+本輪針對「UI 打磨看起來做了卻沒生效」做根因排查，修復 4 類**靜默脫鉤**（都不報錯、只是不生效）：
+
+| # | 症狀 | 根因 | 修法 |
+|---|---|---|---|
+| A | 面板金邊從未顯示 | 素材在 `assets/ui/` 根，UISkin 找 `assets/ui/quest/` | 11 個 PNG `git mv` 進 `quest/` + 改寫 19 個 `.import` 的 `source_file` |
+| B | 金色按鈕無變化 | 九宮格寫在 `ui_theme.gd`，但遊戲實際掛 `theme.tres`，而生成器 `gen_ui_theme.gd` 被隔離 | 取回生成器；`ui_theme.gd` Button 五態改走 `UISkin.button_stylebox_gold()` 單一來源；重跑生成器落盤 `theme.tres` |
+| C | 標題徽章消失 + 封面垂直節奏 360→328 | `title_emblem.png` 3548×1181 > 2048 ⇒ import `valid=false` ⇒ 貼圖載不到 | PIL LANCZOS 縮到 336×112，刪舊 `.import` 重導入 |
+| D | `btn_gold.png` / `quest_item.png` 帶白框 | 外圍不透明白底（250,251,253,255） | 邊界連通洪水填充去背 + bbox 裁切（432×92 / 477×129） |
+
+**連帶修復的既有紅**：
+- `verify_e2e` ④（既有紅，非本批引入）——`hub._level_list` 是**懒挂載**（點「▶ 出擊」才入樹），而測試直接 `_find_button` 找關卡按鈕 ⇒ 找不到。已改測試復現真實玩家路徑（先點出擊再點關卡）。**已用「換回 HEAD 版 `hub.gd`」對照實驗證實與本批無關**。
+- **閃爍（flaky）根因**：無頭模式 **V-Sync 會把 FPS 鎖到顯示器刷新率**，而 `verify_buff._step(seconds)` 用「秒 → 幀數」近似時間 ⇒ 高刷機上 24 幀遠小於 0.2s ⇒「增益到期」斷言假紅。**實測 `--fixed-fps 1000` 必紅 3 條 / `--fixed-fps 30` 必綠**。
+  修：`verify_buff._step` / `verify_set_effects._step` 改用 `SceneTreeTimer`（與 `_process` 同源 delta）；`verify_e2e` 拾取等待改等 `LOOT_POP_DELAY` 真實時間。
+  ⚠️ `verify_element_ext` / `verify_health` / `verify_juice` / `verify_loot` 用的是 `physics_frame`（固定 60Hz）⇒ **不受影響，勿誤改**。
+- **回歸工具改進**：`tools/run_regression.py` 原本把失敗輸出的 `tail` 算出來卻**丟棄**，導致只能看到「失敗 N 項」無法定位。已加印失敗輸出的最後 25 行。
+
+**同步更新的斷言**（口徑變更算正式設計）：
+- `verify_ui`：字號 11→12 / 16→18；B2 段加 Button/normal **型別一致性**斷言；F 段 Button 改斷言 `StyleBoxTexture`；D 段 StyleBoxFlat 門檻 12→8
+- `verify_ui_assets`：壓暗 alpha 128→180；新增 panel_gold/btn_gold/quest_item 釘死尺寸 + 8 NPC「載得到且 ≤120×160」
+- `verify_ui71`：帳號文案 `"账号 Lv."` → `"Lv."`
+- `verify_skill_panel`：熱區改用 `Hotspot_<pid>` 命名取鈕
+- `self_check`：元素減傷斷言改按公式推導（`50/(50+K*1)`）而非寫死
+
+**新增工具**：`game/tools/capture_c_review.gd/.tscn`（**非 headless**，輸出 `deliverables/gstack/c_review_shot/` 5 張）——復盤目視驗收用，只碰測試槽位 7。
+
+**驗收結果**：全量回歸 **84 項檢查（77 Godot + 7 策劃）/ 208.0s / 失敗 0 項（全綠）**；`probe_tex` 13/13；生成器回讀校驗通過；5 張截圖目視確認徽章 / 金邊 / NPC / 金按鈕皆顯示。
+
+> 對照：本輪共跑 4 次全量回歸。第 1 次紅 `verify_e2e`（既有紅）、第 2 次紅 `verify_buff`（閃爍）、第 3 次紅 `verify_buff`、第 4 次**全綠**。前兩次紅皆已定位並修復（見上）。

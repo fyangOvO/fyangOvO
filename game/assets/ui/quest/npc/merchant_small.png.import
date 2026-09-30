@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://f3p2te1bmpb6"
-valid=false
+uid="uid://bx76ir3p6gwc"
+path="res://.godot/imported/merchant_small.png-062562b22fc9d7f8a6f9c193233470cf.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/ui/npc/npc_tailor.png"
+source_file="res://assets/ui/quest/npc/merchant_small.png"
+dest_files=["res://.godot/imported/merchant_small.png-062562b22fc9d7f8a6f9c193233470cf.ctex"]
 
 [params]
 

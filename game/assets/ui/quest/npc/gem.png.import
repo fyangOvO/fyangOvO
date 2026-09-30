@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b8ukshio3ukxi"
-path="res://.godot/imported/tailor.png-51ab5c7f1e11d9413cf6a6076717088e.ctex"
+uid="uid://cvob175f3clfu"
+path="res://.godot/imported/gem.png-cbace33a57c922651e323463a25b3ded.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/tailor.png"
-dest_files=["res://.godot/imported/tailor.png-51ab5c7f1e11d9413cf6a6076717088e.ctex"]
+source_file="res://assets/ui/quest/npc/gem.png"
+dest_files=["res://.godot/imported/gem.png-cbace33a57c922651e323463a25b3ded.ctex"]
 
 [params]
 

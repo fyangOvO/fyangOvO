@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpl47gcu2pnao"
-path="res://.godot/imported/guard_small.png-14dd5437ba386b54c62e598999200c35.ctex"
+uid="uid://c06xsih6qum4q"
+path="res://.godot/imported/gem_small.png-7429694257a57ebd64188544200a5ac2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/guard_small.png"
-dest_files=["res://.godot/imported/guard_small.png-14dd5437ba386b54c62e598999200c35.ctex"]
+source_file="res://assets/ui/quest/npc/gem_small.png"
+dest_files=["res://.godot/imported/gem_small.png-7429694257a57ebd64188544200a5ac2.ctex"]
 
 [params]
 

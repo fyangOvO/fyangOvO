@@ -94,7 +94,8 @@ func _test_menu() -> void:
 	await get_tree().process_frame
 	var buttons := _count_buttons(menu)
 	_ok("主菜单 3 按钮（开始/设置/退出）", buttons >= 3)
-	_ok("账号概览行存在（账号 Lv.）", _count_labels(menu, "账号 Lv.") >= 1)
+	# 2026-09-30：账号概览行精简为「Lv.N　金币 N」（原「账号 Lv.… · 魔石 … · 声望加成 …」）。
+	_ok("账号概览行存在（Lv.）", _count_labels(menu, "Lv.") >= 1)
 	menu.on_start = func() -> void: _menu_started = true
 	menu.on_start.call()
 	_ok("开始回调可触发", _menu_started)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cp8c25n5lmcrx"
-path="res://.godot/imported/quest_small.png-63c45f097d548c73a0e82c0405f0130f.ctex"
+uid="uid://crv2gl26ut35f"
+path="res://.godot/imported/quest_item.png-89d3fede34ed4c1b8a10f69b6467751e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/npc/quest_small.png"
-dest_files=["res://.godot/imported/quest_small.png-63c45f097d548c73a0e82c0405f0130f.ctex"]
+source_file="res://assets/ui/quest/quest_item.png"
+dest_files=["res://.godot/imported/quest_item.png-89d3fede34ed4c1b8a10f69b6467751e.ctex"]
 
 [params]
 

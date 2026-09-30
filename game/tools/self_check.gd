@@ -719,11 +719,15 @@ func _run_self_check() -> void:
 		elem_unique and GameConstants.ELEMENTS.has(GameConstants.ELEMENT_PHYSICAL)
 		and GameConstants.ELEMENTS.has(GameConstants.ELEMENT_SHADOW))
 	# 减伤公式锚点（GDD 6.6）：裸装 L1 护甲 6 → 6/(6+50) = 10.714%；
-	# 元素抗性同构：50 抗 @ L1 → 50/100 = 50%
+	# 元素抗性同构：resist / (resist + RESIST_DR_CONSTANT_PER_LEVEL × level)。
+	# ⚠️ 2026-09-30 修正：常量已由 50 调到 25（4-W7 路线A）⇒ 50 抗 @ L1 = 50/(50+25) = 66.7%，
+	#    旧断言写死 0.5 是**过期快照**（改了常量没同步断言）。这里改为**按公式推导**，
+	#    避免下次调常量再脱钩。
 	_add_check("护甲减伤公式锚点：ARM 6 @ L1 ≈ 10.71%",
 		is_equal_approx(GameConstants.armor_damage_reduction(6.0, 1), 6.0 / 56.0))
-	_add_check("元素减伤公式同构：抗性 50 @ L1 ≈ 50%",
-		is_equal_approx(GameConstants.element_damage_reduction(50.0, 1), 0.5))
+	var want_elem := 50.0 / (50.0 + GameConstants.RESIST_DR_CONSTANT_PER_LEVEL * 1.0)
+	_add_check("元素减伤公式同构：抗性 50 @ L1 = %.1f%%（按公式推导）" % (want_elem * 100.0),
+		is_equal_approx(GameConstants.element_damage_reduction(50.0, 1), want_elem))
 
 	# 任务 2.4：敌人 AI 参数与怪物数据锚点
 	var ai_ok := (

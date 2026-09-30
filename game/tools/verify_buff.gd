@@ -91,10 +91,16 @@ func _spawn_enemy(mid: String, pos: Vector2) -> EnemyBase:
 	return e
 
 
+## 等 **真實時間**（秒）。
+##
+## ⚠️ 不可用「等 N 幀」近似時間：`BuffComponent._process(delta)` 與 `HealthComponent` 的限時盾
+##    到期都是按**真實 delta 累加**的，而無頭模式幀率不固定 —— 高幀率時 N 幀累加的時間遠小於
+##    預期 ⇒「0.2s 到期」這類斷言假紅。
+##    實測：`--fixed-fps 1000`（delta=1ms）本段 3 條到期斷言全紅；`--fixed-fps 30`（delta=33ms）全綠。
+##    用 `SceneTreeTimer`（與 `_process` 共用同一 delta 源）才能保證「時長」語義一致。
 func _step(seconds: float) -> void:
-	var frames := int(ceil(seconds * 60.0))
-	for i in range(frames):
-		await get_tree().process_frame
+	if seconds > 0.0:
+		await get_tree().create_timer(seconds).timeout
 
 
 # =============================================================================

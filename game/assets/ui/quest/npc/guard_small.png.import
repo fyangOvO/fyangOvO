@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d3xt6nxc1p2g0"
-valid=false
+uid="uid://bpl47gcu2pnao"
+path="res://.godot/imported/guard_small.png-3d1e5f3aeb136805f0f550bdd3446b2f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/ui/npc/npc_gemmer.png"
+source_file="res://assets/ui/quest/npc/guard_small.png"
+dest_files=["res://.godot/imported/guard_small.png-3d1e5f3aeb136805f0f550bdd3446b2f.ctex"]
 
 [params]
 
