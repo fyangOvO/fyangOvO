@@ -522,6 +522,16 @@ Button 五態寫在 `ui_theme.gd`（運行時函數 `UITheme.build()`），但 `
 `capture_rune_codex.gd` 因此兩者都斷言，並額外抓 **4× 最近鄰放大圖**逐像素目視
 （有非整數縮放會出現週期性糊邊，一眼可辨）。
 
+**㊼ 「寫了狀態、沒寫渲染」是第 4 類靜默脫鉤：改了 `_selected` 但沒重繪 ⇒ 高亮從不生效**
+`rune_codex_panel._on_cell_pressed()` 只寫 `_selected = rid` + `_render_detail()`，
+**不呼叫 `_render_grid()`**；而選中金框是 `_render_grid()` 裡的 `_cell_box(rid == _selected, …)`
+寫的 ⇒ **金框從未出現過**（不報錯、不崩、測試也全綠，因為沒人斷言「高亮真的出現」）。
+⇒ 凡是「**狀態字段 → 由某個 render 函式讀取**」的模式（`_selected` / `_page` / `_filter` /
+`_highlight_index`），**改狀態的那條路徑必須同時叫上那個 render 函式**。
+**驗收判據：斷言「視覺產物真的變了」（點擊後恰好 1 格邊框 2px + 強調色），不是斷言「狀態字段變了」。**
+⚠️ 重繪若走 `remove_child → queue_free`，在**自身信號回調裡**呼叫是安全的
+（`queue_free` 到幀末才生效，且 lambda 只捕獲值類型）——但別在回調裡直接 `free()`。
+
 ---
 
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】

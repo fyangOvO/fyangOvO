@@ -23,7 +23,8 @@
 - 產線 `deliverables/gstack/素材開發/gen_rune_icons_v2.py`（`--base {vector,slab,frame}` / `--sample` / `--only` + `check_compliance()` 對照**權威色板**）。
 - 消費端全庫唯一 = `rune_codex_panel.gd`；`ui_skin.gd` TEX 表 24 條改 `_48.png`。
 - **關鍵坑**：`StyleBoxFlat.content_margin_*` 預設 = 邊框寬 ⇒ 格子內容區會隨「選中 1→2px」在 46/44 間跳、圖標變形。修法 `CELL 48→52` + 顯式 `set_content_margin_all(2)` ⇒ 內容區恆 48×48。
-- 驗收：新增 `game/tools/capture_rune_codex.gd/.tscn`（斷言 24 張貼圖 48×48 + 兩態內容區 48 + 詳情圖標 48 + 4× 最近鄰放大目視）；**12 項全 OK**；全量回歸 77 Godot 全綠 / 189.0s。
+- 驗收：新增 `game/tools/capture_rune_codex.gd/.tscn`（斷言 24 張貼圖 48×48 + 兩態內容區 48 + 詳情圖標 48 + 4× 最近鄰放大目視）；**17 項全 OK**；全量回歸 77 Godot 全綠 / 185.2s。
+- **附帶修復既有 bug**：圖鑑選中金框**從未顯示** —— `_on_cell_pressed()`/`select_rune()` 只重繪詳情、**不重繪格網**（典型「寫了狀態、沒寫渲染」靜默脫鉤）。已讓 `select_rune()` 補 `_render_grid()`，並加防回歸斷言（點擊後恰好 1 格選中 + 邊框 2px + 強調色）。
 
 ### HANDOFF-C 復盤（2026-09-30）
 **4 類靜默脫鉤**（都不報錯、只是不生效）：
@@ -45,7 +46,7 @@
 
 ### 需用戶裁定
 - **`boss_ember_lord.level_min 19 → 13`** 刻意偏離策劃 §1.1 等級帶表（表寫 19–20），為讓 `05-check` C19 轉綠 ⇒ 待裁定「改表 or 改回並放寬 C19」。
-- **符文圖鑑選中格子的金框永遠不出現**（HANDOFF-D 發現，**已定位未修**）：`_on_cell_pressed()`（`rune_codex_panel.gd:158`）與 `select_rune()`（:257）都只重繪詳情、**不重繪格網**，而 `_render_grid()` 只在 `_render()`（←`_build_ui`/`bind`）被呼叫 ⇒ `_selected` 改了但格子 stylebox 從不更新。已抓圖目視證實（詳情切到「增幅」，左上格子無金框）。一行修法：補 `_render_grid()`。**屬 `game/` 改動，待確認。**
+（無）
 
 ### 策劃側仍紅（非工程批）
 - `05-check` **C17**（`ch1_l03/l04` 空 layout，屬 `5-W5-9`）· **C20**（creatures 目錄數，素材側）

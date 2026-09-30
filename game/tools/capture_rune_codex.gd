@@ -10,7 +10,11 @@
 ##      —— `texture()` 缺檔會**靜默回 null**，只看代碼永遠看不出來
 ##   ② 圖鑑格子**內容區恆 48×48**：未選中（邊框 1px）與選中（邊框 2px）兩態都不縮
 ##      —— `StyleBoxFlat` 內容邊距預設 = 邊框寬，不顯式指定就會隨選中狀態跳
-##   ③ 目視：石板底座 + 高精細符文符號真的顯示（抓圖 + 4× 最近鄰放大供逐像素檢視）
+##   ③ **點擊格子的選中金框真的出現**：`_on_cell_pressed()` / `select_rune()` 此前只重繪
+##      詳情、不重繪格網 ⇒ `_cell_box(rid == _selected, …)` 從未被寫入 ⇒ 金框從未生效
+##      （HANDOFF-D 復盤抓圖目視發現的既有 bug，本次修掉並補此斷言防回歸）
+##   ④ 詳情圖標 48×48
+##   ⑤ 目視：石板底座 + 高精細符文符號真的顯示（抓圖 + 4× 最近鄰放大供逐像素檢視）
 ##
 ## ⚠️ 只用測試槽位 7（跑完刪除），**不碰玩家存檔**。
 extends Node2D
@@ -92,11 +96,25 @@ func _run() -> void:
 	await _shot("rune-1-图鉴-全解锁.png")
 	await _zoom_shot(grid, "rune-2-图鉴格网-4x.png")
 
-	# ---- ③ 选中一个符文：详情图标也必須 48×48 ----
-	grid.get_child(0).emit_signal("pressed")
+	# ---- ③ 选中高亮：金框必须真的出现（HANDOFF-D 修掉的既有 bug）----
+	# 根因：`_on_cell_pressed()` / `select_rune()` 只重绘详情、**不重绘格网**，
+	#       而选中金框由 `_render_grid()` 写 `_cell_box(rid == _selected, …)` ⇒ 从未生效。
+	_ok("点击前无任何格子处于选中态", _count_selected(grid) == 0)
+	var pick: String = ids[0]
+	var pick_btn := grid.find_child("RuneCell_%s" % pick, true, false) as Button
+	_ok("找得到待点击格子 %s" % pick, pick_btn != null)
+	pick_btn.emit_signal("pressed")
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_ok("panel.selected_rune() == 被点的 id", panel.selected_rune() == pick)
+	_ok("点击后恰好 1 格选中（金框只出现一次）", _count_selected(grid) == 1)
+	var sel_sb: StyleBoxFlat = (grid.find_child("RuneCell_%s" % pick, true, false) as Button
+		).get_theme_stylebox("normal")
+	_ok("选中格边框 2px + 强调色",
+		sel_sb.get_border_width(SIDE_LEFT) == 2
+			and sel_sb.border_color == GameConstants.PALETTE_ACCENT[14])
 
+	# ---- ④ 详情图标也必須 48×48 ----
 	var icons: Array[TextureRect] = []
 	for n in _walk(panel):
 		if n is TextureRect:
@@ -112,6 +130,16 @@ func _run() -> void:
 		SaveManager.delete_slot(TEST_SLOT)
 	print("===== 結果：%d 項失敗 =====" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+## 统计格网中处于「选中态」的格子数（选中态判定 = 边框宽 2px，见 `_cell_box`）
+func _count_selected(grid: GridContainer) -> int:
+	var n: int = 0
+	for c in grid.get_children():
+		var s := (c as Button).get_theme_stylebox("normal") as StyleBoxFlat
+		if s != null and s.get_border_width(SIDE_LEFT) == 2:
+			n += 1
+	return n
 
 
 func _walk(n: Node) -> Array[Node]:

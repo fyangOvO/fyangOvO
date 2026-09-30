@@ -68,25 +68,28 @@
 - ③ 詳情圖標 48×48
 - ④ 抓圖 + 格網區 **4× 最近鄰放大**供逐像素檢視（有非整數縮放會出現糊邊）
 
-實測結果：**12 項斷言全 OK / exit 0**；4× 放大圖無糊邊（確認整數 1:1）。
+實測結果：**17 項斷言全 OK / exit 0**；4× 放大圖無糊邊（確認整數 1:1）。
 
-全量回歸：**77 個 Godot 腳本全綠 / 189.0s / exit 0**；7 個策劃校驗器 0 新增失敗
+全量回歸：**77 個 Godot 腳本全綠 / 185.2s / exit 0**；7 個策劃校驗器 0 新增失敗
 （`05 --repo` 仍是既有的 4 紅：C12 關卡數 / C13 budget / C17 空 layout / C20 creatures 目錄數，**與本批無關**；
 `06` 202/0、`07` 212/0）。
 
-## 5. 未結事項
+## 5. 附帶修復與其他事項
 
-### 5.1 已定位但**尚未修**的既有 bug（待裁定）
+### 5.1 既有 bug：符文圖鑑選中格子的金框永遠不會出現 —— ✅ **已修**
 
-**符文圖鑑選中格子的金框永遠不會出現。**
+**根因**：`_on_cell_pressed(rid)` 只呼叫 `_render_detail()`，**不重繪格網**；`select_rune()` 同樣。
+而 `_render_grid()` 只在 `_render()` 裡被呼叫，`_render()` 又只在 `_build_ui()` 與 `bind()` 被呼叫
+⇒ `_selected` 改了但格子的 stylebox 從不更新 ⇒ `_cell_box(rid == _selected, …)` 的選中金框**從未生效**。
+（這是典型的「**寫了狀態、沒寫渲染**」靜默脫鉤：不報錯、只是不生效。）
 
-- `_on_cell_pressed(rid)`（`rune_codex_panel.gd:158`）只呼叫 `_render_detail()`，
-  **不呼叫 `_render_grid()`**；`select_rune()`（:257）同樣不重繪。
-- `_render_grid()` 只在 `_render()` 裡被呼叫，而 `_render()` 只在 `_build_ui()`（:97）與 `bind()`（:115）被呼叫
-  ⇒ `_selected` 改了但格子的 stylebox 從不更新 ⇒ `_cell_box(rid == _selected, …)` 的選中金框**從未生效**。
-- 已用抓圖目視證實：`c_review_shot/rune-3-图鉴-选中详情.png` 中詳情已切到「增幅」，但左上格子無金框。
-- 一行修法：`_on_cell_pressed` 內 `_render_detail()` 後補 `_render_grid()`；
-  `select_rune()` 同樣處理（或讓兩者共用一條路徑）。**屬 `game/` 改動，需用戶確認後再動。**
+**修法**：`_on_cell_pressed()` 改為直接轉呼叫 `select_rune()`；`select_rune()` 內補
+`if _grid != null: _render_grid()`。重繪走 `remove_child → queue_free`，被點的那顆按鈕在
+信號發射期間仍存活，lambda 只捕獲 `rid`（String）⇒ 安全。
+
+**防回歸斷言**（加進 `capture_rune_codex.gd`）：點擊前 0 格選中 → 點擊後**恰好 1 格**選中
+→ 該格邊框 2px 且為強調色 → `panel.selected_rune()` 等於被點的 id。
+實測 **17 項斷言全 OK**，並抓圖目視確認金框出現。
 
 ### 5.2 其他
 

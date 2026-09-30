@@ -154,10 +154,14 @@ func _render_grid() -> void:
 		_unlocked.size(), ids.size()]
 
 
-## 单元格点击：选中并刷新详情
+## 单元格点击：选中并刷新格网高亮 + 详情。
+## ⚠️ 直接转 `select_rune()`：此前这里只写 `_selected` + `_render_detail()`，
+##    **不重绘格网** ⇒ `_cell_box(rid == _selected, …)` 的选中金框**从未生效**
+##    （HANDOFF-D 复盘发现的既有 bug，抓图目视证实）。
+##    重绘时 `_render_grid()` 走 `remove_child` → `queue_free`，被点的那颗按钮
+##    在信号发射期间仍存活，lambda 只捕获 `rid`（String），故安全。
 func _on_cell_pressed(rid: String) -> void:
-	_selected = rid
-	_render_detail()
+	select_rune(rid)
 
 
 # =============================================================================
@@ -253,9 +257,12 @@ func selected_rune() -> String:
 	return _selected
 
 
-## 选中指定符文（验证 / 无头测试用，等价于点格子）
+## 选中指定符文（等价于点格子）：刷新格网高亮 + 详情。
+## ⚠️ `_render_grid()` 不可省 —— 选中金框只由它写入（见 `_on_cell_pressed` 注释）。
 func select_rune(rune_id: String) -> void:
 	_selected = rune_id
+	if _grid != null:
+		_render_grid()
 	if _detail != null:
 		_render_detail()
 
