@@ -854,7 +854,7 @@ func _build_ui() -> void:
 	var HOTSPOTS := [
 		{"pid": PANEL_FORGE, "name": "鐵匠", "pos": Vector2(115, 195), "line": "裝備想強化？找我準沒錯。", "tex": "smith_small"},
 		{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "pos": Vector2(160, 115), "line": "看看這些閃亮的寶石。", "tex": "gem_small"},
-		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "準備好了？先看看自己的數值吧。", "tex": "portrait_warrior"},
+		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "準備好了？先看看自己的數值吧。", "tex": ""},
 		{"pid": PANEL_INVENTORY, "name": "裁縫", "pos": Vector2(435, 200), "line": "要不要縫件新衣服？", "tex": "tailor_small"},
 		{"pid": PANEL_TALENT, "name": "導師", "pos": Vector2(480, 105), "line": "天賦點數別亂花。", "tex": "master_small"},
 		{"pid": PANEL_SKILLS, "name": "技能師", "pos": Vector2(220, 230), "line": "技能怎麼帶？我幫你調。", "tex": "quest_small"},
