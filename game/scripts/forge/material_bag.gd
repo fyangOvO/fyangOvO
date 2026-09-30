@@ -11,6 +11,9 @@ const KEY_STONES := "stones"
 const KEY_DUST := "dust"
 const KEY_ESSENCE := "essence"
 const KEY_CRYSTAL := "crystal"
+# B5-7（Q3/Q4）：特殊档专属材料，分解深渊装/塔装产出，强化与半重铸只吃这两种。
+const KEY_ABYSS_SHARD := "abyss_shard"
+const KEY_TOWER_SIGIL := "tower_sigil"
 
 ## 中文名（UI / 日志）
 const KEY_NAMES := {
@@ -19,6 +22,8 @@ const KEY_NAMES := {
 	KEY_DUST: "秘银尘",
 	KEY_ESSENCE: "传说精粹",
 	KEY_CRYSTAL: "神话结晶",
+	KEY_ABYSS_SHARD: "深渊裂片",
+	KEY_TOWER_SIGIL: "塔印",
 }
 
 var materials: Dictionary = {}
@@ -69,6 +74,7 @@ func spend(cost: Dictionary) -> bool:
 
 func to_text() -> String:
 	var parts: Array[String] = []
-	for key in [KEY_GOLD, KEY_STONES, KEY_DUST, KEY_ESSENCE, KEY_CRYSTAL]:
+	for key in [KEY_GOLD, KEY_STONES, KEY_DUST, KEY_ESSENCE, KEY_CRYSTAL,
+			KEY_ABYSS_SHARD, KEY_TOWER_SIGIL]:
 		parts.append("%s×%d" % [KEY_NAMES.get(key, key), get_amount(key)])
 	return " ".join(parts)

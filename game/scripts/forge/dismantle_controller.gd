@@ -27,11 +27,19 @@ static func get_dismantle_result(item: EquipmentInstance) -> Dictionary:
 			return {"essence": 4}
 		GameConstants.Rarity.MYTHIC:
 			return {"essence": 6, "crystal": 1}
-		_:
+		# Q2（6-W6-Q2）：特殊档显式 case —— 只吐专属材料，不吐通用 dust/essence。
+		# 唯一性（Q8）由 obtained_unique_groups 的 append-only 列表保证：分解不释放该 id，
+		# 这里只是允许把多余的一件化成强化/半重铸材料。
+		GameConstants.Rarity.SPECIAL_ABYSS:
+			return {MaterialBag.KEY_ABYSS_SHARD: 2}
+		GameConstants.Rarity.SPECIAL_TOWER:
+			return {MaterialBag.KEY_TOWER_SIGIL: 2}
+		GameConstants.Rarity.HIDDEN:
 			return {}
+	return {}
 
 
-## 能否分解（彩装 / 隐藏 = 不可分解）
+## 能否分解（彩装/隐藏 = 不可分解；特殊档 8/9 放行 Q2）
 static func can_dismantle(item: EquipmentInstance) -> bool:
 	return item != null and item.rarity != GameConstants.Rarity.HIDDEN
 
