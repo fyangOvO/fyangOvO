@@ -13,6 +13,8 @@ var materials: int = 0
 var on_forge: Callable = Callable()
 var on_reroll: Callable = Callable()
 var on_special_reroll: Callable = Callable()
+## 3-F2：单条词缀洗练回调 on_reroll_one(item_index, affix_index)
+var on_reroll_one: Callable = Callable()
 
 ## Q6（6-W6-Q6）：每行锁定的词缀下标（按 items 下标分组，最多 4 条）
 var _locks: Dictionary = {}
@@ -134,6 +136,27 @@ func refresh() -> void:
 				if on_special_reroll.is_valid():
 					on_special_reroll.call(i, _locks.get(i, [])))
 			row.add_child(s_btn)
+		# 3-F2：列出可洗词缀，每条一个「洗」按钮，玩家点哪条洗哪条。
+		for ai in item.affixes.size():
+			var aff: AffixData = item.affixes[ai].template
+			if aff == null:
+				aff = ConfigLoader.get_affix(item.affixes[ai].affix_id)
+			if aff == null or not aff.can_reroll:
+				continue
+			var chip := HBoxContainer.new()
+			chip.add_theme_constant_override("separation", 4)
+			_list.add_child(chip)
+			var lab := Label.new()
+			lab.text = "  · %s" % item.affixes[ai].to_text()
+			lab.add_theme_font_size_override("font_size", 10)
+			lab.add_theme_color_override("font_color", GameConstants.PALETTE_NEUTRAL[8])
+			chip.add_child(lab)
+			var w := _make_row_btn("洗", "dark")
+			w.custom_minimum_size = Vector2(36, 20)
+			w.pressed.connect(func() -> void:
+				if on_reroll_one.is_valid():
+					on_reroll_one.call(i, ai))
+			chip.add_child(w)
 
 
 ## 行内小按钮（与技能/装备面板同套金/暗按钮皮肤，步骤 5 统一视觉）
