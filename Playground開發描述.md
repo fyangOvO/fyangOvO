@@ -1,84 +1,100 @@
-# 《七傳說》Playground 開發描述
+# 《七傳說》Playground 開發描述 v2（爆款暗黑向 · 已升級）
 
-> 用途：把這段「遊戲描述」貼進 Google Playground 輸入框（截圖那個 "Describe a game to start building"），
-> 選擇 **2D game · Single player**，讓 AI 直接生成這款遊戲。
-> 下方第 1 節是可直接複製的英文 Prompt（Playground 對英文理解最好）；
-> 第 2 節是繁中策劃要點，供你自己看懂結構、或需要時換成中文貼。
-
----
-
-## 1. 直接貼給 Playground 的英文 Prompt（複製這段）
-
-```
-Build "Seven Legends" (七傳說): a 2D top-down pixel-art action RPG (ARPG) roguelike looter, single player, dark fantasy 16-bit style with a limited palette.
-
-CORE LOOP: Pick a hero class → enter a hand-crafted chapter stage full of monsters → fight in real time with WASD movement + mouse aim/attack + 3 hotbar skills → kill monsters to loot gold, materials, equipment and runes → level up mid-stage via a "choose 1 of 3" buff upgrade → beat a chapter BOSS → return to a hub camp town → upgrade/forge/reroll gear → push deeper into harder stages (N nightmare tiers).
-
-THREE CLASSES (each 12 skills, only 3 equipped at a time):
-- Warrior: melee, high HP, front-line tank. (cleave, spinning whirlwind, dash strike, shield bash stun, warcry +attack, ground slam AoE, thrown blades, blood rage lifesteal, iron wall shield buff…)
-- Archer: ranged, high crit, kiting. (piercing arrows, arrow rain, poison arrows, multi-shot fan, explosive arrow, spike trap, hawk-eye +crit, speed dodge buff, poison field, summon spirit wolf, hunter's mark…)
-- Mage: caster, high burst, elemental mastery. (projectile fireball, frost nova, chaining lightning, poison cloud, frost bolt slow, meteor with burn ground, arcane shield, teleport blink, summon elemental, thunderstorm, mana surge, void rift pull…)
-
-SKILL MORPHOLOGY: 7 skill shapes — single-target, AoE around self, dash, projectile (flying bullet), ground area (damage-over-time field), summon (friendly AI unit), self-buff/shield. Every skill has cooldown + mana cost.
-
-RUNE SYSTEM (build depth): 24 collectible runes drop from monsters (normal 2% / elite 8% / boss 25%). First pickup PERMANENTLY unlocks it (codex style, free equip/unequip); duplicates auto-convert to currency. Each skill has 3 rune sockets (unlocked at skill level 3/6/9). Runes modify a skill: change its form (turn melee into a projectile, chain, split, pierce, ground field, echo), change its element (fire/cold/lightning/poison/shadow, +15% elemental damage, apply burn/slow/poison), or amplify it (wider radius, -25% cooldown, -40% mana cost, +25% damage, lifesteal, stun, freeze, execute low-HP targets, +shield…). Runes in the same group are mutually exclusive, forcing choices. Each skill at level 5 also gets a 2-way branch (e.g. single: +40% damage vs. extra hit).
-
-GEAR & LOOT: 6 equipment slots (weapon/offhand/helm/chest/gloves/boots/jewelry). Items roll random affixes (attack %, crit, crit damage, cooldown reduction, skill-cost reduction, elemental damage per element, elemental resistances, skill level…). Rarity tiers from normal up through magic/rare/epic/legendary/mythic/hidden. Legendary gear carries powerful PROC effects that fire on combat triggers (on-hit, on-crit, on-kill, on-taken-damage, at-low-HP, on-block, on-cast, on-pickup-gold) — e.g. lifesteal chains, crit-stack explosions, kill-spread-fire, near-death shield. Three gear sets (Frostbite/ice slow+ice-burst, Emberpath/fire stack+burn-on-kill, Oathkeeper/block heal+last-stand) give 4-piece and 6-piece set bonuses. Hub town has forge: upgrade (+N), reroll affixes, re-roll legendary effect, dismantle, craft.
-
-ELEMENTS: physical / fire / cold / lightning / poison / shadow, each with its own damage bonus and resistance; fire=burn, cold=slow/freeze, poison=poison DoT.
-
-ENEMIES: packs of normal monsters (slimes, skeletons, imps, rat swarms, wisp…), tougher ELITES with more HP and better drops, and a named BOSS at the end of each chapter with telegraphed area attacks. Roughly 250–300 normal monsters + 8–10 elites + 1 boss per run.
-
-HUB CAMP: a campfire scene with 8 NPCs (blacksmith, tailor/gemcrafter, quest giver, guard, merchant, abyss/rift keeper, master) — clicking an NPC opens its panel (skills, rune codex, gear, forge, shop, talent tree, stage select).
-
-VISUAL & FEEL: crisp 16-bit pixel sprites, 8-direction movement with smooth walk/idle/cast/hurt/death animations, particles for hits/spells/pickups, damage numbers colored by element, HUD with HP/mana bars, 3-skill hotbar with cooldown masks, minimap-light dark atmosphere.
-
-MAKE IT PLAYABLE: core combat (move/attack/skills), one full stage with waves + a boss, loot drops that show on the ground and can be picked up, a basic inventory/gear screen, and the hub camp. Keep controls simple (WASD + mouse + 1/2/3 skills).
-```
+> 用途：把「第 1 節英文 Prompt」直接貼進 Google Playground 輸入框，選 **2D game · Single player**。
+> v2 升級方向：對標當下最熱門的「高速割草 + Build 聚變 + 打擊感拉滿」暗黑刷寶玩法
+> （Vampire Survivors / Brotato 的滿屏爽感 × Hades 的三選一祝福 × 暖雪的武器聖物 Build 聚變 × Halls of Torment 的復古厚重像素暗黑）。
+> 第 3 節是新增的「像素美術與動效規格」，決定生成出來的畫面好不好看、動不動得起來。
 
 ---
 
-## 2. 繁中策劃要點（給你自己看 / 可換成中文貼）
+## 1. 直接貼給 Playground 的英文 Prompt（v2 · 複製這段）
 
-### 一句話定位
-《七傳說》是一款 **2D 俯視像素風、單人、暗黑奇幻「刷寶 ARPG」**，融合暗黑式裝備詞綴養成 + 類幸存者的局內三選一成長 + 肉鴿關卡推進。
+```
+Build "Seven Legends" (七傳說): a 2D top-down pixel-art dark-fantasy action roguelike looter, single player. Think Vampire Survivors / Brotato (fast screen-filling mowing) meets Hades (mid-run choice-of-3 boons) meets Warm Snow (weapon + relic build fusion) meets Halls of Torment (chunky retro 90s dark pixel look).
 
-### 核心循環
-選職業 → 進關卡清怪 → 即時戰鬥（走位 + 普攻 + 3 個技能）→ 撿金錢/材料/裝備/符文 → 局內升級三選一 buff → 打章節 BOSS → 回營地強化裝備 → 挑戰更難關卡（夢魘 I–V 難度層級）。
+FEEL FIRST (this is the #1 priority):
+- Fast, juicy, screen-filling combat. Waves of 50–200+ monsters flood the screen; skills cover the floor in fire/poison/lightning fields and flying projectiles; the player carves through crowds in a shower of particles, damage numbers and gold drops.
+- Heavy impact feedback on every hit: brief hit-stop (freeze 30–60ms on crit), camera shake scaled to hit size, colored damage-number popups (crit = big yellow, elemental = element color, DoT = small ticks), blood/ember/spark particle bursts, ground scorch marks and lingering burn/poison patches.
+- Crisp responsive controls: WASD move, mouse aim, left-click attack, keys 1/2/3 skills, dash/i-frame. Movement must feel tight; enemies must telegraph attacks before landing.
 
-### 三大職業（每職 12 技能，出戰只帶 3 個）
-- **戰士**：近戰、高生命、正面硬撼（裂斬/旋刃風暴/突進/盾擊眩暈/戰吼/踐踏/擲刃/血怒吸血/鐵壁護盾…）
-- **弓箭手**：遠程、高暴擊、放風箏（穿透箭/箭雨/淬毒箭/多重射擊/爆裂箭/尖刺陷阱/鷹眼暴擊/疾風步/毒霧/召喚靈狼/獵手印記…）
-- **法師**：法術、高爆發、元素掌控（火球投射/冰霜新星/閃電鏈/毒雲/寒冰箭減速/隕石火海/秘法護盾/瞬移/召喚元素僕從/雷暴/法力湧動/虛空裂隙拉拽…）
+CORE LOOP: Pick a class → fight through a stage of escalating monster waves → LEVEL-UP MID-RUN and choose 1 of 3 boons (Hades-style: new skill / upgrade existing skill / stat boost / relic) → survive and scale your build → beat a chapter BOSS with big telegraphed AoE attacks → return to a dark hub camp → spend gold + loot on permanent upgrades, gear rerolls and talent tree → unlock harder nightmare tiers. Death sends you back to the hub with kept meta-currency (roguelite meta-progression).
 
-### 七種技能形態
-單體 / 範圍 / 位移 / **投射物（飛行彈道）** / **持續地面區域（DoT）** / **召喚友方 AI** / **自身增益護盾**。
+THREE CLASSES (fast, expressive):
+- Warrior: melee bruiser, whirlwind spins that suck crowds in, ground slam shockwaves, warcry buffs, lifesteal. (close-range AoE blender)
+- Archer: kiting crit machine, piercing multi-arrows, arrow rains, traps, poison fields, a summon spirit wolf tank. (ranged crowd control)
+- Mage: elemental nuke caster, homing/projectile fireballs, chaining lightning, freeze nova, meteor burns the ground, thunderstorms, void rift that pulls enemies in. (screen-filling elemental chaos)
 
-### 符文系統（核心構築深度）
-- 24 種符文，怪物掉落（普通 2% / 精英 8% / BOSS 25%）。
-- **首獲永久解鎖**（圖鑑式、免費拆裝），重複自動轉成魔石；沒解鎖不能裝。
-- 每技能 3 個符文槽（技能等級 3/6/9 解鎖）。
-- 符文可：**改形態**（單體變投射/連鎖/分裂/穿透/地面化/回響）、**改元素**（火冰雷毒暗 +15% 元素傷並附灼燒/減速/中毒）、**改數值**（擴幅/冷卻-25%/耗藍-40%/倍率+25%/吸血/眩暈/冰封/處決/加護盾…）。同組互斥，逼取捨。
-- 技能等級 5 還可二選一分支（如單體：+40% 傷 vs 追加一段）。
+SKILL MORPHOLOGY (7 shapes): single-target, self-AoE, dash/i-frame, flying projectile, ground damage-over-time field, friendly summon (AI unit that fights for you), self-buff/shield. Every skill has cooldown + mana cost; skills can be wildly re-shaped by runes.
 
-### 裝備與掉落
-- 6 個裝備位；隨機詞綴（攻擊%、暴擊、暴傷、冷卻縮減、耗藍縮減、各元素傷/抗、技能等級…）。
-- 稀有度：普通 → 魔法 → 稀有 → 史詩 → 傳奇 → 神話(紅) → 隱藏(彩)。
-- **傳奇特效**：穿在身上會在戰鬥中觸發（命中/暴擊/擊殺/受傷/低血/格擋/施法/撿金幣），如吸血鏈、暴擊疊層爆炸、擊殺擴散火焰、瀕死免死護盾。
-- **三套套裝**：霜噬(冰減速+霜爆)、燼途(火疊層+擊殺燃燒)、守誓者(格擋回血+背水一戰)，4 件/6 件檔獎勵。
-- 營地鍛造：強化(+N)、洗練詞綴、重鑄傳奇特效、分解、打造。
+RUNES = THE BUILD ENGINE (the heart of the game): 24 collectible runes drop from monsters (normal 2% / elite 8% / boss 25%). First pickup PERMANENTLY unlocks it (codex, free equip/unequip, no cost); duplicates convert to currency. Each skill has 3 rune sockets. Runes let you FUSE a skill into a totally different build:
+- Change FORM: turn a melee swing into a piercing projectile, or chain lightning, or split into 3, or a lingering ground field, or echo-cast twice.
+- Change ELEMENT: fire(+burn) / cold(+slow/freeze) / lightning / poison(+DoT) / shadow — each +15% and applies its status.
+- Amplify: wider radius, -25% cooldown, -40% mana, +25% damage, lifesteal, stun, freeze, execute low-HP, +shield on cast.
+- Same group mutually exclusive → every skill is a real build decision. At skill level 5 pick a 2-way branch.
+GOAL: make silly-but-powerful combos (e.g. "whirlwind + fire rune + wider radius + lifesteal = spinning fire blender that heals") the core fun.
 
-### 元素體系
-物理 / 火(灼燒) / 冰(減速凍結) / 雷 / 毒(中毒 DoT) / 暗影；每元素有獨立傷害加成與抗性。
+IN-RUN BOONS (Hades-style, mid-run level-ups): offer a random draw of 3 from a pool of ~40 — unlock a new skill, upgrade a skill's level, add a relic (passive that synergizes with your element/form), +crit, +move speed, +damage taken reduction, lifesteal, area size, projectile count. Picks must visibly compound: by minute 10 the screen should be chaos with 3 fields + projectiles + summons out.
 
-### 敵人關卡
-每局約 250–300 隻普通怪（史萊姆/骷髏/小惡魔/鼠群/精靈…）+ 8–10 隻精英 + 1 個章節名 BOSS（有預警範圍技）。章節 BOSS 依序為骸骨暴君 → 熔心之主 → 終章。
+GEAR & LOOT: 6 equipment slots, random affixes (attack%, crit, crit damage, cooldown reduction, skill-cost reduction, per-element damage & resistances, +skill level). Rarity tiers gray→magic(yellow)→rare(blue)→epic(purple)→legendary(orange)→mythic(red)→hidden(rainbow). Legendary items have unique PROC effects firing on hit/crit/kill/low-HP/block/cast — e.g. crit-stacks-then-explodes, kill-spreads-fire, lifesteal chains, near-death shield. 3 themed sets (ice-slow burst / fire-stack burn / tank block-heal) give 4pc & 6pc bonuses. Hub has a forge: upgrade +N, reroll affixes, reroll legendary effect, dismantle, craft.
 
-### 營地（Hub）
-篝火營地場景 + 8 個 NPC 熱區（鍛造/裁縫珠寶/任務/守衛/商人/深淵裂隙/宗師），點擊開對應面板（技能、符文圖鑑、背包、鍛造、商店、天賦樹、選關）。
+ELEMENTS: physical / fire(burn DoT) / cold(slow+freeze) / lightning / poison(DoT) / shadow; each with own damage bonus & resistance. Damage popups colored per element.
 
-### 視覺與手感
-16-bit 像素、有限色調、8 方向移動、流暢待機/走路/施法/受擊/死亡動畫、命中與法術粒子、按元素變色的傷害跳字、HUD 血/藍條 + 3 技能快捷欄（冷卻遮罩）、偏暗黑陰沉氛圍。
+ENEMIES: dense swarms of normal monsters (slimes, skeletons, imps, rat swarms, wisps), faster/tankier ELITES with colored health bars and guaranteed drops, and a big named BOSS per chapter with clearly telegraphed ground circles before its attacks. ~250–300 normals + 8–10 elites + 1 boss per run; difficulty scales by wave.
 
-### Playground 最小可玩切片建議
-先做：移動/普攻/3 技能戰鬥 → 1 關小怪潮 + 1 BOSS → 地面掉落可拾取 → 基本背包/裝備界面 → 營地場景。操作：WASD + 滑鼠 + 1/2/3 放技能。
+HUB CAMP: dark campfire scene with 8 NPCs (blacksmith, gemcrafter, quest giver, guard, merchant, rift/abyss keeper, master) — click to open skills / rune codex / inventory / forge / shop / talent tree / stage select.
+
+VISUAL STYLE (pixel & animation — see spec below): chunky 16-bit dark-fantasy pixel art, moody gothic palette (deep blues/purples/charcoal with fiery orange accents), 8-direction characters with smooth 4–6 frame walk/idle/cast/hurt/death animations (NOT static standees), particles for every action, dynamic lighting feel (glow from fire/lightning/ground fields), screen shake, damage popups, juicy pickup animations (items pop out with a sparkle, magnet-pickup near player).
+
+MINIMUM PLAYABLE SLICE: tight move+attack+dash, one full stage with escalating waves ending in a boss, ground loot that pops out and magnet-picks up, mid-run level-up "choose 1 of 3", a basic inventory/gear screen, and the hub camp. Controls: WASD + mouse + 1/2/3 + dash. Make it FEEL GOOD first, content second.
+```
+
+---
+
+## 2. 相對 v1 改了什麼（為你自己決策）
+
+| 維度 | v1 | v2（爆款向） |
+|---|---|---|
+| 戰鬥密度 | 一般清怪 | **50–200+ 同屏潮水、滿屏法術/投射物**（VS/Brotato 式割草） |
+| 打擊感 | 普通描述 | **頓帧 hit-stop、屏震、按元素變色飄字、血/火星粒子、地面殘留** |
+| 局內成長 | 三選一 buff | **Hades 式 boon 池 ~40 個，選項互相疊加成「build 聚變」** |
+| 核心樂趣 | 裝備詞綴 | **符文 = 把技能「改造成完全不同的流派」**，鼓勵髮騷但強力的 combo |
+| 美術方向 | 16-bit 像素 | **Halls of Torment 式厚重復古暗黑 + 暖雪式水墨質感、動態光** |
+| 節奏 | 一關一 boss | **波次遞增、10 分鐘後滿屏 chaos、死亡回營地保留 meta 貨幣（roguelite）** |
+
+---
+
+## 3. 像素美術與動效規格（生成畫面好不好看的關鍵）
+
+> Playground 類工具生成像素圖時，你越明確它越不會給你「靜站姿貼紙人」。以下規格可直接追加到 Prompt 後面。
+
+### 3.1 角色精靈（8 方向 · 必須動起來）
+- 尺寸：玩家 48×48 像素；召喚物 32×32；怪物 32–48×32–48。
+- 動作 × 方向：每個角色要有 **idle / walk / attack / cast / hurt / death 六組動作，8 個方向（東南西北+四斜角）**。
+- 幀數：idle 4 幀（呼吸起伏）、walk 4–6 幀、attack 4–6 幀、**cast 4–6 幀（施法前搖→蓄力→釋放，和劈砍不一樣）**、hurt 2–3 幀、death 4–6 幀（倒地演出）。
+- 鐵律：**不能只有正面 1 幀**（v1 舊版最大問題就是角色站著永遠正對鏡頭、走動會「啪」地轉正）。
+- 三職業外觀：戰士（白髮/巨劍/重甲）、弓手（綠披風/長弓）、法師（藍袍/法杖）。
+
+### 3.2 技能與特效動圖
+- 投射物：箭矢/火球/冰錐/雷球/暗影球，16×16，4 幀循環飛行 + **拖尾**。
+- 地面區域：裂地/毒霧/雷暴/隕石坑/虛空裂隙，32×32，6–8 幀循環，**邊緣發光**。
+- 元素命中：物理/火/冰/雷/毒/暗 6 種，32×32 × 6 幀爆開。
+- 增益光環：戰吼/血怒/鐵壁/鷹眼，角色腳下 32×32 光圈循環。
+- 召喚法陣：施放時腳下 8 幀陣陣，召喚物到期粒子消散。
+
+### 3.3 打擊感與「juice」（最影響爽感）
+- **Hit-stop**：暴擊時定格 30–60ms；重击/技能命中定格稍久。
+- **Screen shake**：輕擊微抖、重擊/爆炸/BOSS 技大幅抖。
+- **Damage numbers**：普通白字、暴擊大黃字、元素按元素色（火橙/冰藍/雷黃/毒綠/暗影紫）、DoT 小跳字。
+- **粒子**：命中火花、血濺、火星、毒霧、雷電弧、死亡煙塵。
+- **地面殘留**：火燒黑印、毒霧斑、冰凍結——讓戰場有「打過的痕跡」。
+- **拾取**：掉落物 pop 出來帶星光、靠近自動吸附（magnet pickup）。
+
+### 3.4 視覺氛圍
+- 調色盤：深藍/深紫/炭黑為底 + 火橙/雷黃點綴，哥特暗黑感。
+- 動態光：火/雷/地面區域自帶發光，照亮周圍。
+- BOSS 技：落地前**地面紅圈預警**（telegraph），玩家要能躲。
+
+---
+
+## 4. Playground 最小可玩切片建議
+先做：移動+普攻+閃避 → 1 關波次遞增到 1 BOSS → 掉落彈出可吸附 → 局內升級三選一 → 基本背包/裝備 → 營地場景。**先把「手感」做爽，內容其次。**
