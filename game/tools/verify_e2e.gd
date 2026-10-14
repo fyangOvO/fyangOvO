@@ -407,8 +407,8 @@ class E2ERunner extends Node:
 		var res_obj: RunResult = summary.get("result", null)
 
 		# ⚠️ 基准用**结算单自己的** `bagged_equipment`，不用 ⑦ 阶段记的快照：
-		#    ⑦ 与 ⑧ 之间还夹着「目标达成 → 补保底掉落 → 等 GUARANTEE_PICKUP_GRACE(0.6s)」，
-		#    那件保底装备可能在这段时间里被自动捡走 ⇒ 拿旧快照比会 flaky。
+		#    ⑦ 与 ⑧ 之间还夹着「目标达成 → 补保底掉落（2026-10-14 起直接入包）」，
+		#    保底装备的入包让结算单与 ⑦ 快照的件数可能不一致 ⇒ 拿旧快照比会 flaky。
 		#    教训：**每个断言用自己阶段的数据源**，别跨阶段传快照。
 		_bagged_count = res_obj.bagged_equipment.size() if res_obj != null else -1
 

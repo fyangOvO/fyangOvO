@@ -206,8 +206,10 @@ var _finished: bool = false
 ## 结算流程进行中（保底掉落 → 等拾取 → 落盘）。防止 `_on_unit_died` 重入重复结算。
 var _settling: bool = false
 
-## 保底装备生成后，留给玩家拾取的窗口（秒）。
-## `LootDrop.LOOT_POP_DELAY` 是 0.25s，所以窗口必须显著大于它，否则保底掉落还没可拾取就结算了。
+## 保底装备的拾取窗口（秒）—— **历史保留**，当前不再用于等待结算。
+## 2026-10-14 起保底掉落改为**直接入包**（见 `_spawn_guaranteed_drops`），
+## `_check_objective_and_settle()` 不再等待真实时间窗口，本常量无实际消费。
+## 保留仅因 `verify_elite.gd` / `verify_e2e.gd` 的注释仍引用「保底拾取窗口」概念。
 const GUARANTEE_PICKUP_GRACE: float = 0.6
 
 # =============================================================================
@@ -1197,7 +1199,8 @@ func _check_objective_and_settle() -> void:
 	# 不补的话「必掉装备」这条数据形同虚设：普通怪 8% 触发率下一整关可能一件装备都不出，
 	# 而 GDD 0.2 节「变强可感知」要求每关至少能拿到装备。
 	_spawn_guaranteed_drops()
-	await get_tree().create_timer(GUARANTEE_PICKUP_GRACE).timeout
+	# 保底掉落**直接入包**（见 `_spawn_guaranteed_drops`），无地面掉落物、无拾取时序，
+	# 所以这里不再需要等待窗口 —— 入包是同步的，立即结算。
 	_finish_run(true)
 
 
@@ -1221,8 +1224,10 @@ func _count_rare_drops(e: EnemyBase) -> int:
 ##
 ## 判定口径是「**已入包**的装备件数」而不是「地面上出现过的装备」：
 ## 玩家可能漏捡，而保底的意义是「玩家一定拿得到」，所以按入包数补足。
-## 补出来的装备生成在**玩家脚下**（距离 0），`LootDrop` 的自动拾取会在
-## `LOOT_POP_DELAY` 后收走，随后 `GUARANTEE_PICKUP_GRACE` 的窗口结束才结算。
+## ⚠️ **直接入包**，不生成地面掉落物 —— 保底的意义是「必得」，本就不该依赖
+##    `LootDrop._process` 的帧驱动自动拾取（掉帧/满载时帧被饿死 ⇒ 保底未入包就结算，
+##    verify_collect 偶发红）。直接调 `pickup_loot` 同步入包，结算不再有时序耦合。
+##    语义不变：仍按「已入包数」补足，且入包即触发唯一装备锁定等完整拾取副作用。
 func _spawn_guaranteed_drops() -> void:
 	if _player == null or _level_def == null:
 		return
@@ -1238,10 +1243,8 @@ func _spawn_guaranteed_drops() -> void:
 			_player.get_combat_stat("magic_find"))
 		if entry.is_empty() or str(entry.get("type", "")) != "equipment":
 			continue
-		var drop := LOOT_SCENE.instantiate() as LootDrop
-		drop.setup(entry)
-		_actors.add_child(drop)
-		drop.global_position = _player.global_position
+		# 直接入包：完整走 `pickup_loot`（含唯一锁定 / 词缀 / 广播 / 打印）
+		_player.pickup_loot(entry)
 		made += 1
 	print("[Level] 保底掉落 %d 件（已入包 %d / 要求 %d）"
 		% [made, _player.inventory.size(), _level_def.guaranteed_equipment_drops])

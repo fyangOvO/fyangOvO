@@ -437,36 +437,53 @@ def group_c(repo):
         return
     check("C", "C11 找到 game/data/levels", True)
 
-    levels = []
+    # 按来源文件分类加载（工程已扩展主线 / 深渊 / 塔，三者共用 LevelData、但规则不同）：
+    #   main  = chapter1/2/3.json（20 关）
+    #   abyss = abyss.json（9 关，程序生成，budget 为难度参考值）
+    #   tower = tower.json（30 关，程序生成，budget 为难度参考值）
+    def _load_levels_file(fn):
+        with open(os.path.join(ldir, fn), encoding="utf-8") as f:
+            raw = json.load(f)
+        rows = raw if isinstance(raw, list) else raw.get("levels", raw)
+        if isinstance(rows, dict):
+            rows = list(rows.values())
+        return rows
+
+    main_lv, abyss_lv, tower_lv = [], [], []
     for fn in sorted(os.listdir(ldir)):
         if not fn.endswith(".json"):
             continue
-        with open(os.path.join(ldir, fn), encoding="utf-8") as f:
-            raw = json.load(f)
-        lv = raw if isinstance(raw, list) else raw.get("levels", raw)
-        if isinstance(lv, dict):
-            lv = list(lv.values())
-        levels.extend(lv)
+        rows = _load_levels_file(fn)
+        if fn.startswith("chapter"):
+            main_lv.extend(rows)
+        elif fn.startswith("abyss"):
+            abyss_lv.extend(rows)
+        elif fn.startswith("tower"):
+            tower_lv.extend(rows)
+    all_levels = main_lv + abyss_lv + tower_lv
 
-    check("C", "C12 工程侧关卡数 == 20", len(levels) == 20, f"{len(levels)}")
+    # C12 分类关卡数（能抓住任一模式丢关，比单一总数更有定位价值）
+    check("C", "C12 主线关卡数 == 20", len(main_lv) == 20, f"{len(main_lv)}")
+    check("C", "C12b 深渊 9 / 塔 30",
+          len(abyss_lv) == 9 and len(tower_lv) == 30,
+          f"深渊 {len(abyss_lv)} / 塔 {len(tower_lv)}")
 
-    mism = []
-    budget_total = 0
-    smax_total = 0
-    for L in levels:
-        me = L.get("monster_entries", []) or []
-        smax = sum(e.get("count_max", 0) for e in me)
-        b = L.get("total_monster_budget", 0)
-        budget_total += b
-        smax_total += smax
-        if b != smax:
-            mism.append(L["id"])
-    check("C", "C13 工程侧 budget == Σcount_max（拍板后应 20/20）",
-          not mism, f"不一致 {len(mism)} 关：{mism[:5]}...")
-    print(f"  budget 合计 {budget_total} / Σcount_max 合计 {smax_total}")
+    # C13 主线 budget == Σcount_max（D2 路线① 拍板不变式，20/20）
+    mism = [L["id"] for L in main_lv
+            if int(L.get("total_monster_budget", 0))
+            != sum(int(e.get("count_max", 0)) for e in (L.get("monster_entries") or []))]
+    check("C", "C13 主线 budget == Σcount_max（20/20）",
+          not mism, f"不一致 {len(mism)}：{mism[:5]}")
+
+    # 深渊/塔 budget 是「难度参考值」（不驱动刷怪，只进 CombatMetrics 观测）：
+    #   非 boss 关 ≈ ambient 主怪 max；boss 关是更高的难度权重。只校验其为正。
+    bad_budget = [L["id"] for L in (abyss_lv + tower_lv)
+                  if int(L.get("total_monster_budget", 0)) <= 0]
+    check("C", "C13b 深渊/塔 budget 为正参考值（口径不同，不要求 = Σcount_max）",
+          not bad_budget, f"缺失/非正 {bad_budget[:5]}")
 
     # C14 目标类型
-    objs = Counter(L.get("objective_type") for L in levels)
+    objs = Counter(L.get("objective_type") for L in all_levels)
     print(f"  objective 分布：{dict(objs)}")
     check("C", "C14 工程侧无未知目标类型",
           all(o in OBJECTIVES for o in objs), f"{[o for o in objs if o not in OBJECTIVES]}")
@@ -483,7 +500,7 @@ def group_c(repo):
 
     # C16 手绘关 m ≤ Σcount_max（工程侧硬约束）
     bad = []
-    for L in levels:
+    for L in all_levels:
         cells = (L.get("layout") or {}).get("cells")
         if not cells:
             continue
@@ -493,11 +510,25 @@ def group_c(repo):
             bad.append((L["id"], m, smax))
     check("C", "C16 工程侧手绘关 m ≤ Σcount_max（防整关不可玩）", not bad, f"越界 {bad}")
 
-    # C17 空 layout 的关
-    empty_layout = [L["id"] for L in levels if not (L.get("layout") or {})]
-    print(f"  空 layout 关：{empty_layout}")
-    check("C", "C17 工程侧空 layout 关数（拍板后应 0）", not empty_layout,
-          f"{len(empty_layout)} 关：{empty_layout}")
+    # C17 layout 合法性。layout 字段**可选**：无 `cells` = 程序化（用默认布局），
+    # 有 `cells` = 手绘（见 level_data.gd layout 注释）。故「空 layout」不再是缺陷；
+    # 改为校验：layout 为 dict，且手绘 cells 必须非空、各行长度一致。
+    bad_layout = []
+    for L in all_levels:
+        lay = L.get("layout")
+        # JSON 无 layout 字段 = None，等同于 Resource 默认空 dict（程序化默认布局）
+        if lay is None:
+            lay = {}
+        if not isinstance(lay, dict):
+            bad_layout.append((L["id"], "layout 非 dict"))
+            continue
+        cells = lay.get("cells")
+        if cells is not None:
+            if not cells or not all(isinstance(r, str) and len(r) == len(cells[0])
+                                    for r in cells):
+                bad_layout.append((L["id"], "手绘 cells 空或行宽不一"))
+    check("C", "C17 layout 合法（无 cells=程序化 / 手绘 cells 非空且行宽一致）",
+          not bad_layout, f"{bad_layout[:5]}")
 
     # ---- BOSS 侧 ----
     bpath = os.path.join(repo, "game", "data", "bosses", "bosses.json")
@@ -526,17 +557,27 @@ def group_c(repo):
         check("C", "C18 找到 bosses.json", False, bpath)
 
     # ---- 精灵素材 ----
+    # creatures 目录 = 怪物（monsters.json，24）+ 职业角色（player/warrior/archer/mage，4）
+    # + 召唤物（summon_elemental/summon_spirit_wolf，2）= 30。
     cdir = os.path.join(repo, "game", "assets", "pack", "creatures")
     if os.path.isdir(cdir):
-        dirs = sorted(d for d in os.listdir(cdir) if os.path.isdir(os.path.join(cdir, d)))
+        dirs = sorted(d for d in os.listdir(cdir)
+                      if os.path.isdir(os.path.join(cdir, d)))
         print(f"  creatures 目录 {len(dirs)} 个：{dirs}")
-        check("C", "C20 creatures 目录数 ∈ {20, 28}", len(dirs) in (20, 28), f"{len(dirs)}")
-        # 抽样检查帧数
-        sample = [d for d in dirs if d not in ("player",)][:3]
-        for d in sample:
-            p = os.path.join(cdir, d)
-            n = len([x for x in os.listdir(p) if x.endswith(".png")])
-            print(f"    {d}: {n} png")
+        ROLE_DIRS = ["player", "warrior", "archer", "mage"]
+        SUMMON_DIRS = ["summon_elemental", "summon_spirit_wolf"]
+        expected = sorted(m["id"] for m in ms) + ROLE_DIRS + SUMMON_DIRS
+        missing_dir = [x for x in expected if x not in dirs]
+        extra_dir = [x for x in dirs if x not in expected]
+        check("C", "C20 creatures 目录 = 怪物24 + 角色4 + 召唤2（30），无缺/无多",
+              len(dirs) == 30 and not missing_dir and not extra_dir,
+              f"缺 {missing_dir} / 多 {extra_dir}")
+        # 每个目录至少 1 张 png（防止空素材目录）
+        empty_png = [d for d in dirs
+                     if not [x for x in os.listdir(os.path.join(cdir, d))
+                             if x.endswith(".png")]]
+        check("C", "C20b 每个 creatures 目录至少含 1 张 png",
+              not empty_png, f"{empty_png}")
     else:
         check("C", "C20 找到 assets/pack/creatures", False, cdir)
 

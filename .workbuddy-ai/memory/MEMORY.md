@@ -22,6 +22,7 @@
 | **全面優化第 7 步（拾取反饋強化）** | ✅ **完成**（`pickup_glow` 按類型/稀有度染色 + 史詩起整數 2×；提示條彈跳入場 + 稀有度色左強調邊；`verify_loot` J 段 + `verify_hud` D 段擴充；回歸全綠 0 FAIL / 270.9s） |
 | **全面優化第 8 步（掉落物 pop 動畫）** | ✅ **完成**（掉落物改由死亡點**拋物線飛出 + 落地回彈 + 4 顆星光**；全程只改位移不改 scale；**磁吸/外部寫入即讓位**；`verify_loot` K 段 12 斷言；順帶修好 `verify_e2e` 段⑦ 既有偶發假紅；回歸全綠 0 FAIL / 229.9s） |
 | **附：全庫退出告警清零（音頻泄漏）** | ✅ **完成**（77 個 `verify_*` 有 21 個報 `AudioStreamPlaybackWAV leaked`；根因 = headless Dummy 驅動不推進播放頭 ⇒ `finished` 不觸發；**在 `AudioManager.play()` 源頭按驅動名跳過**，1 處改動全清） |
+| **全面升級批次（決策落地+穩定+內容+品質）** | ✅ **完成**（終極階 unlock 20→22；保底改直接入包修 collect；self_check/verify_hud/**e2e 樹外列表**退出泄漏全清；05 `--repo` 82/4→**89/0**；8 新怪素材兜底；**玩家→怪物異常接通+異常染色**；回歸全綠 0 FAIL / 151.4s；詳見 `2026-10-14.md` 追加⑫） |
 | 策划七步 | ✅ 完成（180 工单 / 8 批次） |
 | 素材开发线 | ✅ 收线（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
 | 工程落地 B0–B5 | ✅ B5 特殊玩法八子批全收线 |
@@ -59,39 +60,40 @@
 ## 📋 未结遗留清单（跨批次汇总）
 
 ### 需用户裁定
-- **`04-check_number_model.py` / `04-数值与数据模型.md` 仍是「路線 A」上限 20 口徑**
-  （2026-10-14 賬號上限已提到 30）。其 `L2/L2b` 寫死「單周目落點 == 上限 − 1（L19）」，
-  上限 30 後**不變式失效**（20–30 成刷級區）⇒ 待裁定 **(a)** 接受刷級區並改寫 L2/L2b，
-  或 **(b)** 同步抬 `reward_xp`（≈×2.8）保住不變式。**04 目前仍綠**（自洽模型、漂移檢測不含該常量），
-  但**文檔與代碼存在已知分歧**。
+- **`04-check_number_model.py` 已澄清為「純策劃模型快照」**（2026-10-14 處理）：模型快照上限 20
+  （T17 落點 L19，模型內 L2/L2b 不變式仍成立），不接 `--repo`（回歸口徑）。read_repo_constants
+  新增讀 `ACCOUNT_LEVEL_MAX`，`--repo` 現顯式輸出 `[MOVE] ACCOUNT_LEVEL_MAX 工程 30 != 文檔 20`
+  （差異不判失敗、符合腳本設計）。⇒ 仍屬 GDD 取捨：L20–30 是否為刷級區、要不要抬 `reward_xp`（≈×2.8）。
 - **`boss_ember_lord.level_min 19 → 13`** 刻意偏离策划 §1.1 等级带表（表写 19–20），
   为让 `05-check` C19 转绿 ⇒ 待裁定「改表 or 改回并放宽 C19」。
 - **深渊表的 `rune_drop_chance`（0.05 / 0.30）当前不会被消费** —— `roll_rune_drop` 与
   `roll_loot` 只走 `ConfigLoader.LOOT_TABLE_BY_TIER`（按 `MonsterData.Tier`），深渊表要经
   `LevelData.loot_table_id` 才用得上（只有 `roll_guaranteed_equipment` 支持）。
   ⇒ 待裁定「要不要让深渊房走自己的掉落表」。
-- **技能終極階 `unlock_level` 現為 20**（2026-10-13 因上限 20 由 22 改）；上限已回 30 ⇒ L22 又可達
-  ⇒ 待定「維持 20 or 改回 22」。
+- **技能終極階 `unlock_level` 已改回 22**（2026-10-14 用戶裁定；blood_rage/spirit_wolf/
+  summon_elemental）。L30 上限下 L22 可達、拉開終局縱深。✅ 已落地。
 - **地面殘留貼圖「未做視覺抓圖」**（2026-10-14）：無現成抓圖工具渲染 `GroundArea`，
   新建抓圖場景會**開渲染視窗**，與「不要打開遊戲窗口、後台靜默開發」衝突 ⇒ 依「做之前問我」暫緩。
   狀態斷言（`verify_skill_forms` L 段 12 條）已覆蓋貼圖解析 / 自繪 / 縮放 / 幀數 / 元素映射，
   但**未證明「這一幀畫面上真的有殘留貼圖」**（鐵律 7：狀態斷言 ≠ 像素證據）⇒ 待用戶定奪是否補拍。
 
-### 策划侧仍红（非工程批）
-- `05-check` **C17**（`ch1_l03/l04` 空 layout，属 `5-W5-9`）· **C20**（creatures 目录数，素材侧）
-- **C12**（工程侧关卡数 == 20）· **C13**（budget == Σcount_max）同属既有口径差，
-  `05 --repo` 合计 **82/4**
+### 策划侧（2026-10-14 已全部归零）
+- `05-check --repo` **C12/C13/C17/C20 已全部修復**（重寫 group_c：主線 20 + 深淵/塔分檔；
+  budget 主線==Σcount_max、深淵/塔為參考值；layout 可選、空=程序化；creatures 30 = 24 怪+4 角色+2 召喚）
+  ⇒ **89 通過 / 0 失敗**（A40/B9/C23/D17）。
 
 ### 工程侧待接线（有落点、无消费方 = 死钩子）
 - **退出告警要先分類**（2026-10-14）：`AudioStreamPlaybackWAV`/`AudioStreamWAV` 那类**已從源頭清零**
   （`AudioManager._is_silent_runtime()` 在 Dummy 驅動下跳過播放，全庫 21 個場景一起乾淨）；
   **剩下的節點類告警才是真泄漏** —— 見下一條。
-- **`verify_hud` 有 2 处既有泄漏**（2026-10-14 掃到，全量回歸每次都刷 `6 ObjectDB leaked` +
-  `2 resources still in use`；**不影響回歸判定**，但會淹掉真信號）：
-  ① 段 A `fake := Node.new()`（**孤兒節點**、從未 `add_child`）用 `queue_free()` ⇒ 無 `SceneTree`、永不執行，
-  且其持有的 `ManaPool` 一起滯留；② 段 C `fake := _make_fake_ctrl()` 是 **`extends Object`**
-  （非 RefCounted，**必須手動 `free()`**），全段從未釋放。
-  修法：孤兒節點改 `free()`；`Object` 待 `bar` 真正釋放後再 `free()`（避免 use-after-free）。⇒ 待裁定「修 or 維持」。
+- **節點類退出泄漏已全部修復**（2026-10-14 用戶裁定「都修」）：
+  - **self_check**：7 個 UI 面板改數組持有、檢查後統一 free + LevelView free（降到 0~1 偶發，
+    偶發 1 ObjectDB 是 headless TextServer dummy 排版噪音）。
+  - **verify_hud**：A 段孤兒 `fake`/`ManaPool`（extends Node）、C 段裸 `Object`（extends Object）
+    改 `free()`（bar 先 queue_free + await 1 帧再 free，避免 use-after-free）。連跑 5 次全乾淨。
+  - **verify_e2e**：根因 = hub `_level_list` 是**樹外創建、點出擊才進樹**的成員；回第二個 hub 沒點
+    出擊就 quit ⇒ 樹外列表（1 VBox+20 關卡按鈕+3 標題）泄漏。修：hub.gd 加 `_exit_tree()` 顯式 free
+    樹外列表。e2e 完全乾淨。
 - **`EventBus.loot_dropped` 是死信号**（`event_bus.gd:157` 宣告了，**全项目零 emit 点**；
   2026-10-14 掃到，本次未動）⇒ 待裁定「接線 or 刪除」。
 - **`EventBus.notification_requested` 在关卡内无消费方**（只有 `hub.gd` 消费）⇒
@@ -104,7 +106,8 @@
 - **`item_level_spread` 与实现矛盾**：`_roll_item_level()` 用硬编码 `ITEM_LEVEL_JITTER = 2`（±2）
   给**所有档位**，而 JSON 写 BOSS 是 `min_mod 3 / mode_mod 5 / max_mod 8` ⇒ BOSS 本应掉 iLvl+5
   左右 —— 属 `2-L13`/`2-V13`
-- **玩家→怪物施加异常未接通**（B4-5 拍板不做）⇒ 雷/暗异常只能由 2 雷怪 / 2 暗怪打玩家触发
+- **玩家→怪物施加异常已接通**（2026-10-14；skill_controller `_hit`/summon 命中補
+  `apply_ailment_from_element`，enemy_base 補轉發到 health）；命中後異常染色（`_body.modulate`）。
 - **无异常 HUD**（`status_shock`/`status_curse` 素材已在但无消费点）
 - `ms_boost.element_attach`（裂界指环附元素）未接线；`extra_loot` 未强制 `loot_quality`
 - **`SetPanel` 尚未挂进真实 UI**（全库只有 `set_preview`/`capture_set_panel` 在用）
@@ -112,7 +115,8 @@
 - 套装专属特效视觉 6 套未生产；增益图标 12 张未生产（B4-1 走占位绘制）
 - `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）未承载
 - 命名漂移：`AILMENT_SLOW="slow"` vs 素材键 `chill`；策划 gaps 建议雷=「麻痺」，实现采「感电」
-- 8 只新怪 `sprite_path` 指向不存在 png（`use_placeholder_art` 兜底不崩，属 **B7 素材替换**）
+- 8 只新怪 `sprite_path` 已兜底（2026-10-14；複製 creatures 目錄 `idle_s_01` 生成 8 個
+  sprites/enemies 單張 png + .import；全 24 怪 sprite_path 有效）。
 - `UISkin.affix_icon()` **零调用方**（死函数）；且 TEX 键用旧名 `affix_armor_penetration`
   对不上 `stat_key=armor_pierce`（无运行时消费点，留 B7）
 
@@ -123,7 +127,8 @@
 - `STAT_SHOCK_DAMAGE`/`STAT_CURSE_DAMAGE`「無供給源」→ **有供給**（`data/affixes/special.json` 等），
   且 `health_component`/`enemy_base`/`player_controller` 均有消費點
 - `talent_panel` 面板鍵 vs `TalentTree` 鍵不一致 → 已修（1/15/30 映射一致）
-- `GameConstants.ACCOUNT_LEVEL_MAX` 60 → **已改 20**（本批）；技能終極階 `unlock_level` 22 → **20**（本批）
+- `GameConstants.ACCOUNT_LEVEL_MAX` 60 → 20（2026-10-13）→ **30**（2026-10-14 上限裁定）；
+  終極階 `unlock_level` 22 → 20（2026-10-13）→ **22**（2026-10-14 用戶裁定）。
 
 ### 已结（勿重复排查）
 - 符文掉落接线（B6 `2-L12`/`2-V12`）· 技能面板「未解锁不能装」· 图鉴文案改读表 ·
@@ -150,7 +155,7 @@
 | HANDOFF-E | 符文掉落接线（表字段 + `roll_rune_drop` 重写 + 拾取解锁/转魔石 + 地面真图标 + 提示条） |
 | HANDOFF-E ② | 遗漏扫描：掉率对齐 2% / 未解锁不能装 / 图鉴文案读表；修抓图「冻结画面」 |
 | HANDOFF-E ③ | 修金按钮 24px 破相：全局 Button 改 128×24 平面金、雕花给主菜单英雄键 |
-| 片头 | 「勇者斗恶魔」可播放开场 + 接入启动流程（`intro.tscn` / `IntroScreen`） |
+| 片头 | 「勇者斗恶魔」可播放开场（`intro.tscn` / `IntroScreen`）；⚠️ 刻意未接入启动流程（2026-10-08 裁定） |
 | 全面優化① | 清理瘦身 **928.4MB**（→trash 可還原）+ 修 `ACCOUNT_LEVEL_MAX`/技能解鎖階梯；更正多項過期死鉤子記錄 |
 | 全面優化② | 打擊感/juice 代碼側：**A** 掉落磁吸吸附（`pickup_radius` 詞綴首次接通）· **B** 異常 DoT 小跳字（`EventBus.ailment_tick`）· **C** `EventBus.screen_impact` 技能/爆炸/BOSS 屏震頓幀（按 AoE 半徑分級） |
 | 全面優化③ | 賬號上限 **20→30**（裁定「提高賬號上限」以讓天賦第三分支 L30 可達）；`self_check` 去硬編碼、`verify_account` 加「上限 ≥ 最晚分支解鎖」硬契約；`07-check` R9 同步 |
@@ -161,6 +166,7 @@
 | 全面優化⑧ | 掉落物 pop 動畫（Playground「掉落物 pop 出來帶星光」）：`pop_from` 由 `EnemyBase` 注入死亡點；`_ready` 起手即在起點（防閃落點）；ease-out-quad 位移 + 拋物線抬升 + `sin` 回彈；4 顆像素對齊星光；**全程不改 `scale`**（像素鐵律）；**`_pop_written` 哨兵 ⇒ 外部寫入/磁吸即讓位**；`verify_loot` K 段 12 斷言 |
 | 全面優化⑨ | 全庫退出告警清零：音頻泄漏（`AudioStreamPlaybackWAV`/`AudioStreamWAV`）根因 = headless Dummy 驅動不推進播放頭 ⇒ 播放即焚的 `finished → queue_free` 永不觸發；**源頭修** = `AudioManager._is_silent_runtime()`（按 `AudioServer.get_driver_name()=="Dummy"` 跳過播放）；附 `stop_all()` / `VerifyWatchdog.stop_sfx()` 供有窗口場景收尾；`verify_audio66` D 段改分叉口徑 |
 | 全面優化⑩ | 測試確定性修復：`verify_e2e` 段⑤ 不再把玩家瞬移到怪堆重心（該步對拾取零貢獻，卻是「段⑥ 誤撿光掉落 ⇒ 段⑦ 假紅」的根源）；A/B 實證為既有問題（關掉 pop 8 次紅 2 次）；修後連跑 10 次全綠 |
+| 全面優化⑪ | 全面升級批次：終極階 unlock 20→22；保底改直接入包（修 collect）；self_check/verify_hud/**e2e 樹外列表**退出泄漏全清（hub `_exit_tree`）；05 `--repo` 82/4→**89/0**；8 新怪素材兜底；**玩家→怪物異常接通+異常染色**（`ailment_status_changed`）；回歸全綠 0 FAIL / 151.4s |
 
 ---
 

@@ -23,6 +23,10 @@ func _run() -> void:
 	await _test_pickup_toasts()
 	await _test_level_wiring()
 	print("===== 步骤 6 实测 结束：%s =====" % ("全部通过" if _fail == 0 else "%d 项失败" % _fail))
+	# 退出前清理播放即焚的 SFX：headless 下 Dummy 音频驱动不推进、`finished` 永不触发，
+	# AudioStreamPlayer 连同 AudioStreamWAV/Playback 挂在 root 上泄漏（6 ObjectDB + 2 resource）。
+	# stop_sfx 内部已等真实时间让混音线程释放（2026-10-14）。
+	await VerifyWatchdog.stop_sfx(get_tree())
 	get_tree().quit(0 if _fail == 0 else 1)
 
 
@@ -50,9 +54,14 @@ func _test_mana_bar() -> void:
 	# 法力 37/100 → ratio 0.37（私有绘制不可直接断言，用「读取不崩 + 池值变化后仍不崩」做冒烟）
 	pool.set_current(0.0)
 	await get_tree().process_frame
+	# 先让树中的 bar 释放（queue_free 延迟到帧末），避免它析构时再访问 target/pool
 	bar.queue_free()
-	fake.queue_free()
 	await get_tree().process_frame
+	# fake 与 pool 都是**树外 Node**（`fake_mana_target extends Node`、`ManaPool extends Node`），
+	# 从未 add_child ⇒ `queue_free()` 对它们无效，必须 `free()` 立即释放，
+	# 否则泄漏 Node + fake_mana_target.gd / mana_pool.gd（2026-10-14）
+	fake.free()
+	pool.free()
 	_ok("法力条读取与绘制无异常", true)
 
 
@@ -96,6 +105,9 @@ func _test_skill_bar() -> void:
 	_ok("槽 2 无冷却", not bool(bar.get_slot_state(1)["on_cd"]))
 	bar.queue_free()
 	await get_tree().process_frame
+	# fake 是裸 Object（`Object.new()`，非 RefCounted），bar 释放后必须手动 free，
+	# 否则泄漏 Object + fake_skill_ctrl.gd（2026-10-14）
+	fake.free()
 
 
 # =============================================================================

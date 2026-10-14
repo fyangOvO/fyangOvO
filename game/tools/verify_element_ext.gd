@@ -14,6 +14,7 @@
 ##   G. 诅咒降攻：敌人攻击力 ×0.80（与玩家同口径，对称）
 ##   H. 异常到期自动解除，效果随之消失
 ##   I. 零回归：无异常时攻击力 / 受击逐位不变
+##   J. 玩家元素技能命中怪物 → 自动施加异常（玩家→怪物接通；物理不施加）
 extends Node
 
 const DAMAGE_NUMBER_SCENE := preload("res://scenes/juice/damage_number.tscn")
@@ -44,6 +45,7 @@ func _ready() -> void:
 	_test_curse_enemy_attack()
 	await _test_ailment_expiry()
 	_test_zero_regression()
+	await _test_player_apply_ailment()
 	_finish()
 
 
@@ -286,6 +288,37 @@ func _test_zero_regression() -> void:
 	_player.clear_combat_stats()
 	var bare := _player.get_attack_damage()
 	_ok("未注入：回退裸装基线且 > 0（无异常乘区 = 1.0）", bare > 0.0)
+
+
+func _test_player_apply_ailment() -> void:
+	print("--- J. 玩家元素技能命中怪物 → 自动施加异常（玩家→怪物接通）---")
+	var sc := _player.get_skill_controller()
+	_ok("SkillController 就绪", sc != null)
+	# 火元素技能命中 → 怪物燃烧。先给怪物加大量 HP，避免被 fireball 一击秒掉
+	# （死亡后 apply_ailment 会因 is_dead 直接 return，就测不到「命中上异常」）。
+	var e := _spawn_enemy("spider_cave", Vector2(200, 240))
+	e.health.max_hp_override = 99999.0
+	e.health.current_hp = 99999.0
+	var fire_skill := ConfigLoader.get_skill("fireball")
+	_ok("取到火技能 fireball 且为 fire 元素",
+		fire_skill != null and fire_skill.element == GameConstants.ELEMENT_FIRE)
+	sc._hit(e, fire_skill, 0.0)
+	_ok("火技能命中后怪带燃烧（AILMENT_BURN）",
+		e.health.has_ailment(GameConstants.AILMENT_BURN))
+	# 命中后立即是受击闪白（modulate 2.2），等闪白结束才看得出燃烧染色
+	await get_tree().create_timer(0.15).timeout
+	_ok("闪白结束后怪呈燃烧染色（modulate 非白）",
+		e._body.modulate != Color.WHITE)
+	# 物理技能命中 → 不施加任何异常
+	var e2 := _spawn_enemy("spider_cave", Vector2(280, 240))
+	e2.health.max_hp_override = 99999.0
+	e2.health.current_hp = 99999.0
+	var phys_skill := ConfigLoader.get_skill("spin_slash")
+	_ok("取到物理技能 spin_slash", phys_skill != null)
+	sc._hit(e2, phys_skill, 0.0)
+	_ok("物理技能命中后怪无任何异常", e2.health.get_active_ailments().is_empty())
+	await get_tree().create_timer(0.15).timeout
+	_ok("闪白结束后物理命中怪回白（modulate 为白）", e2._body.modulate == Color.WHITE)
 
 
 func _finish() -> void:

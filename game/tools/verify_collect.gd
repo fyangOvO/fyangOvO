@@ -121,8 +121,12 @@ func _run() -> void:
 	_ok("收集物已全部从场景移除（残留 %d）" % _collectibles().size(),
 		_collectibles().is_empty())
 	print("--- D. 不污染装备经济 ---")
-	_ok("收集物是 material：装备背包仍为空（实际 %d 件）" % _player.inventory.size(),
-		_player.inventory.is_empty())
+	# 收集物本身是 material（下面的材料断言覆盖）。目标达成时**保底装备**（`guaranteed_equipment_drops`）
+	# 会同步入包 —— 那是「目标达成奖励」，不是收集物产生。所以这里断言「背包装备只来自保底」，
+	# 而非「背包为空」（原断言在保底同步入包后失效，误判收集物污染了装备经济）。
+	_ok("收集物是 material：背包装备仅来自保底（%d 件 ≤ %d）"
+			% [_player.inventory.size(), def.guaranteed_equipment_drops],
+		_player.inventory.size() <= def.guaranteed_equipment_drops)
 	_ok("收集物计入材料（%d → %d）" % [mats_before, _player.materials],
 		_player.materials == mats_before + def.objective_value)
 

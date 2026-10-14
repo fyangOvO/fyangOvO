@@ -300,6 +300,8 @@ func _ready() -> void:
 		_build_placeholder_art()
 	# 死亡 → 掉落 + 移除（unit_died 由生命组件在 HP≤0 时广播）
 	EventBus.unit_died.connect(_on_unit_died)
+	# 异常施加 / 结束 → 刷新怪物染色（中毒泛绿 / 燃烧泛橙 / 冰缓泛蓝…）
+	EventBus.ailment_status_changed.connect(_on_ailment_status_changed)
 	# 词缀初始化（6.2：移速乘法 / 初始闪现计时）
 	if not affixes.is_empty():
 		_move_mult = float(AffixController.get_multipliers(affixes)["move"])
@@ -1276,6 +1278,14 @@ func take_damage(amount: float, source: Node) -> void:
 		_check_boss_phase()
 
 
+## 按元素施加异常（玩家元素技能命中用）：火→燃燒 / 冰→冰緩 / 電→感電 / 毒→中毒 / 暗→衰敗。
+## 转发到 health（与 PlayerController.apply_ailment_from_element 同口径、对称）。
+## 不写这层转发，SkillController._hit 的 has_method 探测会静默跳过、玩家打不出异常。
+func apply_ailment_from_element(element: String, source: Node) -> void:
+	if health != null:
+		health.apply_ailment_from_element(element, source)
+
+
 ## BOSS 阶段检测：HP 比例越过阈值 → 升阶段（技能集扩展 + 数值乘区 + 广播）
 func _check_boss_phase() -> void:
 	if boss_config.is_empty() or health == null:
@@ -1724,7 +1734,26 @@ func _tick_flash(delta: float) -> void:
 		return
 	_flash_timer -= delta
 	if _flash_timer <= 0.0 and _body != null:
-		_body.modulate = Color.WHITE
+		# 闪白结束恢复异常染色（而非裸 WHITE，否则会抹掉中毒/燃烧等 tint）
+		_refresh_ailment_tint()
+
+
+## 异常状态变化（只处理发生在自己身上的）：刷新染色。
+func _on_ailment_status_changed(who: Node, _ail: String, _applied: bool) -> void:
+	if who == self:
+		_refresh_ailment_tint()
+
+
+## 按当前激活异常重算 _body 染色（多异常相乘）；无异常回白色。
+func _refresh_ailment_tint() -> void:
+	if _body == null or health == null:
+		return
+	var tint := Color.WHITE
+	for ail in health.get_active_ailments():
+		var soft := Color.WHITE.lerp(GameConstants.ailment_color(ail),
+				GameConstants.AILMENT_TINT_STRENGTH)
+		tint *= soft
+	_body.modulate = tint
 
 
 func _solid_texture(w: int, h: int, color: Color) -> ImageTexture:

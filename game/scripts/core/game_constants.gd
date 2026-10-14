@@ -1172,6 +1172,9 @@ const AILMENT_SHOCK_DURATION: float = 3.0
 const AILMENT_CURSE_DAMAGE_DEALT_REDUCTION: float = 0.20
 const AILMENT_CURSE_DURATION: float = 3.0
 
+## 异常染色强度（0–1）：怪物身上异常的 modulate = lerp(白, 元素色, 强度)，多异常相乘。
+const AILMENT_TINT_STRENGTH: float = 0.35
+
 ## 元素 → 异常映射：毒→中毒 / 火→燃烧 / 冰→冰冻 / 雷→感电 / 暗→诅咒；
 ## 物理无异常（返回空串）。
 const AILMENT_ELEMENT_MAP: Dictionary = {

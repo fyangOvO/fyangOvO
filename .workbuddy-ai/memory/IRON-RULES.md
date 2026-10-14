@@ -24,7 +24,7 @@
 ### B. 累積的踩坑現場（按時間，共 22 組）
 
 `### 🆕 2026-09-28（B0/B1/B2/B3-1/B3-2/B3-3）` → `2026-09-29（B3-4…B5-1）`
-→ `2026-09-30（HANDOFF-C/D/E）` → `### 🆕 2026-10-08 片頭 + 2026-10-13/14 全面優化①~⑧ 新踩坑`
+→ `2026-09-30（HANDOFF-C/D/E）` → `### 🆕 2026-10-08 片頭 + 2026-10-13/14 全面優化①~⑪ 新踩坑`（坑 63/64：樹外成員節點泄漏、is_instance_valid）
 
 > 每組都寫了**症狀 / 根因 / 修法**。查「這個坑是不是踩過」就 grep 症狀關鍵詞。
 
@@ -753,6 +753,23 @@ await get_tree().process_frame   # ✅ 第二帧才在「上一帧的 _process �
 `verify_audio66` 段 D 原本寫 `after >= before` ⇒ **永遠通過的廢斷言**（`after == before` 也滿足）。
 ⇒ 改成按 `_is_silent_runtime()` 分叉：Dummy 下斷言「不創建」，真實驅動下斷言「掛載」。
 **通則：凡放寬/短路了被測物，就去 grep 那些「用寬鬆比較符（`>=` / `> 0`）」的斷言 —— 它們最容易被掩蓋。**
+
+**63 場景腳本的「成員節點」若在樹外創建，場景釋放時不會被 free（孤兒泄漏）**
+`hub._level_list` 在 `_build_ui` 用 `VBoxContainer.new()` 創建、**沒 `add_child`**（設計成點「出擊」
+才由 `_toggle_level_list` 掛進 holder）。`change_scene_to_packed` 釋放舊場景時，只遞迴 free
+**場景子樹內**的節點；樹外成員節點不在子樹裡，不會被觸達。而 `Node` 不是 `RefCounted`，
+GDScript 成員參照也不會自動釋放 ⇒ 退出泄漏（1 VBox + 20 關卡按鈕 + 3 標題）。
+- e2e 兩個 hub：第一個點了出擊（列表進樹、隨場景釋放），第二個回據點沒點出擊就 quit（樹外列表泄漏）。
+- **修法二選一**：① 讓成員節點**始終在樹內**（掛進隱藏容器、`visible=false`）；
+  ② 在場景 `_exit_tree()` 裡對「`get_parent()==null` 的樹外成員」顯式 `free()`（本輪採此法，注意只 free 樹外態，進樹的會隨場景遞迴釋放、勿重複）。
+- **排查特徵**：退出泄漏看到「成批同類控件（按鈕/標籤），但其父容器不在泄漏清單」⇒ 優先懷疑**樹外成員節點**。
+
+**64 判斷對象是否已釋放用 `is_instance_valid()`；**沒有 `instance_exists()` 全局函數**
+探針踩坑：寫 `instance_exists(id)` 直接 **Parse Error、腳本整個加載失敗**。
+- 正確：持有節點參照（`Node` 參照**不阻止 free**，這點和 RefCounted 不同），用 `is_instance_valid(obj)` 判活。
+- 若只有 instance ID：`instance_from_id(id)` 對已釋放 ID 會**報錯**，不能直接用；
+  改用 `weakref(obj)` 拿 `WeakRef`，再 `wr.get_ref()`（失效返回 null），或一開始就持參照 + `is_instance_valid`。
+- 跨場景追蹤「某節點被釋放沒」：把參照存在跨場景存活的對象（如掛 root 的 runner），切場景後 `is_instance_valid`。
 
 ---
 

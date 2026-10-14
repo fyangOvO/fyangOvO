@@ -251,15 +251,21 @@ func apply_ailment_raw(ailment: String, dps: float, duration: float) -> void:
 
 ## 解除异常（冰冻到期 / 净化技能预留）
 func clear_ailment(ailment: String) -> void:
-	_ailments.erase(ailment)
+	if _ailments.has(ailment):
+		_ailments.erase(ailment)
+		EventBus.ailment_status_changed.emit(host, ailment, false)
 
 
 ## 内部：写入异常条目（同类刷新剩余时长，不叠加）
 func _apply_ailment_entry(ailment: String, dps: float, duration: float, source: Node) -> void:
 	if duration <= 0.0:
-		_ailments.erase(ailment)
+		if _ailments.has(ailment):
+			_ailments.erase(ailment)
+			EventBus.ailment_status_changed.emit(host, ailment, false)
 		return
 	_ailments[ailment] = { "time": duration, "dps": dps, "source": source }
+	# 新施加 / 刷新时长都广播 true（视觉幂等，重算即可）
+	EventBus.ailment_status_changed.emit(host, ailment, true)
 
 
 func _tick_ailments(delta: float) -> void:
@@ -274,6 +280,7 @@ func _tick_ailments(delta: float) -> void:
 		entry["time"] = float(entry["time"]) - delta
 		if float(entry["time"]) <= 0.0:
 			_ailments.erase(ailment)
+			EventBus.ailment_status_changed.emit(host, ailment, false)
 			continue
 		var dps := float(entry.get("dps", 0.0))
 		if dps > 0.0:

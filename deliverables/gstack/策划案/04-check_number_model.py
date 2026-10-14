@@ -36,9 +36,10 @@ import sys
 # --- 账号等级（account_level.gd:24-33）---
 XP_CURVE_BASE = 180.0
 XP_CURVE_EXPONENT = 1.6
-# 现状（工程值）
+# 历史工程值（账号上限曾为 60；路线 A 拍板降到 20；2026-10 已回 30）。
+# 真实现值不在此硬编码，以 --repo 实读 ACCOUNT_LEVEL_MAX 为准，本常量仅作历史记录。
 MAX_ACCOUNT_LEVEL_CUR = 60
-# 路线 A 拍板值（§3.1 补充①）
+# 路线 A 拍板值（§3.1 补充①）——本脚本即该 20 级模型的自洽快照
 MAX_ACCOUNT_LEVEL = 20
 # 用户原话为「22」；实测按 20 落地（见文档 §〇「关于 22 的偏差说明」）
 MAX_ACCOUNT_LEVEL_USER_REQUESTED = 22
@@ -304,6 +305,8 @@ def read_repo_constants(repo):
         res["BASE_AD_GROWTH"] = grab("BASE_AD_GROWTH")
         res["AFFIX_ILVL_SCALE_PER_LEVEL"] = grab("AFFIX_ILVL_SCALE_PER_LEVEL")
         res["RESIST_DR_CONSTANT_PER_LEVEL"] = grab("RESIST_DR_CONSTANT_PER_LEVEL")
+        # 账号上限（int）：用于对照「路线 A 模型值 20 vs 工程现值」
+        res["ACCOUNT_LEVEL_MAX"] = grab("ACCOUNT_LEVEL_MAX", int)
         # 注释块中的旧值（失衡五 证据）
         res["_comment_old_hp_growth"] = bool(re.search(r"1\.284\^", txt))
         res["_comment_old_dmg_growth"] = bool(re.search(r"1\.218\^", txt))
@@ -520,8 +523,9 @@ def main():
             c.info("J4", "L38 抗性 450 在分母常量 %s 下减伤" % tag, "%.1f%%" % (dr * 100))
 
     # ---------- L. 路线 A 专项断言（T17–T20） ----------
-    c.ok("L1", "MAX_ACCOUNT_LEVEL == 20（T17）",
-         MAX_ACCOUNT_LEVEL == 20, "实测 %d（工程现值 60 需改）" % MAX_ACCOUNT_LEVEL)
+    c.ok("L1", "MAX_ACCOUNT_LEVEL == 20（路线 A 模型 T17）",
+         MAX_ACCOUNT_LEVEL == 20,
+         "模型快照值 20；工程现值已回 30（见 --repo 对照），本脚本不代表工程现值")
     c.ok("L2", "现有 XP 合计可兑现 MAX_ACCOUNT_LEVEL（T19）",
          sum(TGT_REWARD_XP) >= cumulative_to(MAX_ACCOUNT_LEVEL) * 0.95,
          "XP 合计 %s vs cum(20) %s（%.1f%%）" % (
@@ -565,6 +569,8 @@ def main():
                 ("XP_CURVE_BASE", XP_CURVE_BASE),
                 ("AFFIX_ILVL_SCALE_PER_LEVEL", AFFIX_ILVL_SCALE_PER_LEVEL),
                 ("RESIST_DR_CONSTANT_PER_LEVEL", 50.0),
+                # 账号上限：模型快照 20（路线 A），工程现值 30（2026-10 回 30）
+                ("ACCOUNT_LEVEL_MAX", float(MAX_ACCOUNT_LEVEL)),
             ]
             for name, doc_val in pairs:
                 eng = repo_c.get(name)

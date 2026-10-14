@@ -97,6 +97,18 @@ func _ready() -> void:
 	EventBus.notification_requested.connect(_on_notification)
 
 
+## 據點離開場景樹時補釋放「樹外」關卡列表。
+##
+## 關卡列表 `_level_list` 在 `_build_ui` 中創建為**樹外節點**（點「出擊」才由
+## `_toggle_level_list` 掛進 holder）。若玩家沒點出擊就離開據點（回主菜單 / 結算後
+## 進入新據點又直接退出 / 關遊戲），它不在據點場景子樹裡，不會被遞迴釋放 ⇒ 退出泄漏
+## （1 VBox + 20 關卡按鈕 + 3 章節標題）。這裡在據點脫樹時顯式釋放樹外狀態的列表；
+## 若列表已在 holder 中（點過出擊），它會隨據點場景遞迴釋放，不重複處理。
+func _exit_tree() -> void:
+	if _level_list != null and is_instance_valid(_level_list) and _level_list.get_parent() == null:
+		_level_list.free()
+
+
 ## 接收 SceneManager 递过来的载荷（据点恒为空；进关卡才带 level_id）
 func on_scene_entered(payload: Dictionary) -> void:
 	if _entered:

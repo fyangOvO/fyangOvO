@@ -365,6 +365,9 @@ func _deal_damage(target: Node, base: float) -> void:
 	)
 	if target.has_method("take_damage"):
 		target.take_damage(res.final_damage, self)
+		# 元素召唤物命中 → 施加对应异常（元素僕從火→燃燒；靈狼物理→ ailment 回空、不施加）
+		if target.has_method("apply_ailment_from_element"):
+			target.apply_ailment_from_element(_element, self)
 	EventBus.damage_dealt.emit(target, res.final_damage, res.crit, res.element)
 	# 元素僕從：命中點播火球命中特效（無投射物系統，暫以命中特效代表「小火球」）
 	if _ranged and target is Node2D:

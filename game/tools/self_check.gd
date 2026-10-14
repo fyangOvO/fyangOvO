@@ -46,6 +46,9 @@ func _ready() -> void:
 		print("[Main] 自检结束（%s），退出码 = %d"
 			% ["--verify" if _verify_only else "无头",
 				0 if _failed_count == 0 else 1])
+		# NOTE: self_check 退出时偶发 1 个 ObjectDB（headless TextServer dummy 对 RichTextLabel
+		#   排版的 ShapedText/资源），属环境噪音，不影响功能与回归判定（见 AGENTS.md §6.4）。
+		#   曾试在 quit 前等帧让 UI 排版，反而让该泄漏稳定出现，故不等待。
 		get_tree().quit(0 if _failed_count == 0 else 1)
 
 
@@ -218,19 +221,27 @@ func _run_self_check() -> void:
 		and AudioManager.has("ui_click"))
 
 	# 任务 7.x：UI/UX 面板族（7.1 主菜单 / 7.2 属性 / 7.3 装备 / 7.4 天赋 / 7.5 锻造 / 7.6 结算 / 7.7 设置）
-	var ui_panels_ok := MainMenuPanel.new() != null \
-		and StatPanel.new() != null and EquipPanel.new() != null \
-		and TalentPanel.new() != null and ForgePanel.new() != null \
-		and SettingsPanel.new() != null and ResultPanel.new() != null
+	# ⚠️ 这些面板都是 `Control`（含 CanvasItem RID / 子节点 / 资源），若只 `new()` 后丢弃，
+	#    会成为孤儿对象，退出时被 Godot 报 `leaked at exit`（CanvasItem + ObjectDB + resource）。
+	#    必须显式持有引用并在检查后 `free()` 掉，不能靠链式 `!= null` 创建后不释放。
+	var _panels: Array[Control] = [
+		MainMenuPanel.new(), StatPanel.new(), EquipPanel.new(), TalentPanel.new(),
+		ForgePanel.new(), SettingsPanel.new(), ResultPanel.new(),
+	]
+	var ui_panels_ok := true
+	for p in _panels:
+		if p == null:
+			ui_panels_ok = false
 	var ui_contract_ok := true
-	var menu_p := MainMenuPanel.new()
-	var r := ResultPanel.new()
-	var eqp := EquipPanel.new()
+	var menu_p: Control = _panels[0]
+	var r: Control = _panels[6]
+	var eqp: Control = _panels[2]
 	ui_contract_ok = ui_contract_ok and menu_p.on_start == Callable() and r.on_hub == Callable()
 	ui_contract_ok = ui_contract_ok and eqp.on_equip == Callable() and eqp.on_unequip == Callable()
-	menu_p.free()
-	r.free()
-	eqp.free()
+	# 统一释放所有面板，避免退出泄漏（2026-10-14）
+	for p in _panels:
+		if p != null and is_instance_valid(p):
+			p.free()
 	_add_check("7 个 UI 面板 class 全部可实例化（7.1–7.7）", ui_panels_ok)
 	_add_check("面板回调契约默认空（on_start/on_hub/on_equip/on_unequip）", ui_contract_ok)
 
@@ -267,6 +278,8 @@ func _run_self_check() -> void:
 	lv_check.set_layout(lv_layout)
 	_add_check("LevelView 批处理（单节点承载全图 %d 格）" % lv_check.tile_count(),
 		lv_check.tile_count() == int(lv_layout["cells"].size()))
+	# LevelView 是 Node2D（CanvasItem，占 RID），检查完必须释放，避免退出泄漏（2026-10-14）
+	lv_check.free()
 
 	# 任务 8.4：平衡性数值仿真（D9 口径：怪 HP 1.284^L / DMG 1.218^L；难度 1.08^n / 1.23^n）
 	var bal_ok := true

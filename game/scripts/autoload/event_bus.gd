@@ -100,6 +100,10 @@ signal damage_taken(source: Node, amount: float, element: String)
 ## 按 `AILMENT_NUMBER_INTERVAL` 合并累计伤害后播报，`host` = 中招单位。
 signal ailment_tick(host: Node, amount: float, ailment: String)
 
+## 异常施加 / 结束（host 身上某异常开始或结束），用于状态视觉（染色 / 粒子）。
+## 新施加或刷新时长 ⇒ applied=true；到期 / 清除 ⇒ applied=false。
+signal ailment_status_changed(host: Node, ailment: String, applied: bool)
+
 ## 格挡成功（第三步 3-BL1）。格挡系统本已存在（`HealthComponent._roll_block()`），
 ## 此前**只减伤、不广播** ⇒ 传奇特效 `on_block`（守护·坚壁）无落点。
 ## `amount` 为**格挡前**的伤害值（调用方如需格挡后值自行乘 `1 - BLOCK_DAMAGE_REDUCTION`）。

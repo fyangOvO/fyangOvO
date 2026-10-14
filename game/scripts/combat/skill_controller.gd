@@ -703,6 +703,10 @@ func _hit(target: Node, data: SkillData, knockback_px: float,
 	)
 	if target.has_method("take_damage"):
 		target.take_damage(result.final_damage, _player)
+		# 元素技能命中 → 施加对应异常（火→燃燒 / 冰→冰緩 / 電→感電 / 毒→中毒 / 暗→衰敗）；
+		# 物理元素在 ailment_from_element 回空、不施加。与怪物→玩家（enemy_base.gd:1222）同口径。
+		if target.has_method("apply_ailment_from_element"):
+			target.apply_ailment_from_element(data.element, _player)
 		# 任务 11.9 埋点：只统计**真的落到目标身上**的那一次
 		# （没有 `take_damage` 的目标不算命中，否则「命中数」会虚高）
 		if deferred_cast_id.is_empty():

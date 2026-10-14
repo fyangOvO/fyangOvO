@@ -146,9 +146,9 @@ func _test_hub_panel() -> void:
 	SaveManager.current_data = null
 	SaveManager.current_slot = -1
 	var data := SaveManager.create_new_slot(0, "warrior")
-	# 账号等级抬到 20 ⇒ 技能解锁闸门全开（B4-4 / 1-L11 起，技能按 `unlock_level` 灰显）。
+	# 账号等级抬到 22 ⇒ 技能解锁闸门全开（B4-4 / 1-L11 起，技能按 `unlock_level` 灰显）。
 	# 否则 L1 账号下除前 3 个初始技能外全被锁，D 段的装配/重排断言全部失效。
-	data.account_level = 20
+	data.account_level = 22
 	SaveManager.current_data = data
 	SaveManager.current_slot = 0
 	# 手动实例化据点场景（不换 current_scene，避免工具脚本根节点随场景替换被释放）

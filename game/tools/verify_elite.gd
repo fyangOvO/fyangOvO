@@ -26,9 +26,10 @@ extends Node2D
 
 const LEVEL_SCENE: PackedScene = preload("res://scenes/levels/level.tscn")
 
-## 每关只等这么多帧就去读计数 —— 必须**远小于** `LevelScene.GUARANTEE_PICKUP_GRACE`
-## （0.6s）。目标达成会触发 `_check_objective_and_settle()` → 0.6s 后 `_finish_run()`
-## → `SceneManager` 换场景 → **本验证脚本自身会被释放**，进程静默退出且不打结果行。
+## 每关只等这么多帧就去读计数 —— 必须**远小于**保底掉落的拾取/结算时序。
+## 目标达成会触发 `_check_objective_and_settle()` → `_finish_run()` → `SceneManager`
+## 换场景 → **本验证脚本自身会被释放**，进程静默退出且不打结果行。
+## （保底掉落 2026-10-14 起直接入包、结算立即触发，比旧的 0.6s 窗口更快。）
 ## 所以读完立刻 `queue_free()` 掉关卡。
 const SAFE_FRAMES := 3
 
