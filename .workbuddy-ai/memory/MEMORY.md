@@ -213,6 +213,22 @@
   （2026-09-20 事故：`stash push -u` 被 SIGTERM 中断 ⇒ `.git` 整体进回收站）
 - 清理残留一律 `mv` 到 `.workbuddy-ai/trash/<日期>-<原因>/`，**不以 `rm` 直删**
 
+### ⚠️ 推送的网络前提（2026-10-14 实测踩坑）
+- **本机直连 `github.com:443` 不通**，必须走本地代理 `http://127.0.0.1:7888`
+  （已写在 `git config http.proxy` / `https.proxy`，**全局 + 仓库两处**）⇒
+  **别用 `-c http.proxy=` 清空代理**，清空后必失败。
+- 该代理**会间歇性不可用**（`Failed to connect ... over proxy` / LFS 报
+  `actively refused it`）⇒ 先探活再推：
+  ```bash
+  for i in 1 2 3; do curl -sS -o /dev/null -w "%{http_code}\n" -x http://127.0.0.1:7888 https://github.com; done
+  ```
+  3 次都 200 再 `git push`；偶发失败**直接重试**即可，不是配置错。
+- **推送必须在沙箱外执行**（`dangerouslyDisableSandbox`）——
+  沙箱内的网络中介会拦 `github.com`（表现为超时/502），
+  但 `api.github.com` 在沙箱内外都通 ⇒ **别拿 api 通不通来判断 git 能不能推**。
+- 首次推带新素材时 LFS 会上传（本次 22 objects / 8.0 MB）——`pre-push` hook 会调
+  `git lfs pre-push`，LFS 的 locks API 报 `does not support ... locking` 属**正常噪音**，不影响推送。
+
 ---
 
 ## 环境速查
