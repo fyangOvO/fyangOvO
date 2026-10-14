@@ -24,7 +24,7 @@ func _ready() -> void:
 	acc.add_xp(AccountLevel.cumulative_to(21)) # 升到 21 级
 	var acc_txt := "账号等级：L%d\n" % acc.level
 	acc_txt += "升级经验 180×L^1.6：L10=7166 / L20=21723 / L30=41559\n"
-	acc_txt += "天赋点：%d / 30（每 2 级 1 点）\n" % acc.talent_points
+	acc_txt += "天赋点：%d / 15（每 2 级 1 点，满级 L30）\n" % acc.talent_points
 	acc_txt += "当前进度：%.0f / %.0f（%.0f%%）" % [acc.xp_cur, acc.xp_next, acc.progress() * 100]
 	var acc_box := _box("账号 / 巅峰等级（5.1）", acc_txt, Color(0.16, 0.17, 0.22), 300)
 	acc_box.position = Vector2(24, 60)
@@ -40,7 +40,7 @@ func _ready() -> void:
 	tree.learn("guardian.small.1", 30)
 	var b := tree.get_bonus_stats()
 	var tree_txt := "3 分支：武力 / 守护 / 秘法（L1/L15/L30 解锁）\n"
-	tree_txt += "每分支 15 小(+2%) + 5 大(+8%/机制)，满级 30 点\n"
+	tree_txt += "每分支 15 小(+2%) + 5 大(+8%/机制)，满级 L30 得 15 点\n"
 	tree_txt += "已点 5 节点：攻击 +12% + 护甲 +4%\n"
 	tree_txt += "大节点机制：%s\n" % (", ".join(b["mechanics"]) if not b["mechanics"].is_empty() else "—")
 	tree_txt += "进度：%d / 15（30 级可用）" % tree.points_spent.size()

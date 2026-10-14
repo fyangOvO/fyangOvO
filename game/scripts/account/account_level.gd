@@ -1,15 +1,22 @@
 ## 账号等级与经验（任务 5.1 · class_name）
 ##
-## GDD 5.1（v1.8）原定账号等级 1–60；**路线 A（4-W10）改为 1–20**：
-##   现有 20 关 reward_xp 合计 148,600 的实际天花板是 L19（cum(20)=156,380 已超出），
+## GDD 5.1（v1.8）原定账号等级 1–60；**路线 A（4-W10）曾改为 1–20**：
+##   20 关 reward_xp 合计 148,600 的单周目天花板是 L19（cum(20)=156,380 已超出），
 ##   上限留在 60 只会让 40 级目标永久悬空、`recommended_player_level` 无从收敛。
+##
+## 2026-10-14 用户裁定「**提高账号上限**」（备选：改天赋阶梯 / 维持 L30 / 提上限）：
+##   天赋**第三分支 `arcane` 解锁在 L30**（`TalentTree.BRANCH_UNLOCK_LEVELS`），
+##   上限 20 会让它**永久不可达**。故上限 **20 → 30** —— 这是让 L30 可达的**最小**取值，
+##   对既有数值扰动最小（单周目仍只到 L19，20–30 属**刷级**区，符合刷宝 ARPG 预期）。
+##   ⚠️ 如需回到 GDD 的 60，只改本常量 + `GameConstants.ACCOUNT_LEVEL_MAX` 两处即可。
+##
 ## XP_ToNext(L) = 180 × L^1.6（公式不变）；
 ##   累计口径「累计到 L 级」= Σ₁^(L-1) XP_ToNext(i)（不含升 L 那一级）。
-## 天赋点：每 2 级 1 点（L2、L4、…、L20 → 10 点）。
+## 天赋点：每 2 级 1 点（L2、L4、…、L30 → 15 点）。
 class_name AccountLevel
 extends RefCounted
 
-const MAX_ACCOUNT_LEVEL := 20
+const MAX_ACCOUNT_LEVEL := 30
 
 var level := 1
 var xp_cur := 0.0

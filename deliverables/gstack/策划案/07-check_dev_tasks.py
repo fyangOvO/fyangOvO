@@ -481,9 +481,10 @@ def group_repo(D):
     al = os.path.join(REPO, "game", "scripts", "account", "account_level.gd")
     ck(os.path.isfile(al), "R8 account_level.gd 存在")
     if os.path.isfile(al):
-        # W10 已落地（B1 · 2026-09-28）：60 → 20
+        # W10：B1（2026-09-28）60 → 20；2026-10-14 用戶裁定「提高賬號上限」20 → 30
+        #（原 20 會讓天賦第三分支 `arcane`（L30 解鎖）**永久不可達**）。
         v = const_of(al, "MAX_ACCOUNT_LEVEL")
-        ck(v == "20", f"R9 MAX_ACCOUNT_LEVEL = 20（B1 已落地；實 {v or 'N/A'}）")
+        ck(v == "30", f"R9 MAX_ACCOUNT_LEVEL = 30（2026-10-14 裁定：20→30；實 {v or 'N/A'}）")
 
     sd = os.path.join(REPO, "game", "resources", "save_data.gd")
     ck(os.path.isfile(sd), "R10 save_data.gd 存在")
