@@ -3,7 +3,7 @@
 ## 本脚本只决定「这次启动是跑自检、跑冒烟，还是进游戏」，不再包含任何检查项：
 ##   `--verify` → 实例化 `tools/self_check.tscn`（打印 108 项报告，退出码 0/1，CI 契约）
 ##   `--smoke`  → 切到 `tools/verify_e2e.tscn`（导出包内跑完整流程，退出码 0/1）
-##   正常启动   → 切到主菜单 `scenes/main/main_menu.tscn`
+##   正常启动   → 切到主菜单 `scenes/main/main_menu.tscn`（片头暂未接入，见下方注释）
 ##
 ## 自检逻辑（原 1.x–9.x 全部断言）已整段迁到 `tools/self_check.gd`，
 ## 这样「双击 exe 进游戏」与「CI 跑 --verify」共用同一个入口，互不干扰。
@@ -57,6 +57,11 @@ func _ready() -> void:
 		return
 
 	# 正常启动：进主菜单（延迟一帧，避免在 _ready 里换场景）
+	#
+	# ⚠️ 2026-10-08 用户裁定「**片头先不接入游戏**」⇒ 这里暂时不切片头。
+	#    片头场景 `SceneManager.SCENE_INTRO`（`res://scenes/main/intro.tscn`）已就绪，
+	#    要启用只需把下面这行换成：
+	#        SceneManager.change_scene.call_deferred(SceneManager.SCENE_INTRO)
 	SceneManager.change_scene.call_deferred(SceneManager.SCENE_MAIN_MENU)
 
 

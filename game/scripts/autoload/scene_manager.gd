@@ -32,6 +32,7 @@ var last_error: String = ""
 
 ## 场景路径常量（新增场景时在此登记，避免路径字符串散落各处）
 const SCENE_BOOT: String = "res://scenes/main/main.tscn"      ## 启动分流（--verify / 进游戏）
+const SCENE_INTRO: String = "res://scenes/main/intro.tscn"    ## 片头（开场动画）
 const SCENE_MAIN_MENU: String = "res://scenes/main/main_menu.tscn"
 const SCENE_HUB: String = "res://scenes/main/hub.tscn"
 
@@ -144,6 +145,16 @@ func change_to_level(level_id: String, difficulty_tier: int = GameConstants.Diff
 ## 回据点（主菜单 / 营地）
 func change_to_hub() -> void:
 	change_scene(SCENE_HUB, {})
+
+
+## 进片头（开场动画）。片头自己负责播完/跳过 → 主菜单。
+func change_to_intro() -> void:
+	change_scene(SCENE_INTRO, {})
+
+
+## 进主菜单
+func change_to_main_menu() -> void:
+	change_scene(SCENE_MAIN_MENU, {})
 
 
 ## 重新加载当前场景
