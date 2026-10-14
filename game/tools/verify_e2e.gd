@@ -285,13 +285,15 @@ class E2ERunner extends Node:
 			_level._player.health != null and _level._player.health.get_max_hp() > 0.0)
 
 		_player = _level._player
-		# 把玩家挪到怪物堆中间，保证掉落都落在附近（便于后续拾取，不影响战斗判定）
-		if _level._alive.size() > 0:
-			var sum := Vector2.ZERO
-			for e in _level._alive:
-				sum += e.global_position
-			_player.global_position = sum / float(_level._alive.size())
-			await _wait_frames(2)
+		# ⚠️ 此处**刻意不把玩家挪进怪堆**（2026-10-14 修）。
+		#    原实现把玩家瞬移到怪物重心，注释写「保证掉落都落在附近（便于后续拾取）」——
+		#    但段⑦ **本来就会把掉落物瞬移到玩家脚下**，这一步对拾取毫无贡献，反而是**假红源头**：
+		#    玩家站在怪堆中心 ⇒ 掉落落在脚下 ⇒ `LOOT_POP_DELAY`（0.25s）一到就被自动捡光
+		#    ⇒ 段⑦ 无物可捡 ⇒ `picked_delta == 0` ⇒ 报「背包没增长」。
+		#    而段⑥ 只 `_wait_frames(10)`，**10 帧的真实耗时随机器负载浮动**（实测慢机上 > 0.25s），
+		#    所以这是**偶发**假红（A/B 实测：关掉弹出动画时 8 次里红 2 次）。
+		#    玩家留在关卡自己的出生点 ⇒ 掉落离玩家很远 ⇒ 段⑥ 必然不会误捡 ⇒ 段⑦ 确定性成立。
+		await _wait_frames(2)
 
 
 	# -------------------------------------------------------------------------

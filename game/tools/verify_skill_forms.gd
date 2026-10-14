@@ -16,7 +16,7 @@
 ##   ③ 暴击率注入 −100 ⇒ `5 − 100 < 0` ⇒ **永不暴击**（比固定随机种子更稳：固定种子的
 ##      「全程不暴击」会随调用序列漂移，本脚本的命中次数远多于 `verify_skills`）。
 ##
-## 覆盖（A~K）：
+## 覆盖（A~L）：
 ##   A. 投射物：施放即生成实体 / 飞行若干帧才命中（真弹道）/ 命中后自毁
 ##   B. 多发射击：`projectile_count` 各自独立结算 ⇒ 全中 = N × multiplier（§5.1）
 ##   C. 穿透：`rune_pierce` ⇒ 命中不消失，连续命中同一直线上的 2 个目标
@@ -28,6 +28,8 @@
 ##   I. 技能等级系数在投射物上生效（L4 ⇒ ×1.24）
 ##   J. 符文修饰器承载：`on_hit_split`（嵌套 dict）与 `chain_decay_pct` 不再被丢弃
 ##   K. 埋点：投射物命中补记进 `CombatMetrics`（deferred），且不被误记为空放
+##   L. 地面残留贴图（2026-10-14）：元素 → `ground_*` 映射齐备 / 无死资产 / 整数缩放 /
+##      压在角色之下 / 挂在区域子节点（随区域释放）
 extends Node
 
 ## 地面靶子的「停放位」：远离投射物弹道与地面半径，避免误伤
@@ -72,6 +74,7 @@ func _ready() -> void:
 	await _test_skill_level()
 	_test_rune_modifiers()
 	await _test_metrics_deferred()
+	await _test_ground_decal()
 	_finish()
 
 
@@ -361,6 +364,76 @@ func _test_metrics_deferred() -> void:
 	_ok("延迟命中被补记（hits >= 1）", int(s.get("hits", 0)) >= 1)
 	_ok("投射物不被误记为空放（whiffs = 0）", int(s.get("whiffs", 0)) == 0)
 	CombatMetrics.reset()
+
+
+# =============================================================================
+# L. 地面残留贴图（2026-10-14 · Playground「地面殘留」）
+# =============================================================================
+
+func _test_ground_decal() -> void:
+	print("--- L. 地面残留贴图（元素 → ground_*）---")
+	# ① 映射表覆盖全部元素 —— 漏一个会静默兜底到 ground_crack，丢掉元素语义。
+	var missing: Array[String] = []
+	for elem in GameConstants.ELEMENTS:
+		if not GroundArea.GROUND_FX_BY_ELEMENT.has(elem):
+			missing.append(elem)
+	_ok("元素→地面贴图映射覆盖 ELEMENTS 全部 %d 个（缺：%s）"
+		% [GameConstants.ELEMENTS.size(), "无" if missing.is_empty() else ", ".join(missing)],
+		missing.is_empty())
+
+	# ② fx.json 的 ground_* 贴图**全部有消费方** —— 本批之前这 5 张是死资产
+	#    （表里有、PNG 有、全项目零 spawn），本断言防止将来新增 ground_* 又不接线。
+	var wired := {}
+	for v in GroundArea.GROUND_FX_BY_ELEMENT.values():
+		wired[str(v)] = true
+	var dead: Array[String] = []
+	for id in FxTable.all_ids():
+		if id.begins_with("ground_") and not wired.has(id):
+			dead.append(id)
+	_ok("fx.json 的 ground_* 全部已接线（死资产：%s）"
+		% ("无" if dead.is_empty() else ", ".join(dead)), dead.is_empty())
+
+	# ③ 毒系地面技 ⇒ ground_poison：贴图 / 自绘 / 缩放 / 帧数四项契约
+	_reset(["poison_cloud"])
+	var poison := _cast_ground("poison_cloud")
+	_ok("施放毒云生成 GroundArea 实体", poison != null)
+	if poison == null:
+		return
+	_ok("贴图 == ground_poison（按元素选表）",
+		poison._decal_tex == FxTable.texture_for("ground_poison"))
+	# ⚠️ 自绘的关键证据：**不挂子节点**。若改成 `FxTable.spawn(host=self)` 挂子节点，
+	#    `fx.json` 的 `below_actors`(−1) 会因 z_index 相对递归而沉到 `LevelView` 之下（看不见）。
+	_ok("**自绘**：不挂子节点（避免 z_index 沉到地图之下）", poison.get_child_count() == 0)
+	var spec := FxTable.spec("ground_poison")
+	var s := poison._decal_scale
+	_ok("整数缩放（scale=%d，像素铁律）" % s, s >= 1)
+	var fw := int(spec.get("frame_w", 32))
+	_ok("贴图边长 %d ≥ 区域直径 %.0f（覆盖 AoE，不让边缘误判为安全区）"
+		% [s * fw, poison._radius * 2.0], float(s * fw) >= poison._radius * 2.0 - 0.01)
+	_ok("帧数 = spec 的 %d（循环序列帧）" % int(spec.get("frames", 0)),
+		poison._decal_frames == int(spec.get("frames", 0)))
+
+	# ④ 循环帧真的会推进（手动喂 delta，确定性 —— 不靠真实帧）
+	var f0 := poison._decal_frame
+	var step := 1.0 / maxf(poison._decal_fps, 0.001)
+	poison._advance_decal(step * 2.0)
+	_ok("循环帧随 delta 推进（%d → %d）" % [f0, poison._decal_frame],
+		poison._decal_frame != f0)
+	for _i in 20:
+		poison._advance_decal(step)
+	_ok("循环帧夹在 [0, frames)（当前 %d / %d）"
+		% [poison._decal_frame, poison._decal_frames],
+		poison._decal_frame >= 0 and poison._decal_frame < poison._decal_frames)
+
+	# ⑤ 区域释放 ⇒ 一并消失（自绘无子节点，随本节点消亡）
+	_reset(["meteor"])
+	_ok("区域释放后节点已失效（无残留）", not is_instance_valid(poison))
+
+	# ⑥ 换元素 ⇒ 换贴图（证明是「按元素选表」而不是写死一张）
+	var fire := _cast_ground("meteor")
+	if fire != null:
+		_ok("火系地面技 ⇒ ground_meteor（元素不同贴图不同）",
+			fire._decal_tex == FxTable.texture_for("ground_meteor"))
 
 
 func _finish() -> void:

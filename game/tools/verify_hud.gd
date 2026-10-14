@@ -115,12 +115,36 @@ func _test_pickup_toasts() -> void:
 	_ok("材料提示条", _row_text(hud, 1).contains("魔石 +3"))
 	_ok("装备提示条（名称 + 稀有度色）", _row_text(hud, 2).contains("已拾取：")
 		and _row_color(hud, 2) == GameConstants.rarity_color(GameConstants.Rarity.RARE))
+	# 2026-10-14 拾取反馈强化：弹跳入场 + 稀有度色强调边
+	var fresh := hud.get_child(2) as Control
+	var sb := fresh.get_theme_stylebox("panel") as StyleBoxFlat
+	_ok("提示条边框染成条目色（稀有度色，非默认灰）",
+		sb != null and sb.border_color == GameConstants.rarity_color(GameConstants.Rarity.RARE)
+		and sb.border_color != Color("3A424F"))
+	_ok("左侧强调边比其余三边粗（一眼扫出色）",
+		sb != null and sb.border_width_left > sb.border_width_top
+		and sb.border_width_left > sb.border_width_right
+		and sb.border_width_left > sb.border_width_bottom)
+	# 弹跳入场的**起始态**由 `spawn()` 同步设好 ⇒ 新开一条、**不 await** 直接读。
+	# ⚠️ 不能 await：`TRANS_BACK` 在约 51% 进度时就已过冲到 scale > 1，
+	#    隔一帧再读会假红（实测：隔一帧读到 scale=(1.0,1.0) / alpha=0.51）。
+	hud.spawn({"type": "gold", "amount": 99})
+	var popped := hud.get_child(hud.get_child_count() - 1) as Control
+	_ok("新条目弹跳入场起始态（scale=%s alpha=%.2f，期望 scale<1 且 alpha<1）"
+		% [str(popped.scale), popped.modulate.a],
+		popped != null and popped.scale.x < 1.0 and popped.modulate.a < 1.0)
 	# 上限 5
 	for i in 6:
 		hud.spawn({"type": "gold", "amount": i + 1})
 	await get_tree().process_frame
 	_ok("上限 5 条", hud.get_child_count() == 5)
 	_ok("超限移除最旧", not _row_text(hud, 0).contains("金币 +5") or hud.get_child_count() == 5)
+	# 弹跳走完（POP）后应完全归位（scale == 1、完全不透明），且此时还没到淡出时刻。
+	await get_tree().create_timer(PickupToastHUD.POP + 0.12).timeout
+	var settled := hud.get_child(0) as Control
+	_ok("弹跳结束后 scale 归 1 且完全显现",
+		settled != null and settled.scale.is_equal_approx(Vector2.ONE)
+		and settled.modulate.a > 0.99)
 	hud.queue_free()
 	await get_tree().process_frame
 

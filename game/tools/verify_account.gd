@@ -59,12 +59,21 @@ func _test_account() -> void:
 	var up_events: Array[int] = []
 	acc._on_level_up = func(lv: int, _g: int) -> void: up_events.append(lv)
 	acc.add_xp(99999999.0)
-	# ⚠️ 上限**引用常量**而不是写死数字：路线 A（4-W10）把 60 改成 20，
-	#    写死 60 会让这条断言在每次调上限时都要回来改（且改错也不会有人发现）。
+	# ⚠️ 上限**引用常量**而不是写死数字：2026-10-13 路线 A（4-W10）把 60 改成 20、
+	#    2026-10-14 又依裁定提到 30。写死数字会让这条断言在每次调上限时都要回来改
+	#    （且改错也不会有人发现）。
 	var max_lv := AccountLevel.MAX_ACCOUNT_LEVEL
-	_ok("大量经验升到上限 %d 级（路线 A：60→20）" % max_lv, acc.level == max_lv)
+	_ok("大量经验升到上限 %d 级（2026-10-14 裁定：20→30）" % max_lv, acc.level == max_lv)
 	_ok("满级天赋点 = 每 2 级 1 点（%d 点）" % (max_lv / 2), acc.talent_points == max_lv / 2)
 	_ok("升级事件已触发（%d 次）" % (max_lv - 1), up_events.size() == max_lv - 1)
+	# 2026-10-14 裁定「提高账号上限」的**理由**必须被测试固化：天赋第三分支 L30 必须可达。
+	# 把「上限 ≥ 最晚分支解锁等级」变成硬契约 —— 否则上限一调低，第三分支会**静默**不可达
+	# （这正是 2026-10-13 复核时发现的问题：上限 20 而 arcane 解锁在 30）。
+	var last_unlock := 0
+	for lv in TalentTree.BRANCH_UNLOCK_LEVEL.values():
+		last_unlock = maxi(last_unlock, int(lv))
+	_ok("账号上限 %d ≥ 最晚分支解锁 L%d（天赋三分支全部可达）" % [max_lv, last_unlock],
+		max_lv >= last_unlock)
 
 
 # =============================================================================

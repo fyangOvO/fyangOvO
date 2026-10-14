@@ -75,6 +75,12 @@ func _run_self_check() -> void:
 		GameConstants.RARITY_AFFIX_RANGE.size() == GameConstants.RARITY_COUNT
 		and GameConstants.RARITY_PREFIX_LIMIT.size() == GameConstants.RARITY_COUNT
 		and GameConstants.RARITY_SUFFIX_LIMIT.size() == GameConstants.RARITY_COUNT)
+	# 稀有掉落庆祝强度表（2026-10-14）：四条并行表也必须逐档对齐，否则高档取到越界值静默为 0
+	_add_check("稀有掉落庆祝强度表等长",
+		GameConstants.RARE_DROP_FLASH_ALPHA.size() == GameConstants.RARITY_COUNT
+		and GameConstants.RARE_DROP_FLASH_TIME.size() == GameConstants.RARITY_COUNT
+		and GameConstants.RARE_DROP_SHAKE.size() == GameConstants.RARITY_COUNT
+		and GameConstants.RARE_DROP_HIT_STOP.size() == GameConstants.RARITY_COUNT)
 	# 前后缀上限之和必须落在词缀条数区间内（GDD 3.3 节的隐含约束）
 	var affix_limits_ok := true
 	for i in range(GameConstants.RARITY_COUNT):
@@ -556,12 +562,15 @@ func _run_self_check() -> void:
 	_add_check("本局结算（扣 50% / 入包保留 / 评分评级）", result_ok)
 
 	# 任务 5.1：账号等级（180×L^1.6，GDD 5.1 节点）
-	# ⚠️ 上限**引用常量**：路线 A（4-W10）把 60 改成 20，写死 60 会在每次调上限时漏改。
+	# ⚠️ 上限**不写死具体值**（每次调上限都要回来改，且改错没人发现）。改为断言两件独立的事：
+	#    ① 公式锚点 —— 取 GDD 5.1 表的固定节点 L10 / L30（**与上限无关**，上限再调也不会漂）；
+	#    ② 设计约束 —— 上限 ≥ 30，即天赋**第三分支（`arcane`，L30 解锁）必须可达**。
 	var acc_max := AccountLevel.MAX_ACCOUNT_LEVEL
 	var acc_ok := absf(AccountLevel.xp_to_next(10) - 7166.0) < 10.0 \
-		and absf(AccountLevel.xp_to_next(acc_max) - 21723.0) < 10.0 \
-		and acc_max == 20
-	_add_check("账号等级（180×L^1.6：L10≈7166 / 满级 L%d≈21723，上限 20）" % acc_max, acc_ok)
+		and absf(AccountLevel.xp_to_next(30) - 41559.0) < 20.0 \
+		and acc_max >= 30
+	_add_check("账号等级（180×L^1.6：L10≈7166 / L30≈41559；上限 L%d ≥ 30 使天赋三分支可解锁）"
+		% acc_max, acc_ok)
 
 	# 任务 5.2：天赋树（3 分支 × 20 节点，满级 30 点）
 	var tree_ok := TalentTree.BRANCHES.size() == 3 \

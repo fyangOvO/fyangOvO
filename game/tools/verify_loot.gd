@@ -4,7 +4,7 @@
 ##   godot --headless --path "D:/七傳說/game" res://tools/verify_loot.tscn
 ##   退出码 0 = 全部通过；1 = 有失败项
 ##
-## 覆盖范围（9 个测试段）：
+## 覆盖范围（11 个测试段）：
 ##   A. 掉落表数据：3 张表 / 权重 8 档且和为 100 / drop_chance 与件数区间合法
 ##   B. roll 基础：BOSS 表（drop_chance 1.0）必掉 2–4 件
 ##   C. 稀有度分布：普通怪权重 20k 次抽样白 > 蓝 > 黄、橙极低
@@ -14,6 +14,9 @@
 ##   G. 收编回归：敌人受击转发生命组件（无双重减伤）
 ##   H. 符文掉落桶（工单 2-L12 / 校验 2-V12）：三档概率读表 / 只产出合法 rune id / 与主掉落独立
 ##   I. 符文拾取：首获永久解锁 / 重复转魔石（与材料同口径）/ 结果写回载荷
+##   J. 拾取反馈强化（2026-10-14）：光晕按类型/稀有度染色 / 史诗起整数放大 / 端到端真拾取
+##   K. 掉落物弹出动画（2026-10-14）：抛物线飞行 + 落地回弹 / 未设起点不弹 / 只改位移不改 scale
+##      / 磁吸接管即停 / **外部改写位置即让位** / 端到端（EnemyBase 已传死亡点）
 extends Node
 
 const ENEMY_SCENE := preload("res://scenes/enemies/enemy_base.tscn")
@@ -54,7 +57,9 @@ func _ready() -> void:
 	await _test_mitigation_regression()
 	await _test_rune_drop()
 	await _test_rune_pickup()
-	_finish()
+	await _test_pickup_feedback()
+	await _test_drop_pop()
+	await _finish()
 
 
 ## 推进指定秒数的物理帧（约 60 帧/秒）
@@ -209,7 +214,7 @@ func _test_template_filter() -> void:
 		seen[lv] = int(seen.get(lv, 0)) + 1
 		if lv < 16 or lv > 20:
 			in_range = false
-	_ok("T10：玩家 L20 打 L18 怪 ⇒ iLvl ∈ [16,20] 且两端都**可达**（账号上限天然封顶在 20）",
+	_ok("T10：玩家 L20 打 L18 怪 ⇒ iLvl ∈ [16,20] 且两端都**可达**（上限 = max(怪, 玩家) = 20）",
 		in_range and seen.has(16) and seen.has(20))
 	_info("      抽样分布（L18 怪 / L20 玩家）：%s" % str(seen))
 	# 越级：玩家等级 < 怪等级 ⇒ 上限被压回怪等级
@@ -437,9 +442,164 @@ func _test_rune_pickup() -> void:
 	hud.queue_free()
 
 
+# =============================================================================
+# J. 拾取反馈强化（2026-10-14 · Playground「拾取反馈」）
+# =============================================================================
+
+func _test_pickup_feedback() -> void:
+	print("--- J. 拾取反馈强化（光晕染色 / 稀有度整数放大）---")
+	# ① 染色与缩放口径：直接构造 LootDrop 读 helper（不 spawn 敌人，聚焦口径本身）。
+	#    ⚠️ 不调 `setup()`（它会 `queue_redraw()`，节点未入树时无意义）—— 只填 helper 真正读的字段。
+	var cases: Array = [
+		["gold", -1, false, LootDrop.GOLD_COLOR, 1],
+		["material", -1, false, LootDrop.MATERIAL_COLOR, 1],
+		["rune", -1, false, LootDrop.RUNE_COLOR, 1],
+		["equipment", GameConstants.Rarity.RARE, false,
+			GameConstants.rarity_color(GameConstants.Rarity.RARE), 1],
+		["equipment", GameConstants.Rarity.EPIC, false,
+			GameConstants.rarity_color(GameConstants.Rarity.EPIC), 2],
+		["equipment", GameConstants.Rarity.MYTHIC, false,
+			GameConstants.rarity_color(GameConstants.Rarity.MYTHIC), 2],
+	]
+	var ok_color := true
+	var ok_scale := true
+	for c in cases:
+		var d := LootDrop.new()
+		d.drop_type = str(c[0])
+		d.rarity = int(c[1])
+		d.is_collectible = bool(c[2])
+		if d._pickup_glow_color() != c[3]:
+			ok_color = false
+			_info("      染色不符：%s / rarity=%d ⇒ %s（期望 %s）"
+				% [c[0], c[1], d._pickup_glow_color(), c[3]])
+		if d._pickup_glow_scale() != int(c[4]):
+			ok_scale = false
+		d.free()
+	_ok("拾取光晕按类型/稀有度染色（金/材料/符文/装备）", ok_color)
+	_ok("拾取光晕整数放大：装备史诗起 2×、其余 1×（像素铁律）", ok_scale)
+
+	# ② 端到端：真拾取一件史诗 ⇒ 生成**史诗色**的 pickup_glow（防「改了 helper 却没接线」）。
+	_player.global_position = Vector2.ZERO
+	var drop := LootDrop.new()
+	drop.setup({"type": "equipment", "item_id": "sword_flame",
+		"rarity": GameConstants.Rarity.EPIC, "item_level": 10})
+	add_child(drop)
+	drop.global_position = Vector2.ZERO
+	await _step_physics(GameConstants.LOOT_POP_DELAY + 0.25)
+	var tinted := false
+	for n in get_tree().get_nodes_in_group(&"fx_sprites"):
+		if n is FxSprite \
+				and (n as FxSprite).modulate == GameConstants.rarity_color(GameConstants.Rarity.EPIC):
+			tinted = true
+	_ok("端到端：装备拾取生成**史诗色**拾取光晕", tinted)
+	# 收尾：等光晕自然播完（`pickup_glow` 非 loop ⇒ 6 帧 @12fps ≈ 0.5s），
+	# 否则 `quit()` 时仍存活会被计为「ObjectDB instances were leaked」。
+	await _step_physics(0.7)
+
+
+# =============================================================================
+# K. 掉落物弹出动画（2026-10-14 · Playground「掉落物 pop 出來帶星光」）
+# =============================================================================
+
+func _test_drop_pop() -> void:
+	print("--- K. 掉落物弹出动画 ---")
+	# ① 常量合法
+	_ok("弹出动画常量合法（时长 / 抬升 > 0）",
+		LootDrop.POP_TIME > 0.0 and LootDrop.POP_BOUNCE_TIME > 0.0
+		and LootDrop.POP_ARC_LIFT > 0.0 and LootDrop.POP_BOUNCE_LIFT > 0.0
+		and LootDrop.POP_SPARKLE_COUNT >= 2)
+
+	# ② 未设 pop_from ⇒ 不弹（关卡摆放的收集物 / 旧调用方行为逐位不变）
+	var still := LootDrop.new()
+	still.global_position = Vector2(400, 400)
+	add_child(still)
+	await get_tree().process_frame
+	_ok("未设 pop_from ⇒ 不弹（_pop_elapsed 保持 < 0）", still._pop_elapsed < 0.0)
+	_ok("未设 pop_from ⇒ 位置原地不动", still.global_position == Vector2(400, 400))
+	still.free()
+
+	# ③ 设 pop_from ⇒ `_ready` 里立刻挪到起点并开播（首帧不闪落点）
+	#    ⚠️ 落点必须在 `add_child` **之前**设（生产代码就是这个顺序，见 `_spawn_loot_drop`）。
+	var from := Vector2(0, 0)
+	var to := Vector2(60, 0)
+	var d := LootDrop.new()
+	d.pop_from = from
+	d.global_position = to
+	add_child(d)
+	_ok("设 pop_from ⇒ 起手即挪到起点且已开播（首帧不闪落点）",
+		d._pop_elapsed >= 0.0 and d.global_position == from)
+
+	# ④ 中途：高于「起点→落点」连线（抛物线抬升）
+	await _step_physics(LootDrop.POP_TIME * 0.5)
+	var mid := d.global_position
+	_ok("中途高于起点-落点连线（抛物线抬升）", mid.y < -1.0)
+
+	# ⑤ 像素铁律：弹出全程只改位移、**不改 scale**
+	_ok("弹出全程 scale 恒为 1（位移不涉缩放）", d.scale == Vector2.ONE)
+
+	# ⑥ 走完 ⇒ 精确落在落点且状态复位
+	await _step_physics(LootDrop.POP_TIME + LootDrop.POP_BOUNCE_TIME + 0.15)
+	_ok("动画结束 ⇒ 精确落在落点且状态复位",
+		d._pop_elapsed < 0.0 and d.global_position.is_equal_approx(to))
+	d.free()
+
+	# ⑦ 磁吸接管 ⇒ 立刻结束弹出动画（防两者同帧抢写 `global_position` 而抽搐）
+	#    落点距玩家 40px：> PICKUP_RADIUS(24) 且 ≤ LOOT_MAGNET_RADIUS(56) ⇒ 只会进磁吸，不会立即拾取。
+	_player.global_position = Vector2(0, 0)
+	var m := LootDrop.new()
+	m.pop_from = Vector2(0, 0)
+	m.global_position = Vector2(40, 0)
+	add_child(m)
+	# ⚠️ 只等到刚过 `LOOT_POP_DELAY`（0.25s）—— 此时弹出（0.34s）**仍在跑**，
+	#    断言才能区分「磁吸主动叫停」与「动画自己跑完」。
+	await _step_physics(GameConstants.LOOT_POP_DELAY + 0.02)
+	_ok("被磁吸接管 ⇒ 弹出动画立刻结束（不抢写位置）",
+		not is_instance_valid(m) or m._pop_elapsed < 0.0)
+	if is_instance_valid(m):
+		m.free()
+
+	# ⑧ 外部改写让位：弹出动画每帧都写 `global_position`，若**别人**动过位置必须立刻交出控制权。
+	#    回归背景：`verify_e2e` 段⑦ 会把掉落物瞬移到玩家脚下，此前会被弹回抛物线 ⇒ 永远捡不到。
+	var e2 := LootDrop.new()
+	e2.pop_from = Vector2(0, 0)
+	e2.global_position = Vector2(60, 0)
+	add_child(e2)
+	await _step_physics(0.05)  # 先让动画真的跑起来（此刻 pop 仍在播）
+	var external := Vector2(200, 200)
+	e2.global_position = external  # 模拟「外部插手」
+	await get_tree().process_frame
+	# ⚠️ 必须等**两帧**：`SceneTree.process_frame` 在节点 `_process` **之前**发出 ⇒
+	#    只等一帧读到的是「外部刚写完、掉落物还没跑 `_process`」的中间态（实测踩过）。
+	await get_tree().process_frame
+	_ok("外部改写位置 ⇒ 弹出动画立刻让位（不再覆盖）",
+		e2._pop_elapsed < 0.0 and e2.global_position.is_equal_approx(external))
+	e2.free()
+
+	# ⑨ 端到端：敌人死亡掉落都带弹出起点（`EnemyBase._spawn_loot_drop` 已接线）
+	_player.global_position = Vector2(600, 600)  # 远离掉落点，避免被磁吸/拾取
+	var boss := _spawn_enemy("boss_ember_lord", Vector2(0, 200))
+	await get_tree().physics_frame
+	boss.take_damage(999999.0, _player)
+	await _step_physics(0.5)
+	var drops := get_tree().get_nodes_in_group(&"loot_drops")
+	var all_pop := not drops.is_empty()
+	for g in drops:
+		if not (g as LootDrop).pop_from.is_finite():
+			all_pop = false
+	_ok("端到端：敌人死亡掉落 %d 件，全部带弹出起点" % drops.size(), all_pop)
+	for g in drops:
+		g.queue_free()
+	await _step_physics(0.3)
+
+
 func _finish() -> void:
 	print("")
 	SaveManager.current_data = _prev_save
+	# 退出前停掉未播完的一次性 SFX（段 F/I/J/K 都播过音效：`pickup_gold` / `boss_phase`）。
+	# headless 下 Dummy 音频驱动不推进播放头 ⇒ `finished → queue_free` 永不触发 ⇒
+	# 不清理就会在退出时报 `AudioStreamPlaybackWAV` / `AudioStreamWAV` leaked。
+	# 详见 `VerifyWatchdog.stop_sfx`（内含「为何还要 await 两帧」）。
+	await VerifyWatchdog.stop_sfx(get_tree())
 	if _fail == 0:
 		print("===== 结果：0 项失败 =====")
 	else:
