@@ -40,9 +40,11 @@ static func _stream_for(id: String) -> AudioStream:
 	return stream
 
 
-## 播放指定音效（播放即焚；无场景树时静默跳过，保证 verify 无副作用）。
+## 播放指定音效（播放即焚；无场景树 / 无头运行时静默跳过，保证 verify 无副作用）。
 ## 树忙安全：main._ready 自检等「父节点正在 setup children」阶段调用时，
 ## 用 deferred add_child + ready 触发 play，避免 add_child/play 报错（9.1 修复）。
+##
+## ⚠️ **无头（headless / CI / verify）下直接返回，不创建播放器** —— 见下方 `_is_silent_runtime()`。
 static func play(id: String, volume_override: float = INF) -> void:
 	var meta: Dictionary = SFX_REGISTRY.get(id, {})
 	if meta.is_empty():
@@ -53,12 +55,39 @@ static func play(id: String, volume_override: float = INF) -> void:
 	var tree := Engine.get_main_loop() as SceneTree
 	if tree == null or tree.root == null:
 		return
+	if _is_silent_runtime():
+		return
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
 	player.volume_db = volume_override if volume_override != INF else float(meta.get("volume_db", 0.0))
 	player.ready.connect(player.play)
 	player.finished.connect(player.queue_free)
 	tree.root.add_child.call_deferred(player)
+
+
+## 当前运行时是否「听不到声」—— Dummy 音频驱动（`--headless` 默认）时为真。
+##
+## ---------------------------------------------------------------------------
+## 为什么要据此跳过播放（2026-10-14 · 全库退出告警排查）
+## ---------------------------------------------------------------------------
+## `play()` 是播放即焚：靠 `finished` 信号 `queue_free`。但 **Dummy 驱动不推进播放头**
+## ⇒ `finished` 永不触发 ⇒ 播放器连同 `AudioStreamPlaybackWAV` / `AudioStreamWAV`
+## 一直挂在 `tree.root` 上，`quit()` 时报：
+##     WARNING: N ObjectDB instances were leaked at exit
+##     ERROR: N resources still in use at exit
+##
+## 实测全库 **77 个 `verify_*` 场景里有 21 个中招**（计数还会随退出帧抖动，3~5 不等）。
+## 无头下本来就听不到声音 ⇒ **不创建播放器才是正确行为**，比「创建了再在退出前清理」
+## 干净得多（后者要改 21 个文件，且只能靠等真实时间收尾，见 `VerifyWatchdog.stop_sfx`）。
+##
+## ⚠️ 判据用**音频驱动名**而非 `DisplayServer`：真正的病根是「播放头不推进」，
+##    而 `--audio-driver Dummy` 在**有窗口**时也能触发同样的泄漏。
+##
+## 有窗口的真实游戏（`windows` / `wasapi` 等）行为**逐位不变**。
+static func _is_silent_runtime() -> bool:
+	if not AudioServer.has_method("get_driver_name"):
+		return false  # 老版本兜底：拿不到驱动名就照常播放
+	return String(AudioServer.call("get_driver_name")) == "Dummy"
 
 
 static func has(id: String) -> bool:
@@ -119,3 +148,39 @@ static func stop_bgm() -> void:
 	_bgm_playing = ""
 	if _bgm_player != null:
 		_bgm_player.stop()
+
+
+## 停掉全部音频并**释放**播放器（退出前 / 需要彻底静音时调用）。
+##
+## ---------------------------------------------------------------------------
+## 用途一：`verify_*` 脚本在 `quit()` 之前调用
+## ---------------------------------------------------------------------------
+## headless 用 **Dummy 音频驱动，播放头根本不推进** ⇒ `finished` 永不触发
+## ⇒ 播放即焚的 SFX 播放器（见 `play()`：`finished` → `queue_free`）会一直挂在
+## `tree.root` 上，`quit()` 时 Godot 报：
+##     Leaked instance: AudioStreamPlaybackWAV / AudioStreamWAV
+##     ERROR: N resources still in use at exit
+## 数量随退出时的帧数抖动（实测 3~5 不等），**与被测逻辑无关**，是测试环境产物。
+##
+## 用途二：需要「立刻全静音」的场合（切场景 / 暂停）。
+##
+## 注意：这里用 `free()` 而非 `queue_free()` —— `queue_free()` 要等下一帧，
+## 而调用方紧接着就 `quit()`，等不到。
+static func stop_all() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	_bgm_playing = ""
+	# `_bgm_player` 是静态引用，节点可能已被场景树释放 ⇒ 必须用 `is_instance_valid` 判活，
+	# 且释放后**置空**，否则残留悬空引用会让下一次 `play_bgm()` 崩。
+	if _bgm_player != null and is_instance_valid(_bgm_player):
+		_bgm_player.stop()
+		_bgm_player.free()
+	_bgm_player = null
+	if tree == null or tree.root == null:
+		return
+	# 先释放 BGM 再取子节点快照：`free()` 会把节点移出父节点，
+	# 因此快照里不会重复包含刚释放的那个（否则会二次 free）。
+	for child in tree.root.get_children():
+		if child is AudioStreamPlayer:
+			var player := child as AudioStreamPlayer
+			player.stop()
+			player.free()

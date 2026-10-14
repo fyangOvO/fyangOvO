@@ -8,7 +8,7 @@
 ##   A. 注册表：8 条音效（打击/暴击/死亡/金币/装备/升级/BOSS 阶段/点击）
 ##   B. 文件存在：data/audio/ 8 个 wav 全部可加载（AudioStreamWAV）
 ##   C. 流可解析：AudioStreamWAV 数据非空（时长/数据长度合法）
-##   D. 播放管线：AudioManager.play 可调用（无场景树静默、有场景树可播）
+##   D. 播放管线：Dummy 驱动下 play() 跳过不建播放器 / 真实驱动下挂载（2026-10-14 改口径）
 ##   E. 钩子接线：enemy_base/player_controller/run_progression 引用 AudioManager
 ##   F. 音量合法：全部 volume_db 在 -24..0 dB 区间
 extends Node
@@ -77,7 +77,10 @@ func _test_streams() -> void:
 
 func _test_pipeline() -> void:
 	print("--- D. 播放管线 ---")
-	# 无场景树场景不可用；挂 root 下真实播放一个短音效并确认不报错
+	# 契约（2026-10-14 改）：**Dummy 音频驱动（headless / CI）下 `play()` 直接跳过、不建播放器**。
+	# 原因：Dummy 驱动不推进播放头 ⇒ `finished` 永不触发 ⇒ 播放器会一直挂在根节点上，
+	# 退出时报 `leaked at exit`（实测全库 77 个 verify 里 21 个中招）。无头下本来也听不到声。
+	# ⇒ 断言必须**分运行时**写，否则「跳过」会被 `>=` 掩盖成一条永远通过的废断言。
 	var tree := get_tree()
 	var before := tree.root.get_child_count()
 	AudioManager.play("ui_click")
@@ -85,8 +88,10 @@ func _test_pipeline() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var after := tree.root.get_child_count()
-	# 播放即焚：2 个播放器节点已挂载（尚未播完），至少 root 子节点数增加
-	_ok("播放管线可挂载（play 不报错且节点数增加）", after >= before)
+	if AudioManager._is_silent_runtime():
+		_ok("Dummy 驱动下 play() 不创建播放器（防退出泄漏）", after == before)
+	else:
+		_ok("真实驱动下 play() 挂载播放器（播放即焚：2 个尚未播完）", after > before)
 
 
 func _test_hooks() -> void:
