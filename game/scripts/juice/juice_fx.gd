@@ -2,7 +2,8 @@
 ##
 ## 监听总线事件，把「伤害结算」翻译成「打击感表现」，全程不碰结算逻辑：
 ##   - `EventBus.damage_dealt(target, amount, is_crit, element)` →
-##       目标头顶飘字 + **元素命中**（贴图，见下）/ 暴击斩弧（贴图）+ 目标闪白 + 震屏 + 暴击顿帧
+##       目标头顶飘字 + **元素命中**（贴图，见下）/ 暴击斩弧（贴图）+ 目标闪白 + 震屏 +
+##       **顿帧（暴击固定档 ∪ 按伤害分级 —— 2026-10-14 起重击更顿，见 `hit_stop_for_hit`）**
 ##   - `EventBus.unit_died(unit, killer)` → 死亡烟尘（贴图）
 ##   - `EventBus.run_level_up(...)`       → 升级爆光（贴图）
 ##   - `EventBus.damage_taken(src, ...)`  → 焰术信徒施法特效（贴图）
@@ -57,6 +58,11 @@ const FALLBACK_PIXEL_BURST_SCENE := preload("res://scenes/juice/pixel_burst.tscn
 var _shake_camera: Camera2D = null
 var _restoring_time_scale: bool = false
 
+## 全屏稀有度色光爆（懒创建；JuiceFX 是 Autoload ⇒ 跨场景复用同一个节点，切场景不重建）。
+var _flash_layer: CanvasLayer = null
+var _flash_rect: ColorRect = null
+var _flash_tween: Tween = null
+
 
 func _ready() -> void:
 	EventBus.damage_dealt.connect(_on_damage_dealt)
@@ -64,6 +70,12 @@ func _ready() -> void:
 	EventBus.run_level_up.connect(_on_run_level_up)
 	EventBus.damage_taken.connect(_on_damage_taken)
 	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
+	# 异常 DoT 跳字（2026-10-13 · Playground 规格「DoT 小跳字」）
+	EventBus.ailment_tick.connect(_on_ailment_tick)
+	# 单次冲击事件（2026-10-13 · 打击感扩展 C）：技能 / 爆炸 / BOSS 施法的屏震顿帧
+	EventBus.screen_impact.connect(_on_screen_impact)
+	# 稀有掉落庆祝（2026-10-14 · Playground「掉落物 pop 带星光」）
+	EventBus.rare_loot_spawned.connect(_on_rare_loot_spawned)
 
 
 # =============================================================================
@@ -87,8 +99,28 @@ func _on_damage_dealt(target: Node, amount: float, is_crit: bool, element: Strin
 	if target.has_method("flash"):
 		target.flash()
 	shake(GameConstants.SHAKE_CRIT_STRENGTH if is_crit else GameConstants.SHAKE_HIT_STRENGTH)
-	if is_crit:
-		hit_stop(GameConstants.HIT_STOP_DURATION)
+	# 顿帧：暴击固定档 ∪ 按伤害分级（2026-10-14 · 重击更顿）—— 合并逻辑在 `GameConstants`，
+	# ⚠️ 必须**一次**调用 `hit_stop()`（它有去重，拆两次会让矮时长挤掉高时长）。
+	var stop := GameConstants.hit_stop_for_hit(amount, _target_max_hp(target), is_crit)
+	if stop > 0.0:
+		hit_stop(stop)
+
+
+## 取目标的最大生命（供「重击」分级用）。无生命组件 / 无接口 ⇒ 0（= 不按伤害顿帧）。
+##
+## ⚠️ 用 `get("health")` + `has_method` **鸭子探测**，而不是 `is HealthComponent`：
+##    本类是纯表现层，不该反向依赖战斗组件（同 `_monster_id_of` 用 `Object.get()` 的理由）。
+##    敌人（`EnemyBase`）与玩家（`PlayerController`）的属性名都是 `health`（`@onready var health`）。
+func _target_max_hp(target: Node) -> float:
+	if target == null or not is_instance_valid(target):
+		return 0.0
+	var hc: Variant = target.get("health")
+	if hc == null or not (hc is Node):
+		return 0.0
+	var o := hc as Node
+	if not o.has_method("get_max_hp"):
+		return 0.0
+	return float(o.call("get_max_hp"))
 
 
 ## 命中特效，优先级：暴击斩弧 ＞ 元素命中 ＞ 通用火花。
@@ -145,6 +177,105 @@ func _on_boss_phase_changed(enemy: Node, _phase: int, _skills: Array) -> void:
 	var e := enemy as Node2D
 	if e != null:
 		FxTable.spawn(FX_EMBER_LORD_AURA, e.global_position)
+
+
+## 单次冲击事件（技能命中 / 爆炸 / BOSS 技能施放）：一次事件一次反馈。
+##
+## ⚠️ 与 `_on_damage_dealt` 的分工：那边管**逐个命中**（飘字 / 闪白 / 轻震 / 暴击顿帧），
+##    这边管**一次冲击**（重震 / 顿帧）。两者会同时发生（一次爆炸里每个受击单位仍有飘字），
+##    但震屏取 max、顿帧有 `_restoring_time_scale` 去重 ⇒ 不会叠加成抖动风暴。
+## `hit_stop` 复用 `hit_stop()` 的既有去重：顿帧期间再来的请求会被忽略（不延长、不重播）。
+func _on_screen_impact(_position: Vector2, strength: float, hit_stop_sec: float) -> void:
+	if strength > 0.0:
+		shake(strength)
+	if hit_stop_sec > 0.0:
+		hit_stop(hit_stop_sec)
+
+
+## 异常 DoT 跳字（2026-10-13 · Playground 规格「DoT 小跳字」）。
+##
+## `HealthComponent` 已按 `AILMENT_NUMBER_INTERVAL` 合并累计伤害后 emit；
+## 本处只负责「小字号 + 异常色 + 略下移」的呈现，**不做任何结算**。
+func _on_ailment_tick(host: Node, amount: float, ailment: String) -> void:
+	if host == null or not is_instance_valid(host) or amount <= 0.0:
+		return
+	var h := host as Node2D
+	if h == null:
+		return
+	var scene: Node = h.get_parent() if h.get_parent() != null else get_tree().current_scene
+	if scene == null:
+		return
+	var num := FALLBACK_DAMAGE_NUMBER_SCENE.instantiate() as DamageNumber
+	scene.add_child(num)
+	num.global_position = h.global_position + Vector2(
+		randf_range(-GameConstants.DAMAGE_NUMBER_SCATTER, GameConstants.DAMAGE_NUMBER_SCATTER),
+		GameConstants.DAMAGE_NUMBER_OFFSET_Y + GameConstants.DAMAGE_NUMBER_DOT_OFFSET_Y)
+	num.setup_ailment(amount, ailment)
+
+
+# =============================================================================
+# 稀有掉落庆祝（2026-10-14 · Playground「掉落物 pop 带星光」）
+# =============================================================================
+
+## 稀有掉落庆祝：`EventBus.rare_loot_spawned`（`enemy_base.gd` 在 `rarity >= Rarity.EPIC` 时 emit）。
+##
+## ⚠️ 该信号此前**零消费方** —— 稀有掉落除了地面光柱（`LootDrop._draw_beam`，静态）之外
+##    毫无「仪式感」，这正是暗黑刷宝类最核心的爽点（D3/D4/POE 的掉落光柱 + 音效 + 闪光）。
+##    本处补上四件套：① 全屏稀有度色光爆 ② 震屏 ③ 微顿帧 ④ 掉落点稀有度色粒子爆。
+##
+## 强度**逐档查表**（`GameConstants.rare_drop_celebration`），不做线性公式 ——
+## 套装 / 隐藏 / 深渊 / 塔不是线性档，表比公式更好调（且低档填 0 = 不庆祝）。
+##
+## ⚠️ `item == null` 时直接返回（Godot 允许给对象类型信号传 null；不挡会崩在 `item.rarity`）。
+func _on_rare_loot_spawned(item: EquipmentInstance, position: Vector2) -> void:
+	if item == null:
+		return
+	var rarity := item.rarity
+	var cel := GameConstants.rare_drop_celebration(rarity)
+	if float(cel["flash_alpha"]) > 0.0:
+		_flash(GameConstants.rarity_color(rarity),
+			float(cel["flash_alpha"]), float(cel["flash_time"]))
+	if float(cel["shake"]) > 0.0:
+		shake(float(cel["shake"]))
+	if float(cel["hit_stop"]) > 0.0:
+		hit_stop(float(cel["hit_stop"]))
+	# 掉落点粒子爆：复用死亡表现原语（`PixelBurst`），按稀有度色 —— 零新素材、零新死钩子。
+	_spawn_burst(position, GameConstants.rarity_color(rarity))
+
+
+## 全屏色光爆：设色 + 设峰值透明度，然后线性淡出到 0。
+##
+## 重复触发（同一帧掉多件稀有）⇒ 直接重启 tween（后到者覆盖先到者），**不叠加** ——
+## 否则连掉三件会闪成白屏。
+func _flash(color: Color, peak_alpha: float, duration: float) -> void:
+	_ensure_flash()
+	if _flash_rect == null:
+		return
+	if _flash_tween != null and _flash_tween.is_valid():
+		_flash_tween.kill()
+	_flash_rect.color = Color(color.r, color.g, color.b, clampf(peak_alpha, 0.0, 1.0))
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(_flash_rect, "color:a", 0.0, maxf(duration, 0.01))
+
+
+## 懒创建全屏光爆节点（首次稀有掉落时建；此后跨场景复用）。
+##
+## ⚠️ 层级 = 2：level.tscn / hub.tscn 的 HUD CanvasLayer 都是默认 `layer = 1` ⇒
+##    光爆盖在 HUD 之上（整屏闪才叫「光爆」）。时长 ≤0.46s 且从低透明度淡出，不会长时间遮挡读数。
+## ⚠️ `MOUSE_FILTER_IGNORE`：否则全屏 ColorRect 会吃掉所有点击（菜单点不动）。
+func _ensure_flash() -> void:
+	if _flash_rect != null and is_instance_valid(_flash_rect):
+		return
+	_flash_layer = CanvasLayer.new()
+	_flash_layer.name = "RareDropFlash"
+	_flash_layer.layer = 2
+	add_child(_flash_layer)
+	_flash_rect = ColorRect.new()
+	_flash_rect.name = "Flash"
+	_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_flash_rect.color = Color(0.0, 0.0, 0.0, 0.0)
+	_flash_layer.add_child(_flash_rect)
 
 
 # =============================================================================

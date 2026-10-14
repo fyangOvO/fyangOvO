@@ -14,6 +14,13 @@ const FADE: float = 0.35
 ## 最多同时显示条数
 const MAX_TOASTS: int = 5
 
+## 弹跳入场时长（秒）。2026-10-14 拾取反馈强化：提示条不再是「啪一下出现」。
+const POP: float = 0.18
+## 弹跳起始缩放（< 1 ⇒ 从略小弹到 1.0；配 `TRANS_BACK` 给一点过冲）。
+const POP_SCALE: float = 0.86
+## 左侧强调边宽度（px）。比其余三边粗 ⇒ 一眼看出这条是什么色。
+const ACCENT_WIDTH: int = 3
+
 const FONT_SIZE: int = 12
 const GOLD_COLOR: Color = Color("D9A521")
 const MATERIAL_COLOR: Color = Color("4C8BF5")
@@ -84,7 +91,9 @@ func _push(text: String, color: Color) -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.043, 0.051, 0.063, 0.82)
 	sb.set_border_width_all(1)
-	sb.border_color = Color("3A424F")
+	# 2026-10-14：边框染成**条目色**、左侧加粗 ⇒ 不读文字也能一眼扫出「这条是稀有/传说」。
+	sb.border_color = color
+	sb.border_width_left = ACCENT_WIDTH
 	sb.set_corner_radius_all(0)
 	row.add_theme_stylebox_override("panel", sb)
 	var lbl := Label.new()
@@ -100,8 +109,17 @@ func _push(text: String, color: Color) -> void:
 	row.add_child(mg)
 	add_child(row)
 
-	# 2.2s 后淡出并移除
+	# 弹跳入场 + 存活 + 淡出（2026-10-14 拾取反馈强化）。
+	# ⚠️ 为什么用 `scale` 做弹跳：`VBoxContainer` 只摆子节点的 position/size，**不碰 scale**
+	#    ⇒ scale 动画不会被布局每帧覆盖（改 position 则会被覆盖）。
+	#    pivot 保持默认 (0,0) ⇒ 从左上角「长出来」，与右侧列表的阅读方向一致。
+	row.scale = Vector2(POP_SCALE, POP_SCALE)
+	row.modulate.a = 0.0
 	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(row, "modulate:a", 1.0, POP)
+	tw.tween_property(row, "scale", Vector2.ONE, POP).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.set_parallel(false)
 	tw.tween_interval(LIFE)
 	tw.tween_property(row, "modulate:a", 0.0, FADE)
 	tw.tween_callback(func() -> void:

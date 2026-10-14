@@ -1402,6 +1402,11 @@ func _spawn_aoe_telegraph(radius: float, arc_deg: float = 360.0,
 func _aoe_impact(dmg: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
+	# 2026-10-13 打击感 C：BOSS 范围践踏是**世界事件** —— 玩家靠走位躲开时地面照样被砸得发抖，
+	# 才叫「重」。故震屏 / 顿帧**先于**下面的圈内判定发出（无条件）。
+	EventBus.screen_impact.emit(global_position,
+		GameConstants.SHAKE_IMPACT_BOSS_CAST,
+		GameConstants.HIT_STOP_IMPACT_BOSS_CAST)
 	if global_position.distance_to(_player.global_position) > AOE_RADIUS:
 		return
 	if _player.has_method("take_damage"):
@@ -1464,6 +1469,10 @@ func _bone_slam() -> void:
 func _cone_impact(dmg: float, radius: float, dir: Vector2) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
+	# 2026-10-13 打击感 C：扇形重击同属**世界事件**，无条件震屏 / 顿帧（玩家侧向躲开也抖）。
+	EventBus.screen_impact.emit(global_position,
+		GameConstants.SHAKE_IMPACT_BOSS_CAST,
+		GameConstants.HIT_STOP_IMPACT_BOSS_CAST)
 	var to_player: Vector2 = _player.global_position - global_position
 	if to_player.length() > radius:
 		return
@@ -1589,6 +1598,10 @@ func _drop_loot(killer: Node) -> void:
 func _spawn_loot_drop(entry: Dictionary) -> void:
 	var drop := LOOT_SCENE.instantiate() as LootDrop
 	drop.setup(entry)
+	# 弹出动画起点 = 死亡点（Playground「掉落物 pop 出來帶星光」）。
+	# ⚠️ 必须在 `add_child()` **之前**设：`_ready` 一进树就据此把节点挪到起点并开播
+	#    （同坑⑨的「两段式落点」—— `_ready` 早于调用方赋 `global_position`）。
+	drop.pop_from = global_position
 	var scatter := Vector2(randf_range(-14.0, 14.0), randf_range(-14.0, 14.0))
 	drop.global_position = global_position + scatter
 	get_parent().add_child(drop)

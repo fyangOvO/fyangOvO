@@ -316,8 +316,19 @@ func _execute_single(data: SkillData) -> void:
 
 
 ## 范围：以玩家为中心、radius 内全部目标
+##
+## 2026-10-13 打击感 C：命中 ≥1 个目标时发一次冲击事件（按 AoE 半径分级屏震 + 顿帧）。
+## ⚠️ **刻意只在命中时发**（`targets.is_empty()` 则不发）：AoE 是「挥砍动作」，
+##    打空还给顿帧会让连招发涩；而「落地爆炸 / BOSS 践踏」是**世界事件**，
+##    那边（`GroundArea` / `EnemyBase`）无条件发。二者语义不同，不要统一。
+## ⚠️ 与逐命中的 `damage_dealt` 不冲突：那边每个目标发一次轻震（1.5px），
+##    这里补一次重震（按半径 2.5–4.5px）；震屏取 max ⇒ 大 AoE 不再被 1.5px 拖平。
 func _execute_aoe(data: SkillData) -> void:
 	var targets := _player.find_targets_in_radius(data.radius)
+	if not targets.is_empty():
+		EventBus.screen_impact.emit(_player.global_position,
+			GameConstants.shake_strength_for_radius(data.radius),
+			GameConstants.HIT_STOP_IMPACT_SKILL)
 	for target in targets:
 		_hit(target, data, data.knockback)
 

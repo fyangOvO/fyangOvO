@@ -53,6 +53,11 @@ signal picked_up(entry: Dictionary)
 const COLLECTIBLE_COLOR: Color = Color("7FE7D0")
 const COLLECTIBLE_BEAM_HEIGHT: float = 30.0
 
+## 金币 / 材料配色。抽成常量供 `_draw()` 与「拾取光晕染色」（`_pickup_glow_color`）**共用** ——
+## 此前 `_draw` 里是两处十六进制字面量，加染色时再抄一遍就会变成「改一处忘一处」的漂移源。
+const GOLD_COLOR: Color = Color("D9A521")
+const MATERIAL_COLOR: Color = Color("4C8BF5")
+
 ## 符文掉落物（2-L12）：紫罗兰色 + 光柱高度。
 ##
 ## ⚠️ 符文没有 `rarity`（-1）⇒ 取不到 `RARITY_BEAM_HEIGHTS`，**必须**给显式高度，
@@ -71,6 +76,47 @@ var _age: float = 0.0
 
 var _picked: bool = false
 var _player: Node = null
+
+## 吸附当前速度（px/s）。进入磁吸半径后逐帧加速，见 `_process`。
+var _magnet_speed: float = 0.0
+
+# -----------------------------------------------------------------------------
+# 弹出动画（Playground「拾取：掉落物 pop 出來帶星光」）
+# -----------------------------------------------------------------------------
+#
+# 此前掉落物是「直接出现在落点」—— 敌人一死，地上凭空多出几件东西，毫无「掉出来」的感觉。
+# 本组让掉落物从**死亡点**沿抛物线弹到落点，落地后再小回弹一次，并带 4 点星光。
+#
+# ⚠️ 全程只改 `global_position`、**不改 scale**：像素铁律只允许整数缩放，
+#    位移不受此限（而 `scale` 从 0 弹到 1 会经过一堆非整数倍，直接违规）。
+
+## 弹出动画的起点（世界坐标）。`Vector2.INF` = 不做弹出（关卡摆放的收集物 / 旧调用方 / 测试桩）。
+##
+## ⚠️ 必须由调用方在 `add_child()` **之前**设好 —— `_ready` 一进树就据此把节点挪到起点
+##    （见 `_ready` 的「两段式落点」说明）。
+var pop_from: Vector2 = Vector2.INF
+
+## 抛物线飞行时长（秒）
+const POP_TIME: float = 0.34
+## 落地小回弹时长（秒）
+const POP_BOUNCE_TIME: float = 0.12
+## 飞行途中的额外抛物高度（px）
+const POP_ARC_LIFT: float = 12.0
+## 落地小回弹的抬升高度（px）
+const POP_BOUNCE_LIFT: float = 5.0
+## 弹出星光：斜向星点个数 / 内圈半径 / 外圈半径 / 星点边长（px）
+const POP_SPARKLE_COUNT: int = 4
+const POP_SPARKLE_INNER: float = 4.0
+const POP_SPARKLE_OUTER: float = 13.0
+const POP_SPARKLE_SIZE: float = 2.0
+
+## 弹出动画已播时长（秒）。**< 0 = 未在播放**（也是「有没有弹出」的唯一判据）。
+var _pop_elapsed: float = -1.0
+## 落点（`_ready` 里从「调用方已设好的 global_position」捕获）。
+var _pop_target: Vector2 = Vector2.ZERO
+## 弹出动画**上一帧自己写下的位置** —— 用来侦测「外部插手」：
+## `_process` 里若发现 `global_position` 不等于它，说明别人动过 ⇒ 动画立刻让位（见 `_process`）。
+var _pop_written: Vector2 = Vector2.ZERO
 
 
 ## 便捷构造：按 LootRoller 条目初始化
@@ -93,6 +139,15 @@ func _ready() -> void:
 	z_index = 2
 	# 收集物常驻：目标物过期消失会让「收集 N 个」永久不可完成，所以不参与 60s 过期。
 	_lifetime = INF if is_collectible else GameConstants.LOOT_DROP_LIFETIME
+	# 弹出动画（Playground「掉落物 pop 出來帶星光」）。
+	# ⚠️ 为什么放在 `_ready`：这是「进树」的时点，早于任何 `_process` ⇒ 第一帧就已在起点，
+	#    不会先闪一下落点（与 `GroundArea.begin()` 处理「两段式落点」是同一族问题）。
+	# ⚠️ `_pop_target` 取此刻的 `global_position` —— 调用方必须**在 `add_child` 之前**设好落点。
+	if pop_from.is_finite():
+		_pop_target = global_position
+		global_position = pop_from
+		_pop_written = pop_from
+		_pop_elapsed = 0.0
 
 
 func _process(delta: float) -> void:
@@ -101,14 +156,72 @@ func _process(delta: float) -> void:
 	if _lifetime <= 0.0:
 		queue_free()
 		return
+	if _pop_elapsed >= 0.0:
+		# 外部改写让位：`_advance_pop` 每帧都写 `global_position` ⇒ 若**别人**（磁吸 / 测试 /
+		# 未来任何调用方）在本帧之前动过位置，动画必须**立刻交出控制权**，否则会把对方写的
+		# 位置当场覆盖掉。⚠️ 实测撞红过 `verify_e2e` 段⑦（它把掉落物瞬移到玩家脚下，
+		# 结果每帧被弹回抛物线 ⇒ 永远拾取不到 ⇒ 假红「背包没增长」）。
+		# 判据 = 和「上一帧我自己写下的位置」比 —— 只有没人插手时两者才相等。
+		if global_position.is_equal_approx(_pop_written):
+			_advance_pop(delta)
+		else:
+			_pop_elapsed = -1.0
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group(&"player")
 	if _player != null and _age >= GameConstants.LOOT_POP_DELAY:
-		var dist := global_position.distance_to(_player.global_position)
-		if dist <= GameConstants.PICKUP_RADIUS:
+		var ppos: Vector2 = _player.global_position
+		var dist := global_position.distance_to(ppos)
+		var bonus := _player_pickup_bonus()
+		if dist <= GameConstants.PICKUP_RADIUS + bonus:
 			_pick_up()
+			return
+		# 吸附（magnet · Playground 规格「靠近自动吸附」）：普通掉落进入磁吸半径后
+		# 朝玩家加速飞去；目标物（is_collectible）保持静止（关卡刻意摆放，不该被吸走）。
+		if not is_collectible and dist <= GameConstants.LOOT_MAGNET_RADIUS + bonus:
+			# 被磁吸接管 ⇒ **立刻结束弹出动画**：否则 `_advance_pop` 与 `move_toward`
+			# 会在同一帧抢着写 `global_position`（后写者赢），掉落物会左右抽搐。
+			# （上面那条「外部改写让位」是同一件事的通用兜底，这里显式叫停是为了**当帧即停**。）
+			_pop_elapsed = -1.0
+			_magnet_speed = minf(
+				maxf(_magnet_speed, GameConstants.LOOT_MAGNET_SPEED_INIT)
+					+ GameConstants.LOOT_MAGNET_ACCEL * delta,
+				GameConstants.LOOT_MAGNET_MAX_SPEED)
+			global_position = global_position.move_toward(ppos, _magnet_speed * delta)
 	if not _picked:
 		queue_redraw()
+
+
+## 推进弹出动画：`POP_TIME` 内沿抛物线从 `pop_from` 落到 `_pop_target`，
+## 随后 `POP_BOUNCE_TIME` 内小回弹一次，然后复位（`_pop_elapsed = -1`）。
+##
+## 只写 `global_position` —— 见字段区「不改 scale」的说明（像素铁律）。
+## 每次写完都同步记进 `_pop_written`（外部改写的侦测基线，见 `_process`）。
+func _advance_pop(delta: float) -> void:
+	_pop_elapsed += delta
+	var t := _pop_elapsed
+	if t < POP_TIME:
+		var u := t / POP_TIME
+		# ease-out quad：末段减速，读作「落地」
+		var e := 1.0 - (1.0 - u) * (1.0 - u)
+		var base := pop_from.lerp(_pop_target, e)
+		# 抛物线抬升（u = 0.5 时最高）
+		global_position = base + Vector2(0.0, -POP_ARC_LIFT * 4.0 * u * (1.0 - u))
+	elif t < POP_TIME + POP_BOUNCE_TIME:
+		var u := (t - POP_TIME) / POP_BOUNCE_TIME
+		global_position = _pop_target + Vector2(0.0, -POP_BOUNCE_LIFT * sin(PI * u))
+	else:
+		global_position = _pop_target
+		_pop_elapsed = -1.0
+	_pop_written = global_position
+
+
+## 玩家 `pickup_radius` 词缀加成（px）。**本函数是该词缀的唯一消费点** ——
+## 此前 `StatCalculator` 算出它、UI 也显示它，却没有任何地方读它（死属性）。
+## 未注入战斗属性（测试环境 / 旧调用方）⇒ 返回 0，与引入吸附前逐位一致。
+func _player_pickup_bonus() -> float:
+	if _player != null and _player.has_method("get_combat_stat"):
+		return maxf(float(_player.call("get_combat_stat", GameConstants.STAT_PICKUP_RADIUS)), 0.0)
+	return 0.0
 
 
 ## 自动拾取：调用玩家收集接口后移除
@@ -133,8 +246,41 @@ func _pick_up() -> void:
 	# 拾取光晕（贴图特效，见 `data/fx.json`）。
 	# ⚠️ 必须挂到**父节点**：本节点下一行就 `queue_free()`，挂自己身上特效会一起消失。
 	# 贴图缺失时 `spawn` 返回 null，静默无特效（不是回归 —— 引入贴图层前也没有这个表现）。
-	FxTable.spawn("pickup_glow", global_position, {"host": get_parent()})
+	# 2026-10-14 拾取反馈强化：**按类型 / 稀有度染色** + 史诗以上**整数放大 2×**。
+	# 此前是一张固定白图 —— 捡到金币和捡到神话装，地上那一下爆光长得一模一样。
+	var glow := FxTable.spawn("pickup_glow", global_position, {"host": get_parent()})
+	if glow != null:
+		glow.modulate = _pickup_glow_color()
+		var s := _pickup_glow_scale()
+		if s > 1:
+			# 像素铁律：**只整数缩放**（2× 是 24→48px，仍是像素对齐的）。
+			glow.scale = Vector2(float(s), float(s))
 	queue_free()
+
+
+## 拾取光晕的颜色：按掉落类型 / 装备稀有度取。色源与地面物件、提示条一致。
+## 未知类型 ⇒ 白色（`pickup_glow` 原图色，等同染色前的表现）。
+func _pickup_glow_color() -> Color:
+	if is_collectible:
+		return COLLECTIBLE_COLOR
+	match drop_type:
+		"gold":
+			return GOLD_COLOR
+		"material":
+			return MATERIAL_COLOR
+		"rune":
+			return RUNE_COLOR
+		"equipment":
+			return GameConstants.rarity_color(rarity) if rarity >= 0 else Color.WHITE
+	return Color.WHITE
+
+
+## 拾取光晕的**整数**缩放倍率（像素铁律）。
+## 装备且史诗起 ⇒ 2×（越稀有越显眼，与「稀有掉落庆祝」同一情绪梯度）；其余 1×。
+func _pickup_glow_scale() -> int:
+	if drop_type == "equipment" and rarity >= GameConstants.Rarity.EPIC:
+		return 2
+	return 1
 
 
 func _draw() -> void:
@@ -145,9 +291,9 @@ func _draw() -> void:
 		return
 	match drop_type:
 		"gold":
-			_draw_box(Vector2.ZERO, 8, Color("D9A521"), Color("0B0D10"))
+			_draw_box(Vector2.ZERO, 8, GOLD_COLOR, Color("0B0D10"))
 		"material":
-			_draw_box(Vector2.ZERO, 8, Color("4C8BF5"), Color("0B0D10"))
+			_draw_box(Vector2.ZERO, 8, MATERIAL_COLOR, Color("0B0D10"))
 		"consumable":
 			var c := Color("E04848") if item_id == "life_potion" else Color("4890E0")
 			_draw_box(Vector2.ZERO, 16, c, Color("0B0D10"))
@@ -177,6 +323,30 @@ func _draw() -> void:
 				# 素材缺失兜底：退回紫色方块（`UISkin.rune_icon` 缺档静默回 null，
 				# 不兜底的话地面上就只剩一根光柱，玩家看不见掉的是什么）。
 				_draw_box(Vector2.ZERO, 8, RUNE_COLOR, Color("0B0D10"))
+	# 弹出星光**画在物件之上**（收集物永不弹出 ⇒ 上面那条 `return` 分支不需要它）。
+	if _pop_elapsed >= 0.0:
+		_draw_pop_sparkles()
+
+
+## 弹出星光（Playground「掉落物 pop 出來帶星光」）。
+##
+## 纯 `_draw` 的 4 个斜向星点：随弹出进度由内向外扩散 + 线性淡出 ——
+## **零新素材、零子节点、零 `z_index` 参与**（与「地面残留」自绘同一理由）。
+## 颜色取 `_pickup_glow_color()` ⇒ 「掉出来时看到的星光色」== 「捡起来时的光晕色」，视觉自洽。
+func _draw_pop_sparkles() -> void:
+	var u := clampf(_pop_elapsed / (POP_TIME + POP_BOUNCE_TIME), 0.0, 1.0)
+	var alpha := (1.0 - u) * 0.95
+	if alpha <= 0.01:
+		return
+	var col := Color(_pickup_glow_color(), alpha)
+	var r := lerpf(POP_SPARKLE_INNER, POP_SPARKLE_OUTER, u)
+	for i in POP_SPARKLE_COUNT:
+		var ang := TAU * float(i) / float(POP_SPARKLE_COUNT) + PI * 0.25  # 四个斜角
+		var p := Vector2(cos(ang), sin(ang)) * r
+		# 取整对齐像素：星点位移若非整数，在整数缩放下会「跳格」闪烁。
+		p = Vector2(roundf(p.x), roundf(p.y))
+		var h := POP_SPARKLE_SIZE * 0.5
+		draw_rect(Rect2(p.x - h, p.y - h, POP_SPARKLE_SIZE, POP_SPARKLE_SIZE), col)
 
 
 ## 色块 + 1px 深描边（像素风铁律：Nearest、描边脱离背景）

@@ -450,7 +450,11 @@ const LEVEL_MIN: int = 1
 const LEVEL_MAX: int = 20
 
 const ACCOUNT_LEVEL_MIN: int = 1
-const ACCOUNT_LEVEL_MAX: int = 60
+## ⚠️ 权威来源 = `AccountLevel.MAX_ACCOUNT_LEVEL`（= 30，2026-10-14 用户裁定「提高账号上限」；
+## 原 20 会让天赋**第三分支 L30** 永久不可达）。
+## 本常量仅供 `SaveData.from_dict()` 做读档夹取用；历史上曾误留 60（GDD 5.1 v1.8 旧值），
+## 与「上限降到 20」的裁定脱钩 ⇒ 手改存档可绕过上限。2026-10-13 对齐为 20，2026-10-14 随裁定改为 30。
+const ACCOUNT_LEVEL_MAX: int = 30
 
 ## 局内等级上限（GDD 0.4 节 4.1）
 const RUN_LEVEL_MIN: int = 1
@@ -1121,6 +1125,27 @@ const AILMENTS: Array[String] = [
 	AILMENT_POISON, AILMENT_BURN, AILMENT_SLOW, AILMENT_SHOCK, AILMENT_CURSE,
 ]
 
+## 异常 DoT 飘字节流间隔（秒 · 2026-10-13）。
+## DoT 是**逐帧结算**（`dps × delta`），若逐帧飘字会瞬间刷屏 ⇒ 按本间隔合并显示。
+const AILMENT_NUMBER_INTERVAL: float = 0.5
+
+
+## 异常 → 元素（`AILMENT_ELEMENT_MAP` 的逆映射）。用于取异常飘字配色。
+static func element_from_ailment(ailment: String) -> String:
+	for elem in AILMENT_ELEMENT_MAP:
+		if String(AILMENT_ELEMENT_MAP[elem]) == ailment:
+			return String(elem)
+	return ""
+
+
+## 异常飘字配色：走 `ELEMENT_COLORS`（**单一来源**，与元素飘字同色系），
+## 避免另立一份异常配色表而漂移。
+static func ailment_color(ailment: String) -> Color:
+	var elem := element_from_ailment(ailment)
+	if elem.is_empty():
+		return COLOR_DAMAGE_NORMAL
+	return ELEMENT_COLORS.get(elem, COLOR_DAMAGE_NORMAL)
+
 ## dot 每秒伤害 = 来源攻击力 × DPS_RATIO（来源 = 施加方；无攻击力接口的异常源按 1/s）。
 ## 工程侧默认（GDD 未给统一数值，阶段 3 手感调优可调）：
 ##   中毒 20% AD/s、燃烧 25% AD/s —— 敌人 AD 基线 L1=5.61，故怪毒 ≈1.1/s，对 150 HP 温和。
@@ -1203,6 +1228,17 @@ static func curse_damage_dealt_multiplier() -> float:
 ## 玩家拾取半径（px）：掉落物与玩家距离 ≤ 此值自动拾取
 const PICKUP_RADIUS: float = 24.0
 
+## 吸附（magnet pickup · 2026-10-13）——Playground 规格「靠近自动吸附」。
+##
+## 进入 `LOOT_MAGNET_RADIUS` 后，掉落物朝玩家加速飞去；速度自 `SPEED_INIT` 起
+## 按 `ACCEL` 递增、封顶 `MAX_SPEED`。**基础值 + 玩家 `pickup_radius` 词缀**
+## ⇒ 该词缀同时扩大「拾取」与「吸附」两个半径（此前它**零消费方 = 死属性**）。
+## ⚠️ 吸附只对**普通掉落**生效；`is_collectible` 的目标物保持静止（关卡刻意摆放）。
+const LOOT_MAGNET_RADIUS: float = 56.0
+const LOOT_MAGNET_SPEED_INIT: float = 80.0
+const LOOT_MAGNET_ACCEL: float = 520.0
+const LOOT_MAGNET_MAX_SPEED: float = 420.0
+
 ## 地面掉落物存活时长（秒），超时消失（防刷宝场景堆积）
 const LOOT_DROP_LIFETIME: float = 60.0
 
@@ -1283,6 +1319,12 @@ const DAMAGE_NUMBER_OFFSET_Y: float = -18.0
 const DAMAGE_NUMBER_FONT_SIZE: int = 11
 const DAMAGE_NUMBER_CRIT_FONT_SIZE: int = 15
 
+## DoT / 异常飘字号（比普通小一档 —— Playground 规格「DoT 小跳字」）。
+const DAMAGE_NUMBER_DOT_FONT_SIZE: int = 9
+
+## DoT 飘字相对主伤害数字的额外下移（px）：避免与同一帧的命中飘字重叠。
+const DAMAGE_NUMBER_DOT_OFFSET_Y: float = 9.0
+
 ## 飘字颜色：普通亮白 / 暴击橙红（与元素着色区分开，保持可读性）
 const COLOR_DAMAGE_NORMAL: Color = Color("DCE2E8")
 const COLOR_DAMAGE_CRIT: Color = Color("FF7A3D")
@@ -1301,6 +1343,162 @@ const HIT_STOP_TIME_SCALE: float = 0.05
 const SHAKE_HIT_STRENGTH: float = 1.5
 const SHAKE_CRIT_STRENGTH: float = 3.0
 const SHAKE_DECAY_PER_SEC: float = 40.0
+
+# -----------------------------------------------------------------------------
+# 冲击事件震屏 / 顿帧（2026-10-13 · 打击感扩展 C）
+# -----------------------------------------------------------------------------
+#
+# 背景：此前**只有暴击**触发震屏 / 顿帧（`JuiceFX._on_damage_dealt`）。`damage_dealt`
+# 是**逐单位**信号 ⇒ 它表达不了「一次爆炸 / 一次技能命中 / 一次 BOSS 施法」这类
+# **单次冲击事件**：AoE 打 10 个敌人会发 10 次信号，而震屏取 max ⇒ 实际只有 1.5px。
+#
+# 现在另开一条 `EventBus.screen_impact(position, strength, hit_stop)` 表达冲击事件，
+# 与逐命中解耦。对标注 Playground 规格「重擊 / 爆炸 / BOSS 技大幅抖」。
+#
+# ⚠️ 数值刻意**低于** Playground 的「大幅」，因为本作视口只有 640×360（整数缩放）：
+#    震屏 5px 已接近 1.5% 屏宽，再大会糊。顿帧一律落在 Playground 建议的 30–60ms 带内。
+#
+# 技能震屏按 AoE 半径线性分级（`shake_strength_for_radius`）：
+#   半径 0 → `SHAKE_IMPACT_SKILL_BASE`；半径 ≥ `SHAKE_IMPACT_RADIUS_REF` → `..._MAX`。
+#   `SHAKE_IMPACT_RADIUS_REF` 取 80.0 = 当前 `skills.json` 的**最大** `radius`（雷暴），
+#   即「最大的 AoE 拿最大震屏」；将来出现更大的 AoE 会被 `clampf` 封顶，不会越界。
+const SHAKE_IMPACT_SKILL_BASE: float = 2.5
+const SHAKE_IMPACT_SKILL_MAX: float = 4.5
+const SHAKE_IMPACT_RADIUS_REF: float = 80.0
+## 地面爆炸 / 落地爆发（`meteor` 的 `impact_multiplier`）：比一般 AoE 更重。
+const SHAKE_IMPACT_EXPLOSION: float = 4.5
+## BOSS 技能施放（范围践踏 / 扇形重击）：全场最重。
+const SHAKE_IMPACT_BOSS_CAST: float = 5.5
+## 顿帧时长（秒，真实时间）—— 全部落在 Playground 的 30–60ms 带内。
+const HIT_STOP_IMPACT_SKILL: float = 0.03
+const HIT_STOP_IMPACT_EXPLOSION: float = 0.05
+const HIT_STOP_IMPACT_BOSS_CAST: float = 0.06
+
+
+## 按 AoE 半径求技能冲击的震屏强度（线性插值，两端夹取）。
+##
+## `radius <= 0`（单体 / 无半径）⇒ 返回 `SHAKE_IMPACT_SKILL_BASE`；
+## `radius >= SHAKE_IMPACT_RADIUS_REF` ⇒ 返回 `SHAKE_IMPACT_SKILL_MAX`。
+## 供 `SkillController._execute_aoe` / `GroundArea._resolve_impact` 调用，保证
+## 「AoE 越大抖得越狠」这一条手感契约只有**一处**实现。
+static func shake_strength_for_radius(radius: float) -> float:
+	if SHAKE_IMPACT_RADIUS_REF <= 0.0:
+		return SHAKE_IMPACT_SKILL_MAX
+	var t := clampf(radius / SHAKE_IMPACT_RADIUS_REF, 0.0, 1.0)
+	return lerpf(SHAKE_IMPACT_SKILL_BASE, SHAKE_IMPACT_SKILL_MAX, t)
+
+
+# -----------------------------------------------------------------------------
+# 命中顿帧 · 按伤害分级（2026-10-14 · Playground「重击/技能命中定格稍久」）
+# -----------------------------------------------------------------------------
+#
+# 现有顿帧两路：① 暴击（固定 `HIT_STOP_DURATION`）② 冲击事件（技能/爆炸/BOSS，按**事件类型**）。
+# 本组补第三路：按**这一击打掉了目标多少血**分级 —— 打掉半管血的重击该顿得久，
+# 挠痒痒的小伤害不该顿（否则连招发涩）。三路最终取 **max** 后只调一次 `hit_stop()`。
+#
+# ⚠️ 为什么用「伤害 / 目标最大生命」，而不是另外两种直觉口径：
+#    · 「伤害绝对值」：随等级指数膨胀 ⇒ 阈值没法固定（早期永不触发、后期每击必顿）。
+#    · 「伤害 / 玩家攻击力」：只是把「技能 vs 普攻」换个说法 —— 那本就是**事件类型**维度，
+#      已由第 ② 路覆盖，再算一遍是重复。
+#    · 「伤害 / 目标最大生命」：唯一**等级无关**、且直接回答「这一击对这个目标有多重」的口径。
+#
+# ⚠️ 该口径对「一击秒杀小怪」会给出满档顿帧（打掉了 100% 血）。这是**刻意的**：
+#    击杀本就该有分量；且 `hit_stop()` 自带去重（顿帧期间再来的请求被忽略）⇒
+#    连续清怪不会叠成抖动风暴，只在「空闲时挨到一下大的」才真正触发。
+const HIT_STOP_DAMAGE_MIN_RATIO: float = 0.10  ## 打掉 < 10% 最大生命 ⇒ 不顿（小伤害保持跟手）
+const HIT_STOP_DAMAGE_MAX_RATIO: float = 0.50  ## 打掉 ≥ 50% ⇒ 顿满
+const HIT_STOP_DAMAGE_MIN: float = 0.02        ## 刚过阈值时的时长（20ms，能感知到）
+const HIT_STOP_DAMAGE_MAX: float = 0.06        ## 顿满时长（60ms = Playground 建议带上沿）
+
+
+## 按「这一击打掉目标多少血」求顿帧时长（线性，两端夹取）。
+##
+## 返回 **0 = 不触发**（调用方据此决定要不要调 `hit_stop`，别拿 0 去调 —— 那会白白占用去重锁）。
+## `max_hp <= 0`（无血条 / 测试桩 / 未接生命组件）或 `amount <= 0` ⇒ 0。
+static func hit_stop_for_damage(amount: float, max_hp: float) -> float:
+	if max_hp <= 0.0 or amount <= 0.0:
+		return 0.0
+	var ratio := amount / max_hp
+	if ratio < HIT_STOP_DAMAGE_MIN_RATIO:
+		return 0.0
+	if ratio >= HIT_STOP_DAMAGE_MAX_RATIO:
+		return HIT_STOP_DAMAGE_MAX
+	var t := (ratio - HIT_STOP_DAMAGE_MIN_RATIO) \
+		/ (HIT_STOP_DAMAGE_MAX_RATIO - HIT_STOP_DAMAGE_MIN_RATIO)
+	return lerpf(HIT_STOP_DAMAGE_MIN, HIT_STOP_DAMAGE_MAX, t)
+
+
+## 单次命中的顿帧时长 = max(暴击固定档 `HIT_STOP_DURATION`, 按伤害分级档)。
+##
+## ⚠️ 合并必须在**同一处**完成：`JuiceFX.hit_stop()` 自带去重（顿帧期间再来的请求被忽略），
+##    若拆成两次调用，**先到的矮时长会把后到的高时长挤掉**（暴击 30ms 挤掉重击 60ms）。
+##    抽成纯函数而不是写在 `JuiceFX` 里，是为了让这条契约**可被真跑验证**（见 `verify_juice` J 段）。
+## 返回 **0 = 不触发**。
+static func hit_stop_for_hit(amount: float, max_hp: float, is_crit: bool) -> float:
+	var stop := HIT_STOP_DURATION if is_crit else 0.0
+	return maxf(stop, hit_stop_for_damage(amount, max_hp))
+
+
+# -----------------------------------------------------------------------------
+# 稀有掉落庆祝（2026-10-14 · Playground「掉落物 pop 带星光」· 暗黑刷宝核心爽点）
+# -----------------------------------------------------------------------------
+#
+# 背景：`EventBus.rare_loot_spawned`（`enemy_base.gd` 在 `rarity >= Rarity.EPIC` 时 emit）
+# **此前零消费方** —— 稀有掉落除了地面光柱（`LootDrop._draw_beam`）之外毫无「仪式感」。
+# 本组常数供 `JuiceFX._on_rare_loot_spawned` 使用：全屏稀有度色光爆 + 震屏 + 微顿帧。
+#
+# ⚠️ 四条并行表，**索引 = `GameConstants.Rarity`**（0–9），与 `RARITY_BEAM_HEIGHTS` 同一惯例
+#    （`self_check` 有一条「并行表等长 == RARITY_COUNT」盯着，改档数时不会漏改这里）。
+#    前 3 档（普通/魔法/稀有）全填 0 ⇒ 不庆祝。`rare_loot_spawned` 本就不会为它们发射，
+#    这里填 0 属**防御性**：即便将来放宽发射门槛，低档也不会突然闪屏 / 卡手。
+#
+# ⚠️ 强度分**两段**（与 `RARITY_BEAM_HEIGHTS` 的非单调**不同**，两件事互不相关）：
+#    · **线性带**（史诗 3 → 神话 5）单调递增 —— 越稀有越该爽；
+#    · **正交 / 特殊档**（套装 6 / 隐藏 7 / 深渊 8 / 塔 9）不参与线性排序，但**全部 ≥ 史诗**
+#      （都是「值得庆祝」的档），其中隐藏最高（彩蛋，全池权重最低）。
+#    `verify_juice` I 段按这个**两段契约**断言（不是整表单调）。
+
+## 全屏光爆峰值不透明度（0 = 不闪）。
+const RARE_DROP_FLASH_ALPHA: Array[float] = [
+	0.0, 0.0, 0.0,  # 普通 / 魔法 / 稀有
+	0.10,           # 史诗
+	0.16,           # 传说
+	0.22,           # 神话
+	0.18,           # 套装
+	0.26,           # 隐藏
+	0.20,           # 深渊
+	0.20,           # 塔
+]
+
+## 光爆淡出时长（秒）。
+const RARE_DROP_FLASH_TIME: Array[float] = [
+	0.0, 0.0, 0.0, 0.25, 0.32, 0.40, 0.34, 0.46, 0.38, 0.38,
+]
+
+## 震屏强度（px）。
+const RARE_DROP_SHAKE: Array[float] = [
+	0.0, 0.0, 0.0, 1.5, 2.5, 3.5, 3.0, 4.0, 3.2, 3.2,
+]
+
+## 微顿帧时长（秒）。0 = 不顿 —— 史诗不掉帧（掉落物太频繁，顿帧会卡手），传说起才给。
+const RARE_DROP_HIT_STOP: Array[float] = [
+	0.0, 0.0, 0.0, 0.0, 0.035, 0.05, 0.045, 0.06, 0.05, 0.05,
+]
+
+
+## 取稀有度对应的庆祝强度（一次查表，越界 ⇒ 全 0 = 不庆祝）。
+##
+## 把四条并行表的**边界检查收在一处**（调用方不必各自 `if rarity < size`）；
+## 返回 Dictionary 而不是 4 个 getter，是为了让调用点只读一次、语义自带键名。
+static func rare_drop_celebration(rarity: int) -> Dictionary:
+	if rarity < 0 or rarity >= RARE_DROP_FLASH_ALPHA.size():
+		return {"flash_alpha": 0.0, "flash_time": 0.0, "shake": 0.0, "hit_stop": 0.0}
+	return {
+		"flash_alpha": RARE_DROP_FLASH_ALPHA[rarity],
+		"flash_time": RARE_DROP_FLASH_TIME[rarity],
+		"shake": RARE_DROP_SHAKE[rarity],
+		"hit_stop": RARE_DROP_HIT_STOP[rarity],
+	}
 
 ## 死亡粒子（PixelBurst）：碎片数量 / 存活时长 / 初速范围 / 重力
 const DEATH_BURST_PARTS: int = 8

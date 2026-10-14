@@ -50,6 +50,15 @@ func setup_heal(amount: float) -> void:
 	label.add_theme_color_override("font_color", GameConstants.COLOR_HEAL)
 
 
+## DoT / 异常跳字（2026-10-13 · Playground 规格「DoT 小跳字」）。
+## 比普通飘字小一档、按**异常色**上色（色源走 `GameConstants.ailment_color` ⇒ 与元素飘字同色系）。
+func setup_ailment(amount: float, ailment: String) -> void:
+	setup(amount, false)
+	var label: Label = $Label
+	label.add_theme_color_override("font_color", GameConstants.ailment_color(ailment))
+	label.add_theme_font_size_override("font_size", GameConstants.DAMAGE_NUMBER_DOT_FONT_SIZE)
+
+
 func _process(delta: float) -> void:
 	# 寿命用真实时间（毫秒）：顿帧（time_scale<1）期间飘字不加速老化
 	var t := float(Time.get_ticks_msec() - _start_ms) / 1000.0 / _duration

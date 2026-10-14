@@ -93,6 +93,13 @@ signal damage_dealt(target: Node, amount: float, is_crit: bool, element: String)
 ## 受到伤害
 signal damage_taken(source: Node, amount: float, element: String)
 
+## 异常 DoT 结算节流播报（2026-10-13 · Playground 规格「DoT 小跳字」）。
+##
+## `HealthComponent._tick_ailments()` 逐帧扣血但**刻意不发** `damage_dealt`
+## （防感电等二次放大 / 双计数）。本信号是 DoT 的**唯一表现出口**：
+## 按 `AILMENT_NUMBER_INTERVAL` 合并累计伤害后播报，`host` = 中招单位。
+signal ailment_tick(host: Node, amount: float, ailment: String)
+
 ## 格挡成功（第三步 3-BL1）。格挡系统本已存在（`HealthComponent._roll_block()`），
 ## 此前**只减伤、不广播** ⇒ 传奇特效 `on_block`（守护·坚壁）无落点。
 ## `amount` 为**格挡前**的伤害值（调用方如需格挡后值自行乘 `1 - BLOCK_DAMAGE_REDUCTION`）。
@@ -107,6 +114,18 @@ signal skill_cast(skill_id: String, mana_spent: float)
 ## 资源被消耗（第三步 3-X5 · `on_resource_spend` 落点）。`amount` = **实扣**的法力值
 ## （已过技能减耗）。消费点：传奇特效「每消耗 N 点资源」类阈值判定（ctx.amount_spent）。
 signal resource_spent(amount: float)
+
+## 单次冲击事件（2026-10-13 · 打击感扩展 C）。
+##
+## `damage_dealt` 是**逐单位**的（N 个目标 = N 次震屏，取 max 后反而只有基础值），
+## 表达不了「一次爆炸 / 一次技能命中 / 一次 BOSS 施法」这类**单次冲击事件**。
+## 本信号是该类事件的**唯一表现出口**，与命中目标数解耦：
+##   - `position` = 冲击中心（世界坐标，供将来做「距离衰减震屏」用）
+##   - `strength` = 震屏强度 px（<= 0 表示不震屏）
+##   - `hit_stop` = 顿帧时长秒（<= 0 表示不顿帧）
+## 消费点：`JuiceFX._on_screen_impact()`。发射方见 `SkillController._execute_aoe` /
+## `GroundArea._resolve_impact` / `EnemyBase._aoe_impact` / `EnemyBase._cone_impact`。
+signal screen_impact(position: Vector2, strength: float, hit_stop: float)
 
 ## 单位死亡
 signal unit_died(unit: Node, killer: Node)

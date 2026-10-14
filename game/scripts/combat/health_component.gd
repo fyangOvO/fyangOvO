@@ -50,6 +50,11 @@ var regeneration_per_second: float = GameConstants.PLAYER_BASE_REGENERATION
 ## 激活中的异常：{ 异常类型: { "time": 剩余秒, "dps": 每秒伤害, "source": 施加方 } }
 var _ailments: Dictionary = {}
 
+## DoT 飘字累计（2026-10-13）：按 `AILMENT_NUMBER_INTERVAL` 合并播报，避免逐帧刷屏。
+var _dot_accum: float = 0.0
+var _dot_accum_ailment: String = ""
+var _dot_accum_timer: float = 0.0
+
 ## 宿主引用（默认取父节点；场景中也可显式设置）
 var host: Node = null
 
@@ -258,6 +263,12 @@ func _apply_ailment_entry(ailment: String, dps: float, duration: float, source: 
 
 
 func _tick_ailments(delta: float) -> void:
+	if _ailments.is_empty():
+		_dot_accum = 0.0
+		_dot_accum_ailment = ""
+		_dot_accum_timer = 0.0
+		return
+	_dot_accum_timer += delta
 	for ailment in _ailments.keys():
 		var entry: Dictionary = _ailments[ailment]
 		entry["time"] = float(entry["time"]) - delta
@@ -271,10 +282,30 @@ func _tick_ailments(delta: float) -> void:
 			if dot > 0.0:
 				current_hp -= dot
 				EventBus.health_changed.emit(current_hp, get_max_hp())
+				_dot_accum += dot
+				if _dot_accum_ailment.is_empty():
+					_dot_accum_ailment = ailment
 				if current_hp <= 0.0:
 					current_hp = 0.0
+					_flush_dot_number()
 					_die(entry.get("source", null))
 					return
+	_flush_dot_number()
+
+
+## DoT 飘字播报（2026-10-13 · Playground 规格「DoT 小跳字」）。
+##
+## ⚠️ DoT **刻意不走** `damage_dealt`（防感电二次放大 / 与直接命中双计数），
+##    本函数是 DoT 的**唯一表现出口**；按 `AILMENT_NUMBER_INTERVAL` 合并累计伤害后
+##    一次性 emit，避免 60fps 下每帧刷一条飘字。
+func _flush_dot_number() -> void:
+	if _dot_accum_timer < GameConstants.AILMENT_NUMBER_INTERVAL:
+		return
+	if _dot_accum > 0.0 and host != null and is_instance_valid(host):
+		EventBus.ailment_tick.emit(host, _dot_accum, _dot_accum_ailment)
+	_dot_accum = 0.0
+	_dot_accum_ailment = ""
+	_dot_accum_timer = 0.0
 
 
 func _tick_regen(delta: float) -> void:
