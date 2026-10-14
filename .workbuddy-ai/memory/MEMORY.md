@@ -1,216 +1,236 @@
-# 项目长期记忆 — 七傳說（索引檔）
+# 项目长期记忆 — 七傳說（索引档）
 
-> **本檔只做「當前位置 + 未結遺留 + 最高優先事項」索引。**
-> 📕 完整鐵律 / 坑 / 已拍板結論 → 同目錄 `IRON-RULES.md`（開工前必讀）
-> 📘 數值與清單明細 → `deliverables/gstack/策划案/`（01–07 .md/.json）
-> 📗 逐日細節 → `.workbuddy-ai/memory/YYYY-MM-DD.md`
+> **本档只做「当前位置 + 未结遗留 + 最高优先事项」索引。**
+> 📕 完整铁律 / 坑 / 已拍板结论 → 同目录 `IRON-RULES.md`（开工前必读）
+> 📘 数值与清单明细 → `deliverables/gstack/策划案/`（01–07 .md/.json）
+> 📗 逐日细节（含各批复盘全文）→ `.workbuddy-ai/memory/YYYY-MM-DD.md`
 
 ---
 
-## 🔴 當前位置（2026-09-30）
+## 🔴 当前位置（2026-10-14）
 
-| 線 | 狀態 |
+| 线 | 状态 |
 |---|---|
-| 策劃七步 | ✅ 完成（180 工單 / 8 批次 / 568 通過 4 待修） |
-| 素材開發線 | ✅ 收線（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
-| 工程落地 B0–B5 | ✅ B5 特殊玩法八子批全收線（B5-1…B5-8） |
-| **HANDOFF-C UI 打磨復盤** | ✅ **完成**（4 類靜默脫鉤全修 + 2 個既有紅修復） |
-| **HANDOFF-D 符文圖標 v2** | ✅ **完成**（24 張重製為 48×48 高精細 + 符文石石板底座） |
-| **HANDOFF-E 符文掉落接線** | ✅ **完成**（B6 `2-L12`+`2-V12`：符文真的會掉、圖鑑不再 0/24） |
-| **HANDOFF-E 第二輪（遺漏掃描）** | ✅ **完成**（策劃掉率對齊 / 未解鎖不能裝 / 圖鑑文案讀表） |
-| **HANDOFF-E 第三輪（修金按鈕破相）** | ✅ **完成**（全局改 128×24 平面金 / 雕花給主菜單英雄鍵 / 重跑主題 + 全部截圖重拍） |
+| **全面優化第 1 步（清理 + 代碼）** | ✅ **完成**（回收 **928.4 MB**；修 `ACCOUNT_LEVEL_MAX` + 技能解鎖階梯；詳見 `2026-10-13.md`） |
+| **全面優化第 2 步（打擊感 / juice 代碼側）** | ✅ **完成**（A 掉落吸附 / B DoT 跳字 / C 技能·爆炸·BOSS 屏震頓幀；回歸全綠 85 PASS / 248.4s；詳見 `2026-10-14.md`） |
+| **賬號上限裁定落地（20→30）** | ✅ **完成**（讓天賦第三分支 `arcane`（L30）可達；`verify_account` 新增「上限 ≥ 最晚分支解鎖等級」硬契約；回歸全綠 85 PASS / 237.9s） |
+| **全面優化第 4 步（地面殘留貼圖）** | ✅ **完成**（接通 5 張死資產 `ground_*`；`GroundArea` 改**自繪**避 z_index 坑；`verify_skill_forms` L 段 12 斷言；回歸全綠 0 FAIL / 271.5s；詳見 `2026-10-14.md`） |
+| **全面優化第 5 步（稀有掉落慶祝）** | ✅ **完成**（接通零消費方的 `rare_loot_spawned`：全屏稀有度色光爆 + 震屏 + 微頓幀 + 掉落點粒子爆；4 條並行表 + `rare_drop_celebration()`；`verify_juice` I 段 16 斷言；`self_check` 122 項；回歸全綠 0 FAIL / 260.4s） |
+| **全面優化第 6 步（頓幀按傷害分級）** | ✅ **完成**（`hit_stop_for_damage()` + `hit_stop_for_hit()`：打掉 ≥10% 目標最大生命起頓、≥50% 頓滿 60ms；非暴擊重擊首次能頓；合併取 max 防「矮時長擠掉高時長」；`verify_juice` J 段 20 斷言；回歸全綠 0 FAIL / 213.6s） |
+| **全面優化第 7 步（拾取反饋強化）** | ✅ **完成**（`pickup_glow` 按類型/稀有度染色 + 史詩起整數 2×；提示條彈跳入場 + 稀有度色左強調邊；`verify_loot` J 段 + `verify_hud` D 段擴充；回歸全綠 0 FAIL / 270.9s） |
+| **全面優化第 8 步（掉落物 pop 動畫）** | ✅ **完成**（掉落物改由死亡點**拋物線飛出 + 落地回彈 + 4 顆星光**；全程只改位移不改 scale；**磁吸/外部寫入即讓位**；`verify_loot` K 段 12 斷言；順帶修好 `verify_e2e` 段⑦ 既有偶發假紅；回歸全綠 0 FAIL / 229.9s） |
+| **附：全庫退出告警清零（音頻泄漏）** | ✅ **完成**（77 個 `verify_*` 有 21 個報 `AudioStreamPlaybackWAV leaked`；根因 = headless Dummy 驅動不推進播放頭 ⇒ `finished` 不觸發；**在 `AudioManager.play()` 源頭按驅動名跳過**，1 處改動全清） |
+| 策划七步 | ✅ 完成（180 工单 / 8 批次） |
+| 素材开发线 | ✅ 收线（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
+| 工程落地 B0–B5 | ✅ B5 特殊玩法八子批全收线 |
+| HANDOFF-C UI 打磨复盘 | ✅ 完成（4 类静默脱钩全修 + 2 个既有红修复） |
+| HANDOFF-D 符文图标 v2 | ✅ 完成（24 张 48×48 高精细 + 符文石底座） |
+| HANDOFF-E 符文掉落接线 | ✅ 完成（3 轮：接线 / 遗漏扫描 / 修金按钮破相） |
+| **片头「勇者斗恶魔」** | ✅ **完成**（`intro.tscn` 可播放开场；⚠️ **刻意未接入启动流程** —— 用户 2026-10-08 裁定） |
 
-### HANDOFF-E 第二輪 · 遺漏掃描（2026-09-30，commit `f48d470`）
-用戶指示「繼續往下進行是否有遺漏沒有遺漏運行」⇒ 先掃遺漏、再實跑。
-**掃出兩條真遺漏 + 一條硬編碼脫鉤**：
-- **策劃自相矛盾**：`01-技能体系.md §11.4` 寫普通怪 **0%**（節奏 0.8–1.05/局），而
-  `02-装备属性.md §6.1` + `monster_loot_tables.json` + `02-check` E11 **全寫 0.02** ⇒ 用戶拍板
-  「**保留 2% 並對齊策劃**」⇒ 改 §11.4 表 + 重算節奏（6.5 個/局，附「收集者問題」說明：
-  簡單除法 3.7 局 vs 集齊期望 14 局），並同步 02-装备属性 V12 / `07-dev-tasks.json 2-V12` /
-  `07-开发总表.md` / `02-check` 註釋。
-- **技能面板不看得解鎖狀態**：picker 遍歷全部 24 個符文 ⇒ **未解鎖也能裝**，「掉落」對玩法毫無意義
-  （圖鑑只是計數器）。用戶拍板「**接（未解鎖不能裝）**」⇒ `hub._skill_panel_ctx()` 補注入
-  `unlocked_runes`；`skill_panel` 三檔灰顯優先序「未解鎖 > 不適用形態 > 同組互斥」+
-  `disabled` + `modulate 0.5`；門檻寫法與技能解鎖同款 `p_ctx.has("unlocked_runes")`（**看鍵不看值**，
-  向後兼容舊呼叫 / 無頭測試）。
-- **圖鑑進度文案硬編碼**「精英 8% · BOSS 25%」（漏了普通 2%）⇒ 改 `_drop_sources_text()` **從掉落表實時讀**。
-- 驗收：`verify_skill_equip` 新 F 段 5/5、`verify_skill_ext` 文案斷言、`capture_rune_drop` 端到端 0 項失敗 /
-  8 張截圖；**全量回歸 77 全綠 / 182.3s**；`02-check` 14/0、`07-check --repo` 212/0、`01-check` 27 條全在區間。
-
-### HANDOFF-E 符文掉落接線（2026-09-30）
-**接線前的事實**：`roll_rune_drop()` **零呼叫方**、`unlocked_runes` 在真實遊玩路徑**零寫入方**
-⇒ 剛打磨好的符文圖鑑實機永遠 **0 / 24**。
-- **表接線**：`LootTable` 新增 `rune_drop_chance`；`ConfigLoader._load_loot_table_dir()` 補讀 ——
-  **它原本沒讀**（逐字段手寫映射）⇒ JSON 有、運行時物件沒有（靜默脫鉤）。
-- **`roll_rune_drop()` 重寫**：舊簽名收 `tier: String`，而唯一可能的呼叫側只有 `MonsterData.Tier`（**int**）
-  ⇒ 就算接上也恆取 0（鐵律 ㊽「零呼叫方埋點」）。現改收 `MonsterData` + `monster_level`，讀表。
-- **口徑（用戶拍板）**：① 三檔全接（normal 0.02 / elite 0.08 / boss 0.25，**第二次獨立 randf**，
-  不擠掉主掉落，可「雙響」）② **拾取端**判定：首獲永久解鎖 / 重複轉魔石（roll 端**不過濾**，
-  符文桶永不成空桶）③ 地面用**真圖標**（`UISkin.rune_icon()` 縮到 20px）+ 紫羅蘭光柱。
-- **重複轉魔石量 = 與材料掉落同口徑**（`1 + (L-1)/5`，至少 1）⇒ 一顆重複符文 ≈ 一次材料掉落。
-- 落地：`enemy_base._drop_loot()` 抽 `_spawn_loot_drop()` 統一落地；`loot_drop._draw()` / `pickup_loot()` /
-  `pickup_toast.spawn()` 三處 `match` 補 `"rune"` 分支（原本**全都沒有** ⇒ 空白、無反應、無提示）。
-- 驗收：`verify_loot_tables` F 段（2-V12）+ `verify_loot` H/I 段；4000 次/檔實測 **0.021 / 0.079 / 0.246**；
-  段 F 實測 BOSS 秒殺後地面「主掉落 2 件 + 符文 1 枚」並被拾取解鎖。**全量回歸 77 全綠 / 189.9s**。
-- **附帶修復**：`tools/loot_preview.tscn` 10 個掉落物全在相機可見範圍外（zoom 2.5 + 視口 640×360
-  ⇒ 可見世界僅 256×144），抓圖一直是「半張空圖」卻被沿用多批 ⇒ 重排為兩行 + 加符文行（鐵律 ㊾）。
-
-### HANDOFF-D 符文圖標 v2（2026-09-30）
-- 24 條符文全部重畫：**4–5 階明暗 + 邊緣高光 + 內核輝光 + 微裝飾**，外掛**符文石石板底座**（外斜面 / 內凹槽 / 四角鉚釘）。
-- 尺寸 32×32 → **48×48 原生**（原 32→48 是 1.5× 非整數縮放，違反像素鐵律）。
-- 產線 `deliverables/gstack/素材開發/gen_rune_icons_v2.py`（`--base {vector,slab,frame}` / `--sample` / `--only` + `check_compliance()` 對照**權威色板**）。
-- 消費端全庫唯一 = `rune_codex_panel.gd`；`ui_skin.gd` TEX 表 24 條改 `_48.png`。
-- **關鍵坑**：`StyleBoxFlat.content_margin_*` 預設 = 邊框寬 ⇒ 格子內容區會隨「選中 1→2px」在 46/44 間跳、圖標變形。修法 `CELL 48→52` + 顯式 `set_content_margin_all(2)` ⇒ 內容區恆 48×48。
-- 驗收：新增 `game/tools/capture_rune_codex.gd/.tscn`（斷言 24 張貼圖 48×48 + 兩態內容區 48 + 詳情圖標 48 + 4× 最近鄰放大目視）；**17 項全 OK**；全量回歸 77 Godot 全綠 / 185.2s。
-- **附帶修復既有 bug**：圖鑑選中金框**從未顯示** —— `_on_cell_pressed()`/`select_rune()` 只重繪詳情、**不重繪格網**（典型「寫了狀態、沒寫渲染」靜默脫鉤）。已讓 `select_rune()` 補 `_render_grid()`，並加防回歸斷言（點擊後恰好 1 格選中 + 邊框 2px + 強調色）。
-
-### HANDOFF-C 復盤（2026-09-30）
-**4 類靜默脫鉤**（都不報錯、只是不生效）：
-- **A 面板金邊從未顯示**：素材落 `assets/ui/` 根，而 `UISkin.TEX` 找 `assets/ui/quest/` ⇒ `texture()` 回 null（用戶反覆反映「面板沒變」的根因）。已 `git mv` 11 PNG 進 `quest/`（NPC → `quest/npc/`）+ 改寫 19 個 `.import` 的 `source_file`。
-- **B 金色按鈕無變化**：九宮格寫在 `ui_theme.gd`，但遊戲實掛 `theme.tres`，而生成器 `gen_ui_theme.gd` 曾被隔離。已取回生成器；`ui_theme.gd` Button 五態改走 `UISkin.button_stylebox_gold()` 單一來源；重跑生成器落盤。
-- **C 標題徽章消失 + 封面節奏 360→328**：`title_emblem.png` 3548×1181 > 2048 ⇒ import `valid=false`。已 LANCZOS 縮到 336×112 重導入。
-- **D `btn_gold`/`quest_item` 帶白框**：外圍不透明白底。已洪水填充去背 + bbox 裁切（432×92 / 477×129）。
-
-**2 個既有紅**（已用「換回 HEAD 版」對照實驗證實與本批無關）：
-- `verify_e2e` ④：`hub._level_list` 是**懒挂載**（點「▶ 出擊」才入樹）⇒ 測試直接 `_find_button` 找不到。已改測試走真實玩家路徑。
-- `verify_buff` **閃爍**：無頭 V-Sync 把 FPS 鎖到**顯示器刷新率**，而 `_step(seconds)` 用「秒→幀數」近似 ⇒ 高刷機假紅（`--fixed-fps 1000` 必紅 / `30` 必綠）。已改 `SceneTreeTimer`。
-
-**新增工具**：`game/tools/capture_c_review.gd/.tscn`（非 headless，輸出 `deliverables/gstack/c_review_shot/` 5 張）。
-**工具改進**：`tools/run_regression.py` 原本把失敗輸出算出來卻丟棄 ⇒ 已加印最後 25 行。
+### 片头批次（2026-10-08）
+- 用户裁定「**可播放 Godot 片头场景** + **延续现有暗黑像素风**」。
+- 落地：`game/scenes/main/intro.tscn` + `game/scripts/ui/intro_screen.gd`（`class_name IntroScreen`）。
+  序列：黑幕淡入 → 标题徽记「七傳說」+「勇者斗恶魔」→ 三勇者**保持队形**自左滑入 →
+  魔王（`boss_ember_lord`）在岩浆红光中显形 + 火星 → 「三职业勇者 · 共伐魔王」→
+  「按任意键开始」（任意输入先跳过、再进主菜单；序列播完 6s 自动前进）。
+- 接线：`SceneManager.SCENE_INTRO` + `change_to_intro()` / `change_to_main_menu()` 已就绪。
+  ⚠️ **但片头刻意未接入启动流程** —— 用户 2026-10-08 裁定「**片头先不接入游戏**」：
+  `main.gd` 正常启动仍**直进主菜单**，原地留注释说明启用方式（换成
+  `SceneManager.change_scene.call_deferred(SceneManager.SCENE_INTRO)`）。
+  `verify_intro` 有断言**钉住该裁定**（哪天有人把片头接回启动流程，该条会转红提醒）。
+  `--verify` / `--smoke` 两条分支不受影响。
+- 素材**全部既有**（`backdrop_volcanic` / `title_emblem` / 三职业 + 魔王走
+  `EnemyBase.resolve_character_set()` 唯一解析链）；一律 **0.5× 整数缩放**；脚底对齐 +
+  挂子节点椭圆阴影（自动跟随位移 / 继承 modulate）。
+- 验收：`verify_intro`（33 项断言，含**端到端真切换**：`main→main_menu`（钉住「片头未接入」
+  裁定）+ `intro→main_menu`（片头自身出口））全绿；
+  `capture_intro` 18 张真渲染截图（`deliverables/gstack/intro_shot/`）；
+  全量回归**全绿（0 失败 / 265s；77 个 `verify_*` 场景 + 7 个策划校验器 + `parse_all`）**。
+- ⚠️ 本轮踩到并修正：**同起点的错开入场会让后入场的角色穿过先入场的**（弓手被法师挡住）
+  ⇒ 改为「同位移量的整体队形滑入」；`GLOW_ALPHA` 等数值**从脚本常量读**做断言
+  （避免自洽式伪校验）。
 
 ---
 
-## 📋 未結遺留清單（跨批次匯總）
+## 📋 未结遗留清单（跨批次汇总）
 
-### 需用戶裁定
-- **`boss_ember_lord.level_min 19 → 13`** 刻意偏離策劃 §1.1 等級帶表（表寫 19–20），為讓 `05-check` C19 轉綠 ⇒ 待裁定「改表 or 改回並放寬 C19」。
-- **深淵表的 `rune_drop_chance`（0.05 / 0.30）當前不會被消費** —— `roll_rune_drop` 與 `roll_loot` 一樣只走
-  `ConfigLoader.LOOT_TABLE_BY_TIER`（按 `MonsterData.Tier`），深淵表要經 `LevelData.loot_table_id` 才用得上
-  （只有 `roll_guaranteed_equipment` 支持）。⇒ 待裁定「要不要讓深淵房走自己的掉落表」。
-### ✅ 已結（HANDOFF-E 第三輪，2026-09-30）
-- **金按鈕 24px 破相（金線橫穿文字）** —— 第二輪目視 e-7 時發現、第三輪修好。
-  - **根因**：`ui_theme.gd` 把 Button 五態**全部**指向**雕花** `btn_gold.png`(432×92，`texture_margin` 上下 14)，
-    而素材金線實測在**源 y=10 / y=82-86**；默認按鈕高度只有 ~24px（字體 12 + `content_margin` 6/6）
-    ⇒ 上下裝飾帶塌進中央。**h=24/28/32 全破相，h=40 起乾淨，h=48 完全正常**（`capture_gold_btn` 階梯實測）。
-    影響面：`scripts/` **40 處** `Button.new()` 只有 **11 處** `btn_styleboxes()` 覆寫。
-  - **修法（用戶裁定 A）**：全局 Button 改走現成的 `btn_gold_*_128x24.png`（平面斜角金，本就為 24px 設計）
-    + 新增 `_dim()`（`StyleBoxTexture` 只能靠 `modulate_color` 壓暗）；雕花改給**主菜單英雄按鈕**
-    （`BTN_SIZE = 256×48`，48px 足夠），hover/pressed 用 `_tint()` 派生。
-    **附帶踩到第二個坑**：雕花框中央是**暗底**，沿用深字 `0B0D10` 會讓「开始游戏」四個字**整顆隱形**
-    ⇒ 改「平面金才壓深字，雕花配 `UI_TEXT_BRIGHT`」。**換底必查字。**
-  - **流程**：重跑 `gen_ui_theme` 落盤 `theme.tres`（否則遊戲掛舊主題，改動靜默失效）；
-    `c_review_shot/` 5 張與 `e-3…e-8` **全部重拍**（舊圖拍的是舊主題，按鐵律 **53** 一律作廢，舊圖已 `mv` 進 trash）。
-  - **驗收**：受影響 11 腳本全綠（26.6s）+ **全量回歸 77 全綠 / 182.7s**。
-  - ⚠️ **為何一直沒發現**：HANDOFF-C 的 `c_review_shot/*.png` 拍於 16:08–16:09，而「金按鈕真的上線」在 16:24 的提交
-    ⇒ 那 5 張圖拍的是**舊 theme.tres**。鐵律 ㊾ 的第二次復發（新編號 **53**）。
+### 需用户裁定
+- **`04-check_number_model.py` / `04-数值与数据模型.md` 仍是「路線 A」上限 20 口徑**
+  （2026-10-14 賬號上限已提到 30）。其 `L2/L2b` 寫死「單周目落點 == 上限 − 1（L19）」，
+  上限 30 後**不變式失效**（20–30 成刷級區）⇒ 待裁定 **(a)** 接受刷級區並改寫 L2/L2b，
+  或 **(b)** 同步抬 `reward_xp`（≈×2.8）保住不變式。**04 目前仍綠**（自洽模型、漂移檢測不含該常量），
+  但**文檔與代碼存在已知分歧**。
+- **`boss_ember_lord.level_min 19 → 13`** 刻意偏离策划 §1.1 等级带表（表写 19–20），
+  为让 `05-check` C19 转绿 ⇒ 待裁定「改表 or 改回并放宽 C19」。
+- **深渊表的 `rune_drop_chance`（0.05 / 0.30）当前不会被消费** —— `roll_rune_drop` 与
+  `roll_loot` 只走 `ConfigLoader.LOOT_TABLE_BY_TIER`（按 `MonsterData.Tier`），深渊表要经
+  `LevelData.loot_table_id` 才用得上（只有 `roll_guaranteed_equipment` 支持）。
+  ⇒ 待裁定「要不要让深渊房走自己的掉落表」。
+- **技能終極階 `unlock_level` 現為 20**（2026-10-13 因上限 20 由 22 改）；上限已回 30 ⇒ L22 又可達
+  ⇒ 待定「維持 20 or 改回 22」。
+- **地面殘留貼圖「未做視覺抓圖」**（2026-10-14）：無現成抓圖工具渲染 `GroundArea`，
+  新建抓圖場景會**開渲染視窗**，與「不要打開遊戲窗口、後台靜默開發」衝突 ⇒ 依「做之前問我」暫緩。
+  狀態斷言（`verify_skill_forms` L 段 12 條）已覆蓋貼圖解析 / 自繪 / 縮放 / 幀數 / 元素映射，
+  但**未證明「這一幀畫面上真的有殘留貼圖」**（鐵律 7：狀態斷言 ≠ 像素證據）⇒ 待用戶定奪是否補拍。
 
-### 策劃側仍紅（非工程批）
-- `05-check` **C17**（`ch1_l03/l04` 空 layout，屬 `5-W5-9`）· **C20**（creatures 目錄數，素材側）
-- 另 **C12**（工程側關卡數 == 20）· **C13**（budget == Σcount_max）同屬既有口徑差，`05 --repo` 合計 **82/4**
+### 策划侧仍红（非工程批）
+- `05-check` **C17**（`ch1_l03/l04` 空 layout，属 `5-W5-9`）· **C20**（creatures 目录数，素材侧）
+- **C12**（工程侧关卡数 == 20）· **C13**（budget == Σcount_max）同属既有口径差，
+  `05 --repo` 合计 **82/4**
 
-### 工程側待接線（有落點、無消費方 = 死鉤子）
-- **分支 8 個 modifier 未接**（`combo_hits`/`combo_damage_pct`/`linger`/`afterimage`/`pulse`/`summon_count`/`summon_damage_pct`/`buff_potency_pct`，面板標「暫未生效」）
-- ~~符文掉落接線屬 B6 `2-L12`~~ ✅ **HANDOFF-E 已接**（三檔讀表 / 首獲解鎖 / 重複轉魔石 / 地面真圖標 / 提示條）
-- **`material_sub_weights` / `item_level_spread` 仍是死字段**（JSON 有、`LootTable` **沒字段**、`ConfigLoader` **沒讀**）—— `2-D6` 剩餘部分
-- **`item_level_spread` 與實現矛盾**：`_roll_item_level()` 用硬編碼 `ITEM_LEVEL_JITTER = 2`（±2）給**所有檔位**，
-  而 JSON 寫 BOSS 是 `min_mod 3 / mode_mod 5 / max_mod 8` ⇒ BOSS 本應掉 iLvl+5 左右 —— 屬 `2-L13`/`2-V13`
-- **玩家→怪物施加異常未接通**（B4-5 拍板不做）⇒ 雷/暗異常只能由 2 雷怪 / 2 暗怪打玩家觸發
-- **無異常 HUD**（`status_shock`/`status_curse` 素材已在但無消費點）
-- `STAT_SHOCK_DAMAGE`/`STAT_CURSE_DAMAGE` 仍死鉤子（屬詞綴管線）；元素子鍵（`elemental_damage_*`）暫無供給源 ⇒ 恆 0
-- `ms_boost.element_attach`（裂界指環附元素）未接線；`extra_loot` 未強制 `loot_quality`
-- **`SetPanel` 尚未掛進真實 UI**（全庫只有 `set_preview`/`capture_set_panel` 在用）
-- `talent_panel` 面板鍵（war/mage/shadow）與 `TalentTree` 鍵（might/guardian/arcane）**不一致（既有 bug）**
-- `ACCOUNT_LEVEL_MAX 60` vs 策劃 `ruled_max_level 20`；`BIG_NODE_MECHANICS` 前 5 機制仍為展示字符串
-- 套裝專屬特效視覺 6 套未生產；增益圖標 12 張未生產（B4-1 走佔位繪製）
-- `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）未承載
-- 命名漂移：`AILMENT_SLOW="slow"` vs 素材鍵 `chill`；策劃 gaps 建議雷=「麻痺」，實現採「感電」
-- 8 隻新怪 `sprite_path` 指向不存在 png（`use_placeholder_art` 兜底不崩，屬 **B7 素材替換**）
-- `UISkin.affix_icon("armor_pierce")` 回 null（無運行時消費點，留 B7）
+### 工程侧待接线（有落点、无消费方 = 死钩子）
+- **退出告警要先分類**（2026-10-14）：`AudioStreamPlaybackWAV`/`AudioStreamWAV` 那类**已從源頭清零**
+  （`AudioManager._is_silent_runtime()` 在 Dummy 驅動下跳過播放，全庫 21 個場景一起乾淨）；
+  **剩下的節點類告警才是真泄漏** —— 見下一條。
+- **`verify_hud` 有 2 处既有泄漏**（2026-10-14 掃到，全量回歸每次都刷 `6 ObjectDB leaked` +
+  `2 resources still in use`；**不影響回歸判定**，但會淹掉真信號）：
+  ① 段 A `fake := Node.new()`（**孤兒節點**、從未 `add_child`）用 `queue_free()` ⇒ 無 `SceneTree`、永不執行，
+  且其持有的 `ManaPool` 一起滯留；② 段 C `fake := _make_fake_ctrl()` 是 **`extends Object`**
+  （非 RefCounted，**必須手動 `free()`**），全段從未釋放。
+  修法：孤兒節點改 `free()`；`Object` 待 `bar` 真正釋放後再 `free()`（避免 use-after-free）。⇒ 待裁定「修 or 維持」。
+- **`EventBus.loot_dropped` 是死信号**（`event_bus.gd:157` 宣告了，**全项目零 emit 点**；
+  2026-10-14 掃到，本次未動）⇒ 待裁定「接線 or 刪除」。
+- **`EventBus.notification_requested` 在关卡内无消费方**（只有 `hub.gd` 消费）⇒
+  关卡内的 `EventBus.notify()` 调用等于空放（本次「稀有掉落庆祝」**刻意未接** `notify_rarity`，避免造新死钩子）。
+- **分支 7 个 modifier 未接**（`combo_hits`/`combo_damage_pct`/`linger`/`afterimage`/`pulse`/
+  `summon_damage_pct`/`buff_potency_pct`，面板标「暂未生效」）—— ⚠️ `summon_count` **已接**（2026-10-13 复核）；
+  且 2026-09-29 用戶已裁定「只接可映射的 7 個」⇒ 這 7 個屬**刻意延後**，非 bug。
+- **`material_sub_weights` / `item_level_spread` 仍是死字段**（JSON 有、`LootTable` **没字段**、
+  `ConfigLoader` **没读**）—— `2-D6` 剩余部分
+- **`item_level_spread` 与实现矛盾**：`_roll_item_level()` 用硬编码 `ITEM_LEVEL_JITTER = 2`（±2）
+  给**所有档位**，而 JSON 写 BOSS 是 `min_mod 3 / mode_mod 5 / max_mod 8` ⇒ BOSS 本应掉 iLvl+5
+  左右 —— 属 `2-L13`/`2-V13`
+- **玩家→怪物施加异常未接通**（B4-5 拍板不做）⇒ 雷/暗异常只能由 2 雷怪 / 2 暗怪打玩家触发
+- **无异常 HUD**（`status_shock`/`status_curse` 素材已在但无消费点）
+- `ms_boost.element_attach`（裂界指环附元素）未接线；`extra_loot` 未强制 `loot_quality`
+- **`SetPanel` 尚未挂进真实 UI**（全库只有 `set_preview`/`capture_set_panel` 在用）
+- `BIG_NODE_MECHANICS` 前 5 机制仍为展示字符串
+- 套装专属特效视觉 6 套未生产；增益图标 12 张未生产（B4-1 走占位绘制）
+- `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）未承载
+- 命名漂移：`AILMENT_SLOW="slow"` vs 素材键 `chill`；策划 gaps 建议雷=「麻痺」，实现采「感电」
+- 8 只新怪 `sprite_path` 指向不存在 png（`use_placeholder_art` 兜底不崩，属 **B7 素材替换**）
+- `UISkin.affix_icon()` **零调用方**（死函数）；且 TEX 键用旧名 `affix_armor_penetration`
+  对不上 `stat_key=armor_pierce`（无运行时消费点，留 B7）
 
-### 回歸殘餘（口徑）
-- 舊記「**3 檔 4 項**」（`verify_choice_panel` 裸 Color 1 / `verify_player` 手柄映射 1 / `self_check` 怪物 L20 舊值 2→B6 `4-W5-e`）。本輪 `self_check` 已全綠、`verify_e2e`/`verify_buff` 已修 ⇒ **以最新一次全量回歸為準，勿沿用舊數字**。
+### ✅ 2026-10-13 逐項驗證後**確認已修**（舊清單過期，勿重複排查）
+- `armor_penetration` 命名漂移 → 管線已統一 `armor_pierce`（舊鍵標廢棄）
+- `elemental_damage` 硬編碼 `0.0` → `_hit` 已改走 `_player.get_damage_bonus(element)`
+- `skill_level` 三處斷鏈 → `_effective_multiplier` 已乘 `get_skill_level_multiplier()`
+- `STAT_SHOCK_DAMAGE`/`STAT_CURSE_DAMAGE`「無供給源」→ **有供給**（`data/affixes/special.json` 等），
+  且 `health_component`/`enemy_base`/`player_controller` 均有消費點
+- `talent_panel` 面板鍵 vs `TalentTree` 鍵不一致 → 已修（1/15/30 映射一致）
+- `GameConstants.ACCOUNT_LEVEL_MAX` 60 → **已改 20**（本批）；技能終極階 `unlock_level` 22 → **20**（本批）
 
----
+### 已结（勿重复排查）
+- 符文掉落接线（B6 `2-L12`/`2-V12`）· 技能面板「未解锁不能装」· 图鉴文案改读表 ·
+  金按钮 24px 破相 · 符文图标 v2 · 面板金边/NPC 立绘归位 · 标题徽章导入 · 去白框
 
-## 批次歷程速覽
-
-| 批 | 內容 | 備註 |
-|---|---|---|
-| B0 | `SkillType` 4→7 / `skills.json` 14→36 / 新建 `runes.json`(24)+`branches.json`(7) | — |
-| B1 | 成長率 1.22/1.16→**1.12/1.12**（同值⇒相對強度恆定）/ 賬號上限 60→20 / 20 關 `budget` 5,660 / iLvl 三角抖動 | — |
-| B2 | `ai_id` match 4→6 具名分支 / 修 `ranged_kiter`/`lobber` 死分支 / 12 關換越界怪 | `05 --repo` 82/4 |
-| B3 | 詞綴 33→48、池 10→14、`FINAL_KEYS` 32→52、元素/抗性/穿透管線、`LegendaryBus` 總線、技能形態實體（projectile/ground_area）、套裝徽記 UI | 70 腳本 |
-| B4 | B4-1 BuffComponent / B4-2 套裝特效 / B4-3 BOSS 技能+關卡目標 6 種 / B4-4 技能擴展 UI（**SAVE v5**）/ B4-5 元素飄字+異常 / B4-6 校驗補齊 | 76 腳本 |
-| B5 | B5-1 存檔 **v6**+門票 / B5-2 稀有度 **8→10** / B5-3~8 特殊裝閉環+塔/深淵+校驗 | 06 202/0 · 07 212/0 |
-| HANDOFF-C | UI 視覺打磨（本輪復盤：素材歸位 / 金按鈕上線 / 徽章修復 / 去白框） | 見上 |
-| HANDOFF-D | 符文圖標 v2：24 張重製 48×48 高精細 + 符文石石板底座；`CELL 48→52` + 顯式內容邊距 | 77 Godot 全綠 |
-| HANDOFF-E | 符文掉落接線（B6 `2-L12`/`2-V12`）：`rune_drop_chance` 進表 + `roll_rune_drop` 重寫 + 拾取解鎖/轉魔石 + 地面真圖標 + 提示條；修 `loot_preview` 出畫 bug | 77 Godot 全綠 / 189.9s |
-| HANDOFF-E ② | 遺漏掃描：策劃掉率對齊 2%（§11.4 回頭同步）+ 技能面板接「未解鎖不能裝」+ 圖鑑文案改讀表；修抓圖「凍結畫面」；新增按鈕九宮格高度階梯診斷工具 | 77 Godot 全綠 / 182.3s |
-| HANDOFF-E ③ | 修金按鈕 24px 破相：全局 Button 改 128×24 平面金、雕花改給主菜單英雄鍵（48px）+ 配亮字；重跑 `gen_ui_theme`；`c_review_shot` 與 `e-3…e-8` 全部重拍 | 77 Godot 全綠 / 182.7s |
-
----
-
-## 基線 / 協作約定
-
-- 暗黑刷寶 ARPG ｜ **Godot 4.7.2** ｜ GDScript ｜ 純單機 ｜ 美術 AI 生成 ｜ 視口 640×360
-- ⚠️ 2026-09-23 用戶裁定「**代碼不上線**」⇒ 不做 Steam 發行，純本地自玩（移出：圖標/版本號/簽名/PCK 加密/存檔防篡改；仍在：本地可玩性、存檔可靠性、素材授權乾淨）
-- 產物統一放 `deliverables/gstack/`；命名 `<場景類型>-<主題簡稱>-<YYYY-MM-DD>.md`
-- **「幹活簡潔明瞭，不做多餘的事，或做之前問我」** ⇒ 少寫長報告、少做自選動作；**動手前先確認**
-- 遊戲內 UI 文案用**簡體**；註釋/文檔用**繁體**
-- 動 `game/` 前仍須逐次確認，且改動必須附驗證（原「AI 只策劃不改 game」邊界已在素材線突破）
+### 回归口径
+- 旧记「3 档 4 项」已随 `self_check` / `verify_e2e` / `verify_buff` 修复清零。
+  **以最新一次全量回归为准，勿沿用旧数字。**
 
 ---
 
-## ⚠️ 最常踩的五個坑（詳解與全套 SF1–SF12 見 `IRON-RULES.md`）
+## 批次历程速览
 
-1. **導出包內 `DirAccess` 枚舉 `res://` 全廢**（編輯器內永遠看不到）⇒ 一律走**顯式清單 / 命名約定探測**
-2. **`.tscn` 節點漏 `type=` ⇒ Godot 靜默丟棄節點**（成批量同類警告先當 bug 症狀查）
-3. **`UISkin` 工廠靜默返回 null** ⇒ 改素材路徑/鍵名後**必須真渲染抓圖目視確認**
-4. **自洽式偽校驗**（腳本用自己的硬編碼常量算自己的斷言 ⇒ 永遠通過）
-5. **String 字段靜默脫鉤**（`ai_id` 定義 6 種、代碼 0 分支、測試全綠）
-
-**五條判據**：① 看到「永遠通過」的校驗 ⇒ 查常量是**引用**還是**硬編碼副本**
-② 看到 `String` 字段（`ai_id`/`pattern`/`kind`/`behavior`）⇒ 先 grep 代碼分支數，命中 ≤1 = 沒實現
-③ 改「看起來是配置項」的字段前 ⇒ 先 grep 消費點；只有「埋點/展示/註釋」⇒ 改了不會有行為變化
-④ 看到「有註釋、有常量、有邏輯」的函式 ⇒ **先 grep 呼叫方數**；== 0 = 死代碼，
-**它的註釋與「已對齊策劃」的自我描述都不可信**（從未被執行過）；再看簽名型別能不能對上呼叫側
-⑤ 改完抓圖驗收 ⇒ **數一數圖裡真的出現幾個目標**，不能只看「腳本 err=0 + PNG 有產出」（工具本身也要驗）
-⑥ 抓圖工具 ⇒ **必須 `await RenderingServer.frame_post_draw`**（只 `await process_frame` 會截到凍結畫面，
-症狀＝連拍多張 PNG 位元組數完全相同）；並斷言「與上一張畫面不同」
-⑦ **改素材 / 主題 / 生成器** ⇒ 收線前**重拍**截圖，**不可沿用上一批的圖**（舊圖驗的是舊產物，
-HANDOFF-C 的 `c_review_shot` 就是這樣讓「金按鈕上線」從未被目視驗收）
-⑧ **改 9-patch 樣式** ⇒ 先渲染「高度階梯」再定案；**給全局控件換樣式前先量「默認尺寸」**
-（素材尺寸即用途契約，別用 432×92 去畫 24px）
-
----
-
-## ⚠️ 全案三條最高危項
-
-1. **稀有度 8→10 不可逆** —— `rarity` 存 int；`RARITY_COUNT` 回退會把舊檔 8/9 **靜默壓成 7（隱藏裝）**
-2. **62 件底材無一覆蓋 8/9 檔** ⇒ `loot_roller.gd:171` 空池 `return null` ⇒ 特殊檔什麼都不掉且零報錯
-3. **`migrate()` 的 `_:` 兜底** —— 漏加版本分支**不報錯**、新字段直接消失 ⇒ 存檔升版必須逐版加顯式分支
+| 批 | 内容 |
+|---|---|
+| B0 | `SkillType` 4→7 / `skills.json` 14→36 / 新建 `runes.json`(24)+`branches.json`(7) |
+| B1 | 成长率→**1.12/1.12** / 账号上限 60→20 / 20 关 `budget` 5,660 / iLvl 三角抖动 |
+| B2 | `ai_id` match 4→6 具名分支 / 修 `ranged_kiter`/`lobber` 死分支 / 12 关换越界怪 |
+| B3 | 词缀 33→48、池 10→14、`FINAL_KEYS` 32→52、元素/抗性/穿透管线、`LegendaryBus`、技能形态实体、套装徽记 UI |
+| B4 | BuffComponent / 套装特效 / BOSS 技能+关卡目标 6 种 / 技能扩展 UI（**SAVE v5**）/ 元素飘字+异常 / 校验补齐 |
+| B5 | 存档 **v6**+门票 / 稀有度 **8→10** / 特殊装闭环+塔/深渊 / 校验 |
+| HANDOFF-C | UI 视觉打磨（素材归位 / 金按钮上线 / 徽章修复 / 去白框） |
+| HANDOFF-D | 符文图标 v2：24 张 48×48 + 符文石石板底座；`CELL 48→52` + 显式内容边距 |
+| HANDOFF-E | 符文掉落接线（表字段 + `roll_rune_drop` 重写 + 拾取解锁/转魔石 + 地面真图标 + 提示条） |
+| HANDOFF-E ② | 遗漏扫描：掉率对齐 2% / 未解锁不能装 / 图鉴文案读表；修抓图「冻结画面」 |
+| HANDOFF-E ③ | 修金按钮 24px 破相：全局 Button 改 128×24 平面金、雕花给主菜单英雄键 |
+| 片头 | 「勇者斗恶魔」可播放开场 + 接入启动流程（`intro.tscn` / `IntroScreen`） |
+| 全面優化① | 清理瘦身 **928.4MB**（→trash 可還原）+ 修 `ACCOUNT_LEVEL_MAX`/技能解鎖階梯；更正多項過期死鉤子記錄 |
+| 全面優化② | 打擊感/juice 代碼側：**A** 掉落磁吸吸附（`pickup_radius` 詞綴首次接通）· **B** 異常 DoT 小跳字（`EventBus.ailment_tick`）· **C** `EventBus.screen_impact` 技能/爆炸/BOSS 屏震頓幀（按 AoE 半徑分級） |
+| 全面優化③ | 賬號上限 **20→30**（裁定「提高賬號上限」以讓天賦第三分支 L30 可達）；`self_check` 去硬編碼、`verify_account` 加「上限 ≥ 最晚分支解鎖」硬契約；`07-check` R9 同步 |
+| 全面優化④ | 地面殘留貼圖（Playground「地面殘留」）：接通 5 張 `ground_*` 死資產；`GroundArea` 改**自繪**（`_draw()`+`draw_texture_rect_region`，避 `z_index` 相對遞歸沉到地圖下的坑）；元素→貼圖映射；ceil 整數縮放（貼圖 ≥ AoE）；alpha 0.7；`verify_skill_forms` L 段 12 斷言 |
+| 全面優化⑤ | 稀有掉落慶祝（Playground「掉落物 pop 帶星光」）：接通**零消費方**的 `EventBus.rare_loot_spawned`；JuiceFX 四件套（全屏稀有度色光爆 `layer=2` / 震屏 / 微頓幀 / 掉落點粒子爆）；4 條並行表 + `rare_drop_celebration()` 查表；**兩段強度契約**（線性帶單調、正交/特殊檔 ≥ 史詩）；`verify_juice` I 段 16 斷言 |
+| 全面優化⑥ | 頓幀按傷害分級（Playground「重擊/技能命中定格稍久」）：`hit_stop_for_damage(amount, max_hp)` + `hit_stop_for_hit(amount, max_hp, is_crit)`（= `max(暴擊檔, 分級檔)`）；口徑 = **傷害 / 目標最大生命**（唯一等級無關）；非暴擊重擊首次能頓；`_target_max_hp` 鴨子探測；`verify_juice` J 段 20 斷言 |
+| 全面優化⑦ | 拾取反饋強化：`pickup_glow` **按類型/稀有度染色**（金/材料/符文/裝備）+ 史詩起**整數 2×**；提示條**彈跳入場**（`scale` 不被 VBox 佈局覆蓋）+ 邊框染條目色、左側 3px 強調；`LootDrop` 抽出 `GOLD_COLOR`/`MATERIAL_COLOR` 常量；`verify_loot` J 段 + `verify_hud` D 段擴充 |
+| 全面優化⑧ | 掉落物 pop 動畫（Playground「掉落物 pop 出來帶星光」）：`pop_from` 由 `EnemyBase` 注入死亡點；`_ready` 起手即在起點（防閃落點）；ease-out-quad 位移 + 拋物線抬升 + `sin` 回彈；4 顆像素對齊星光；**全程不改 `scale`**（像素鐵律）；**`_pop_written` 哨兵 ⇒ 外部寫入/磁吸即讓位**；`verify_loot` K 段 12 斷言 |
+| 全面優化⑨ | 全庫退出告警清零：音頻泄漏（`AudioStreamPlaybackWAV`/`AudioStreamWAV`）根因 = headless Dummy 驅動不推進播放頭 ⇒ 播放即焚的 `finished → queue_free` 永不觸發；**源頭修** = `AudioManager._is_silent_runtime()`（按 `AudioServer.get_driver_name()=="Dummy"` 跳過播放）；附 `stop_all()` / `VerifyWatchdog.stop_sfx()` 供有窗口場景收尾；`verify_audio66` D 段改分叉口徑 |
+| 全面優化⑩ | 測試確定性修復：`verify_e2e` 段⑤ 不再把玩家瞬移到怪堆重心（該步對拾取零貢獻，卻是「段⑥ 誤撿光掉落 ⇒ 段⑦ 假紅」的根源）；A/B 實證為既有問題（關掉 pop 8 次紅 2 次）；修後連跑 10 次全綠 |
 
 ---
 
-## git 鐵律
+## 基线 / 协作约定
 
-- `origin` = `github.com/fyangOvO/fyangOvO.git` ✅ **推送一律 `git push origin main`**；`github.com/fyangOvO/game.git` ❌ 不再管
-- Git LFS 已啟用；本地 `main` 根提交 `a8c6f6c` ⇒ 純快進無需強推
-- **禁用**：`stash`（尤其 `-u`/`-a`）、`gc`、`prune`、`reset`、`checkout`、`clean`、`read-tree`、`filter-branch`
-  **僅允許**：`add`/`commit`/`status`/`log`/`diff`（2026-09-20 事故：`stash push -u` 被 SIGTERM 中斷 ⇒ `.git` 整體進回收站）
-- 清理殘留一律 `mv` 到 `.workbuddy-ai/trash/<日期>-<原因>/`，**不以 `rm` 直刪**
+- 暗黑刷宝 ARPG ｜ **Godot 4.7.2** ｜ GDScript ｜ 纯单机 ｜ 美术 AI 生成 ｜ 视口 640×360
+- ⚠️ 2026-09-23 用户裁定「**代码不上线**」⇒ 不做 Steam 发行，纯本地自玩
+  （移出：图标/版本号/签名/PCK 加密/存档防篡改；仍在：本地可玩性、存档可靠性、素材授权干净）
+- 产物统一放 `deliverables/gstack/`；命名 `<场景类型>-<主题简称>-<YYYY-MM-DD>.md`
+- **「干活简洁明了，不做多余的事，或做之前问我」** ⇒ 少写长报告、少做自选动作；**动手前先确认**
+- 游戏内 UI 文案用**简体**；注释/文档用**繁体**
+- 动 `game/` 前仍须逐次确认，且改动必须附验证
+- 三职业：战士 `warrior`（金 `D9A441`）/ 弓箭手 `archer`（绿 `8FBF5F`）/ 法师 `mage`（蓝 `7FA8E8`）
 
 ---
 
-## 環境速查
+## ⚠️ 最常踩的坑（全套 SF1–SF12 / ㊽㊾ / 53 见 `IRON-RULES.md`）
+
+1. **导出包内 `DirAccess` 枚举 `res://` 全废** ⇒ 一律走**显式清单 / 命名约定探测**
+2. **`.tscn` 节点漏 `type=` ⇒ Godot 静默丢弃节点**（成批量同类警告先当 bug 症状查）
+3. **`UISkin` 工厂静默返回 null** ⇒ 改素材路径/键名后**必须真渲染抓图目视确认**
+4. **自洽式伪校验**（脚本用自己的硬编码常量算自己的断言 ⇒ 永远通过）
+   ⇒ 断言要么读**被测物自己的常量**（`get_script_constant_map()`），要么真跑一遍
+5. **String 字段静默脱钩**（`ai_id` 定义 6 种、代码 0 分支、测试全绿）
+   ⇒ 看到 `String` 字段先 grep 代码分支数，命中 ≤1 = 没实现
+6. **零调用方埋点**（㊽）⇒ 有注释、有常量、有逻辑的函数**先 grep 调用方数**，== 0 = 死代码
+7. **抓图工具本身也要验**（㊾ / 53）⇒ 必须 `await RenderingServer.frame_post_draw` +
+   断言「与上一张画面不同」；改素材/主题后**旧截图一律作废，必须重拍**
+8. **给全局控件换样式前先量「默认尺寸」**（素材尺寸即用途契约，别用 432×92 去画 24px）；
+   **换底必查字**（雕花框中央是暗底 ⇒ 深字会隐形）
+
+---
+
+## ⚠️ 全案三条最高危项
+
+1. **稀有度 8→10 不可逆** —— `rarity` 存 int；`RARITY_COUNT` 回退会把旧档 8/9
+   **静默压成 7（隐藏装）**
+2. **62 件底材无一覆盖 8/9 档** ⇒ `loot_roller.gd:171` 空池 `return null`
+   ⇒ 特殊档什么都不掉且零报错
+3. **`migrate()` 的 `_:` 兜底** —— 漏加版本分支**不报错**、新字段直接消失
+   ⇒ 存档升版必须逐版加显式分支
+
+---
+
+## git 铁律
+
+- `origin` = `github.com/fyangOvO/fyangOvO.git` ✅ **推送一律 `git push origin main`**；
+  `github.com/fyangOvO/game.git` ❌ 不再管
+- Git LFS 已启用；本地 `main` 根提交 `a8c6f6c` ⇒ 纯快进无需强推
+- **禁用**：`stash`（尤其 `-u`/`-a`）、`gc`、`prune`、`reset`、`checkout`、`clean`、
+  `read-tree`、`filter-branch`
+  **仅允许**：`add`/`commit`/`status`/`log`/`diff`
+  （2026-09-20 事故：`stash push -u` 被 SIGTERM 中断 ⇒ `.git` 整体进回收站）
+- 清理残留一律 `mv` 到 `.workbuddy-ai/trash/<日期>-<原因>/`，**不以 `rm` 直删**
+
+---
+
+## 环境速查
 
 ```bash
 cd D:/七傳說/game && APPDATA='C:\Users\11265\AppData\Roaming' python tools/package_demo.py --backup
 ```
-- ⚠️ `APPDATA` 空串 ⇒ 導出失敗 + **靜默漏清存檔**（Godot 把數據目錄解析成 `./Godot/`）
-- Python：`C:/Users/11265/.workbuddy-ai/binaries/python/versions/3.13.12/python.exe`（系統 `python`/`/tmp` 不可用）
-  - ⚠️ **管理版無 numpy**；素材生成/圖像腳本一律用 `C:/Users/11265/.workbuddy-ai/binaries/python/envs/default/Scripts/python.exe`（PIL 12.3 + numpy 2.5）
-- 策劃校驗器（`deliverables/gstack/策划案/0N-check_*.py`，共 7 個）帶 `--repo D:/七傳說`（**專案根**，它自己拼 `game/`）
-- Godot console：`C:\Users\11265\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe`
-- 全量回歸：`python tools/run_regression.py`（口徑：`[FAIL]==0 且 exit==0`）
-- 驗證探針（`game/tools/`）：`probe_tex`（TEX 載入）/ `probe_fx`（fx 表契約）/ `probe_clips`（精靈幀集）/ `probe_level`（關卡體檢）
+- ⚠️ `APPDATA` 空串 ⇒ 导出失败 + **静默漏清存档**（Godot 把数据目录解析成 `./Godot/`）
+- Python：`C:/Users/11265/.workbuddy-ai/binaries/python/versions/3.13.12/python.exe`
+  （系统 `python` / `/tmp` 不可用）
+  - ⚠️ **管理版无 numpy**；素材生成/图像脚本一律用
+    `C:/Users/11265/.workbuddy-ai/binaries/python/envs/default/Scripts/python.exe`（PIL + numpy）
+- 策划校验器（`deliverables/gstack/策划案/0N-check_*.py`，共 7 个）带 `--repo D:/七傳說`
+  （**项目根**，它自己拼 `game/`）
+- Godot console：
+  `C:\Users\11265\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe`
+- 全量回归：`python tools/run_regression.py`（口径：`[FAIL]==0 且 exit==0`；
+  自动扫描 `game/tools/verify_*.tscn` + 策划校验器）
+- 验证探针（`game/tools/`）：`probe_tex` / `probe_fx` / `probe_clips` / `probe_level`
+- 抓图工具（**必须去 `--headless`**）：`capture_main_menu` / `capture_intro` /
+  `capture_c_review` / `capture_frame` / `capture_class_select` / `capture_ui_page` / `capture_tiles`

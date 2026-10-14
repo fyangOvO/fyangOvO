@@ -592,6 +592,126 @@ HANDOFF-C 的 `deliverables/gstack/c_review_shot/*.png` 拍於 **16:08–16:09**
 
 ---
 
+### 🆕 2026-10-08 片頭 + 2026-10-13/14 全面優化①~⑧ 新踩坑
+
+**㊿ 退出時的 `leaked at exit` 要**先分類再定性** —— 音頻類 ≠ 節點類**
+判據：`Leaked instance:` 的**類型名**。
+| 類型 | 含義 | 處理 |
+|---|---|---|
+| `AudioStreamPlaybackWAV` / `AudioStreamWAV` | **測試環境產物**，非 bug（見下） | 已在**源頭**修好（見下「最終方案」），無需逐場景收尾 |
+| 節點類（`Node` / 自訂 script） | **真泄漏**，多半是孤兒節點 / `Object` 未 `free()` | 逐個查（見 51） |
+- **成因**：`AudioManager.play()` 是「播放即焚」——`finished` 信號 `queue_free`；但 **headless 用
+  Dummy 音頻驅動，播放頭根本不推進** ⇒ `finished` 永不觸發 ⇒ 播放器一直掛在 `tree.root`。
+- **只有「退出前播過音效」的腳本會報**（實測 `verify_juice`/`verify_shop`/`verify_summon` 乾淨，
+  `verify_loot` 報）。⇒ **看到它就別去改被測邏輯，先看是不是音頻。**
+- 🔑 **最終方案 = 在源頭跳過，不要逐場景收尾。**
+  掃全庫 **77 個 `verify_*` 有 21 個中招**（`verify_audio66`/`verify_boss63`/`verify_e2e`/
+  `verify_hud`/`verify_settings`/`verify_class_select`…）⇒ 逐個加收尾 = 改 21 個文件，**是雜活**。
+  正解：`AudioManager.play()` 開頭加
+  ```gdscript
+  if String(AudioServer.call("get_driver_name")) == "Dummy":
+      return   # 無頭本來就聽不到聲 ⇒ 不創建播放器才是正確行為
+  ```
+  **判據用「音頻驅動名」而非 `DisplayServer`** —— 病根是「播放頭不推進」，
+  而 `--audio-driver Dummy` 在**有窗口**時也會觸發同樣的泄漏。有窗口的真實遊戲行為**逐位不變**。
+  ⇒ 通則：**同一症狀散落 N 個文件時，先找「它們的共同上游」能不能一次修掉。**
+  （⚠️ 改了被測物行為後要回頭查斷言是否變廢 —— 見 62。）
+- ⚠️ **收尾法（若仍需，如跑在**有窗口**下的 `capture_*`）有個二次坑**：只 `stop()`+`free()` 播放器**不夠** —— 加打印確認過節點已清零，
+  `AudioStreamPlaybackWAV` 照樣漏。因為 `stop()` 只把 playback 從 AudioServer 活躍列表摘掉，
+  **真釋放發生在混音線程的下一次混音**。實測對照：
+  | 收尾方式 | 結果 |
+  |---|---|
+  | 不等 | 約 **2/3** 概率報 leaked |
+  | `await` 2 × `process_frame` | 降到 ~1/5，**仍不穩** |
+  | `await` **0.2s 真實時間**（`create_timer`） | **連跑 12 次全清零** ✅ |
+  ⇒ 教訓：**混音按真實時間推進，和 `process_frame` 幀數無關** ⇒ 必須等真實時間。
+- ⚠️ `run_regression.py` **只印 `[PASS]/[FAIL]`，不轉發 stderr** ⇒ 這類告警在全量回歸裡**完全不可見**，
+  只能單跑該場景才看到。⇒ **別把「回歸全綠」當「無告警」。**
+  （掃全庫的辦法：`for f in tools/verify_*.tscn; do … grep "leaked at exit" …; done`，約 7.5 分鐘。）
+
+**51 孤兒節點 `queue_free()` 永不執行；`extends Object` 必須手動 `free()`**
+`verify_hud` 有兩處**既有**泄漏（全量回歸每次都刷 `6 ObjectDB leaked` + `2 resources in use`）：
+1. 段 A `fake := Node.new()` —— **孤兒節點**（從未 `add_child`），無 `SceneTree` ⇒
+   `queue_free()` 永不執行 ⇒ 節點泄漏，且它持有的 `ManaPool` 一起滯留。
+2. 段 C `fake := _make_fake_ctrl()` 是 **`extends Object`**（**非** `RefCounted`）⇒ 引用計數不回收，
+   **必須手動 `free()`**，全段從未釋放。
+⇒ **寫 verify 時：`Node.new()` 沒進樹就別用 `queue_free()`；`Object` 子類一定要配對 `free()`。**
+（修法待裁定：孤兒改 `free()`；`Object` 要在 `bar` 真正釋放**之後**再 `free()`，否則 use-after-free。）
+
+**52 「有常量、有註釋、有分支」不等於「有消費方」—— 死鉤子要用「消費方計數」判**
+本輪（全面優化①）一次性更正了**多條過期死鉤子記錄**（`armor_penetration`/`elemental_damage`/
+`skill_level`/`STAT_SHOCK_DAMAGE` 等其實**都已經接上了**）。⇒ 舊清單會過期，
+**開工前先 `grep` 消費方數量**，別照著舊清單重複排查。
+
+**53 宣稱「單調」之前先看數據 —— 表是**兩段式**的**
+稀有掉落慶祝強度表 `RARE_DROP_*`：EPIC→MYTHIC 單調遞增，但 **SET(0.18) < MYTHIC(0.22)**
+（正交/特殊檔**全部 ≥ 史詩**，與線性帶**不同口徑**）。
+⇒ 我第一版註釋寫「強度刻意單調遞增」⇒ 斷言**假紅**。
+**修正 = 把註釋改寫成「兩段契約」，斷言拆成「線性帶單調遞增」+「正交/特殊檔 ≥ 史詩」兩條。**
+⇒ 教訓：**斷言要對齊「真實設計契約」，不是對齊自己寫的註釋。**
+
+**54 邊界符號要和註釋同一口徑（`<` vs `<=`）**
+`hit_stop_for_damage` 註釋寫「**< 10%** ⇒ 不頓」，代碼卻寫 `ratio <= MIN_RATIO` ⇒
+`(10.0, 100.0)` 本該返回 `MIN` 卻返回 `0`。⇒ **寫邊界時回去讀自己那行註釋。**
+
+**55 過衝型緩動（`TRANS_BACK`）的斷言**只能抓「起始態」或「終態」**
+`verify_hud` 的「彈跳起始態」隔一幀再讀**假紅**：`TRANS_BACK` 在約 **51% 進度就已過衝到 scale > 1**
+（實測隔一幀讀到 `scale=(1.0,1.0) / alpha=0.51`）。
+**修正 = 新開一條後不 `await` 直接讀**（起始態由 `spawn()` 同步設好）。
+⇒ 中間某一幀的值**不可斷言**。
+
+**56 容器子節點的「彈跳」用 `scale`，不要用 `position`**
+`VBoxContainer` 每幀按佈局擺子節點的 `position`/`size`，但**不碰 `scale`** ⇒
+`scale` 動畫不會被覆蓋（改 `position` 會被每幀覆蓋）。pivot 保持 `(0,0)` = 從左上角長出來。
+
+**57 動態生成實體做位移動畫時，**只改 `global_position`、不改 `scale`**（像素鐵律）**
+掉落物 pop 動畫全程 `scale` 恆為 `Vector2.ONE` —— 像素風只允許**整數縮放**，
+而 pop 的「放大感」由**位移 + 星光**承擔。斷言要**顯式檢查 `scale == Vector2.ONE`**。
+
+**58 兩段式落點坑（新增一種）**：`_ready()` 早於調用方賦 `global_position`**
+`LootDrop.pop_from` 必須在 `add_child()` **之前**設好 —— 因為 `_ready` 一進樹就要
+「記下落點 + 把節點挪到起點」。若先 `add_child` 再設，`_ready` 記到的落點就是錯的。
+（同 HANDOFF-E 坑⑨「`rare_loot_spawned` 的位置必須在 `add_child` 之後讀」是**同一類坑的兩面**：
+**要「進樹前」的狀態就在 add_child 前設；要「進樹後」的狀態就在 add_child 後讀。**）
+
+**59 `SceneTree.process_frame` 是在節點 `_process` **之前**發出的 —— 等一帧 = 讀到中間態**
+```gdscript
+d.global_position = external
+await get_tree().process_frame   # ❌ 此時 `d._process` 還沒跑 ⇒ 讀到的還是舊狀態
+await get_tree().process_frame   # ✅ 第二帧才在「上一帧的 _process 跑完」之後
+```
+實測：寫完外部位置後只等一帧，讀到 `pop` 仍為正（動畫還沒機會讓位）⇒ **假紅**。
+⇒ 通則：**要觀察「某節點處理完這帧輸入之後」的狀態，必須 `await` 兩次 `process_frame`**
+（或用 `await get_tree().physics_frame` 同理想清楚順序）。
+**不要憑「等一帧應該夠了」下筆。**
+
+**60 每帧寫 `position` 的動畫，必須能被「外部奪權」——否則它會覆蓋別人**
+`LootDrop` 的彈出動畫每帧寫 `global_position`。`verify_e2e` 段⑦ 把掉落物瞬移到玩家腳下，
+**當場被彈回拋物線** ⇒ 永遠撿不到（假紅「背包沒增長」）。
+- 只處理「磁吸」這一個特例**不夠** —— 未來任何調用方 / 擊退 / 傳送都會踩同一個坑。
+- **通用修法**：記「上一帧**我自己**寫下的位置」`_pop_written`；
+  `_process` 裡若 `global_position != _pop_written` ⇒ 判定「別人插手」⇒ **動畫立刻讓位**。
+- 語義：**動畫只在「沒人碰」時才擁有位置。** 加一條斷言把這個契約釘住（外部寫入 ⇒ 動畫停且位置保持）。
+
+**61 測試裡的「等 N 帧」是**牆鐘競態** —— 慢機上 N 帧可能遠超你想的時長**
+`verify_e2e` 段⑥ 只 `_wait_frames(10)`，卻期望「掉落物還沒被自動撿走（< `LOOT_POP_DELAY` 0.25s）」。
+**10 帧的真實耗時隨機器負載浮動** ⇒ 慢機上 > 0.25s ⇒ 掉落被撿光 ⇒ 段⑦ 假紅。
+- **A/B 定性法**（本輪用它證明「與新功能無關」）：把新功能的**注入點**註掉跑一組，
+  再開著跑一組，比對復現率 ⇒ 關掉也紅 = **既有問題**，別去改新功能。
+  （實測：關掉彈出動畫 8 次紅 2 次；開著 8 次全綠。）
+- **修法優選「消除競態的成因」**，而不是「把等待時間調大」：
+  本輪直接把段⑤「把玩家瞬移到怪堆中心」那一步**刪掉**（它對拾取毫無貢獻 —— 段⑦ 本來就會
+  把掉落物瞬移到玩家腳下），玩家留在出生點 ⇒ 掉落離玩家遠 ⇒ 段⑥ 必然不誤撿 ⇒ 確定性成立。
+
+**62 「改被測物的行為」之後，必須回頭看那條斷言還測不測得到東西**
+`AudioManager.play()` 在 Dummy 驅動下改為「不創建播放器」後，
+`verify_audio66` 段 D 原本寫 `after >= before` ⇒ **永遠通過的廢斷言**（`after == before` 也滿足）。
+⇒ 改成按 `_is_silent_runtime()` 分叉：Dummy 下斷言「不創建」，真實驅動下斷言「掛載」。
+**通則：凡放寬/短路了被測物，就去 grep 那些「用寬鬆比較符（`>=` / `> 0`）」的斷言 —— 它們最容易被掩蓋。**
+
+---
+
+
 ## ⚠️⚠️ 素材加載【兩條互不相通的路徑】
 | 路徑 | 機制 | 適用 | 判斷依據 |
 |---|---|---|---|
