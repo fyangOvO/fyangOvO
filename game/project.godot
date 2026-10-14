@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="七傳說"
 config/description="纯单机 2D 俯视刷宝 ARPG。局内三选一成长 + 局外装备锻造双线养成。"
-config/version="0.1.0"
+config/version="2.0.0"
 run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.043, 0.051, 0.063, 1)
