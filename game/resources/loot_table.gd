@@ -54,6 +54,26 @@ extends Resource
 ## 消费点：`LootRoller.roll_rune_drop()`（工单 2-L12）。**默认 0.0** ⇒ 未配置的表不掉符文。
 @export var rune_drop_chance: float = 0.0
 
+## 掉落 iLvl 相对「怪物等级」的偏移分布（GDD 02 §6.2，工单 2-D6 / 2-L13）。
+##
+## item_level = 怪物等级 + 非对称整数三角分布偏移，偏移 ∈ [ilvl_min_mod, ilvl_max_mod]、
+## 峰值在 ilvl_mode_mod；另有 ilvl_bonus_chance 概率额外 + ilvl_bonus_mod
+## （例：精英 ±2 峰值0、10% 概率 +5；BOSS 固定 +3~+8、峰值 +5）。
+##
+## 口径（`data/loot_tables/*.json` 的 `item_level_spread`）：
+##   normal {min -3, max +3, mode 0} ｜ elite {min -2, max +2, mode 0, 10% +5}
+##   ｜ boss {min +3, max +8, mode +5} ｜ 深渊表另配。
+##
+## 默认 ±2 / 无 bonus = 未配置表的回退（与 2026-10 前硬编码 ITEM_LEVEL_JITTER 一致）。
+## 注意：越级刷装的平衡**不在 iLvl 层 clamp**，而由「稀有度越级惩罚（紫/橙/红 ×0.5）」
+## + 「装备需求等级 required_level = ilvl - 2（低级穿不上）」共同承担 —— 旧的
+## `hi=max(怪,玩家)` 会把 BOSS 表 +3~+8 的正向奖励压平，2026-10-15 接线时移除。
+@export var ilvl_min_mod: int = -2
+@export var ilvl_max_mod: int = 2
+@export var ilvl_mode_mod: int = 0
+@export var ilvl_bonus_chance: float = 0.0
+@export var ilvl_bonus_mod: int = 0
+
 ## 保底：本次未掉落装备时，是否累积「幸运」并在下次提高稀有度权重
 ## （GDD 0.2 节「变强可感知」保底机制，暂定：精英掉落权重 +20%，最多叠至 +60%）
 @export var pity_enabled: bool = false
@@ -160,4 +180,13 @@ func validate() -> Array[String]:
 		errors.append("掉落表 '%s' 的 drop_count_range 非法" % id)
 	if rune_drop_chance < 0.0 or rune_drop_chance > 1.0:
 		errors.append("掉落表 '%s' 的 rune_drop_chance 应在 [0,1]，实际 %f" % [id, rune_drop_chance])
+	# iLvl 三角分布（2-L13）：min ≤ mode ≤ max，bonus 概率合法。
+	if ilvl_min_mod > ilvl_max_mod:
+		errors.append("掉落表 '%s' 的 item_level_spread：min_mod(%d) > max_mod(%d)"
+			% [id, ilvl_min_mod, ilvl_max_mod])
+	if ilvl_mode_mod < ilvl_min_mod or ilvl_mode_mod > ilvl_max_mod:
+		errors.append("掉落表 '%s' 的 item_level_spread：mode_mod(%d) 应在 [%d, %d]"
+			% [id, ilvl_mode_mod, ilvl_min_mod, ilvl_max_mod])
+	if ilvl_bonus_chance < 0.0 or ilvl_bonus_chance > 1.0:
+		errors.append("掉落表 '%s' 的 ilvl_bonus_chance 应在 [0,1]，实际 %f" % [id, ilvl_bonus_chance])
 	return errors

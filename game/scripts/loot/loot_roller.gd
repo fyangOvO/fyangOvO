@@ -8,17 +8,14 @@
 ##     "amount": int,                    # 金币 / 材料数量（装备 / 消耗品 / 符文为 1）
 ##     "item_id": String,                # 装备底材 ID / 消耗品 ID / 符文 ID（金币、材料为空）
 ##     "rarity": int,                    # GameConstants.Rarity（装备有效；其余 -1）
-##     "item_level": int }               # 物品等级 = clamp(怪物等级 ± 三角抖动, 下限 怪-2,
-##                                       #                     上限 max(怪等级, 玩家等级))（4-W3）
+##     "item_level": int }               # 物品等级 = 怪物等级 + 掉落表 item_level_spread
+##                                       #   非对称三角分布（GDD 02 §6.2 / 2-L13）
 ##
 ## ⚠️ 随机性：roll 用全局 randf（Godot 伪随机）。验证脚本用 seed() 固定。
 ## ⚠️ 保底 pity：数据字段保留（elite 有 pity_*），机制阶段 3「掉落手感调优」接入
 ##    （需会话级幸运状态，本类保持无状态）。
 class_name LootRoller
 
-
-## 掉落 iLvl 的三角抖动跨度（±N）。口径见 `_roll_item_level()`（GDD 04 §3.3 / 工单 4-W3）。
-const ITEM_LEVEL_JITTER: int = 2
 
 ## 本跑已锁的唯一性组（B5-3 / 6-W6-17）。开局由 level_scene 从
 ## SaveData.obtained_unique_groups 灌入；拾取唯一装备时即时追加。
@@ -203,13 +200,20 @@ static func _roll_material(level: int) -> Dictionary:
 static func _roll_equipment(table: LootTable, level: int, difficulty: int,
 		player_level: int, magic_find_pct: float = 0.0) -> Dictionary:
 	# 稀有度与 iLvl 是**两次独立 roll**：
-	#   · 稀有度的越级惩罚看的是「怪物等级 vs 玩家等级」（口径不变）；
-	#   · iLvl 看的是「怪物等级 ± 抖动，上限 max(怪物等级, 玩家等级)」（4-W3）。
+	#   · 稀有度的越级惩罚看的是「怪物等级 vs 玩家等级」（见 _roll_rarity）；
+	#   · iLvl 看的是「怪物等级 + 本表 item_level_spread 三角分布」（2-L13 / GDD 02 §6.2）。
 	var rarity := _roll_rarity(table.rarity_weights, difficulty, player_level, level, magic_find_pct)
-	var ilvl := _roll_item_level(level, player_level)
+	var ilvl := _roll_item_level(table, level)
 	var template := _pick_template(rarity, ilvl)
 	if template == null:
-		# 装备池在该稀有度/iLvl 下无可用底材（正常不会发生）——回退金币，避免空掉落
+		# iLvl 可能超出装备池顶（如 L20 BOSS 表 +8 冲到 28，而底材 item_level_max ≤ 22）：
+		# 降到该稀有度「可用底材的最高 iLvl」重选，保证 BOSS 必掉装备而不是退化成金币。
+		var cap := _max_template_level(rarity)
+		if cap > 0 and ilvl > cap:
+			ilvl = cap
+			template = _pick_template(rarity, ilvl)
+	if template == null:
+		# 该稀有度在任何 iLvl 下都无可用底材（如特殊档无池）——回退金币，避免空掉落
 		return _roll_gold(level)
 	var item := AffixRoller.roll_full_equipment(template, ilvl, rarity)
 	return {
@@ -219,38 +223,53 @@ static func _roll_equipment(table: LootTable, level: int, difficulty: int,
 	}
 
 
-## 掉落物等级（iLvl）—— GDD 04 §3.3「修复三：iLvl 上限释放」（工单 4-W3）。
+## 掉落物等级（iLvl）—— GDD 02 §6.2「掉落 iLvl 分布」（工单 2-D6 / 2-L13 / 验收 V13）。
 ##
-##   item_level = clamp(怪物等级 + 三角抖动(±2),
-##                      下限 = max(1, 怪物等级 - 2),
-##                      上限 = max(怪物等级, 玩家等级))
+##   item_level = max(1, 怪物等级 + min_mod,
+##                    怪物等级 + 三角分布[min_mod, max_mod]（峰值 mode_mod）
+##                    +（bonus_chance 命中 ? bonus_mod : 0）)
 ##
-## 设计意图：
-##   · 「打高等级怪掉好装备」的直觉保留 —— 基准仍是**怪物等级**；
-##   · 玩家等级 ≥ 怪等级时上限抬到玩家等级 ⇒ 清低关的掉落能跟上玩家
-##     （但抖动跨度只有 ±2，所以实际最高到 怪物等级 + 2）；
-##   · 玩家等级 < 怪等级时上限被压回怪物等级 ⇒ 低级玩家越级刷怪**拿不到**超模装备；
-##   · 账号上限（2026-10-14 起为 30）**不是**这里的天花板 —— 真正的天花板是
-##     `max(怪物等级, 玩家等级)`，且被 ±2 三角抖动进一步压到 `怪物等级 + 2`
-##     ⇒ 低关刷怪**拿不到**超模装备，**不需要再加硬编码上限**
-##     （GDD 04 §3.3 路线 A 补充：公式保持原样即可）；
-##   · 下限用 `max(1, ...)` 而不是裸的 `怪物等级 - 2`：iLvl 会参与
-##     `item_stat_ilvl_scale()` / `affix_ilvl_scale()` / `required_level_for()`，
-##     0 或负数会算错（L1 怪是唯一触发点）。
-static func _roll_item_level(monster_level: int, player_level: int) -> int:
-	var lo := maxi(1, monster_level - ITEM_LEVEL_JITTER)
-	var hi := maxi(monster_level, maxi(player_level, 1))
-	return clampi(monster_level + _triangular_jitter(ITEM_LEVEL_JITTER), lo, hi)
+## 口径（随掉落表 `item_level_spread` 读取，代码不写死，见 `LootTable`）：
+##   · normal：怪等级 ±3（峰值 0）；
+##   · elite：怪等级 ±2（峰值 0），另 10% 概率 +5；
+##   · boss：怪等级 +3~+8（峰值 +5）⇒ BOSS 必掉高 iLvl；
+##   · 深渊表另配。
+##
+## 越级平衡（2026-10-15 起 iLvl 层不再 clamp）：
+##   旧 4-W3 公式 `hi=max(怪,玩家)` 会把 BOSS 表的 +3~+8 正向奖励压平（玩家平级打 BOSS 时
+##   hi=怪等级，BOSS 永远掉不出 +3~+8）。表的 max_mod 已是天然 iLvl 天花板，越级刷装改由
+##   两道独立机制兜底 —— ① 稀有度越级惩罚（玩家比怪低 >3 级，紫/橙/红 ×0.5，见 _roll_rarity）；
+##   ② 装备需求等级 required_level = ilvl-2（低级玩家拿到高 iLvl 也穿不上）。
+##   · 下限 max(1, ...)：iLvl 参与 item_stat_ilvl_scale() / affix_ilvl_scale() /
+##     required_level_for()，0 或负数会算错（L1 怪是唯一触发点）。
+##   · 装备池顶（底材 item_level_max ≤ 22）由 `_roll_equipment()` 的 cap clamp 兜底，不在此处。
+static func _roll_item_level(table: LootTable, monster_level: int) -> int:
+	var mod := _triangular_int(table.ilvl_min_mod, table.ilvl_max_mod, table.ilvl_mode_mod)
+	if table.ilvl_bonus_mod != 0 and table.ilvl_bonus_chance > 0.0 \
+			and randf() < table.ilvl_bonus_chance:
+		mod += table.ilvl_bonus_mod
+	var lo := maxi(1, monster_level + table.ilvl_min_mod)
+	return maxi(lo, monster_level + mod)
 
 
-## 三角分布抖动：返回 `[-span, span]`，**中心 0 权重最高**（GDD 02 掉落 iLvl 三角分布）。
-##
-## 两个独立 `[0, span]` 均匀分布之和 - span ⇒ 三角分布（权重 span+1 : span : … : 1）。
-## 用全局 `randi_range`（与其它 roll 同一套 RNG）⇒ `seed()` 能固定整条链路。
-static func _triangular_jitter(span: int) -> int:
-	if span <= 0:
-		return 0
-	return randi_range(0, span) + randi_range(0, span) - span
+## 非对称整数三角分布：返回 `[min_mod, max_mod]` 内的整数偏移，**峰值在 mode_mod**
+## （GDD 02 §6.2）。连续三角分布逆变换采样后四舍五入（`randf()` 随全局 `seed()` 固定）。
+## 两端在足够样本下可达（验收 V13：基础掉落 iLvl ∈ [怪+min_mod, 怪+max_mod]）。
+static func _triangular_int(min_mod: int, max_mod: int, mode_mod: int) -> int:
+	if max_mod <= min_mod:
+		return min_mod
+	var lo := mini(min_mod, mode_mod)
+	var hi := maxi(max_mod, mode_mod)
+	var mode := clampi(mode_mod, lo, hi)
+	var span := float(hi - lo)
+	var fc := float(mode - lo) / span  # 峰值处的累积概率
+	var u := randf()
+	var v: float
+	if u < fc:
+		v = float(lo) + sqrt(u * span * float(mode - lo))
+	else:
+		v = float(hi) - sqrt((1.0 - u) * span * float(hi - mode))
+	return clampi(int(round(v)), lo, hi)
 
 
 ## 稀有度 roll：权重数组（难度修正后）归一化加权抽样。
@@ -308,3 +327,20 @@ static func _pick_template(rarity: int, level: int) -> EquipmentData:
 		if r <= 0.0:
 			return t
 	return pool[pool.size() - 1]
+
+
+## 该稀有度下装备池能提供的**最高 item_level**（遍历底材，过滤口径同 `_pick_template`
+## 但不限 iLvl 区间）。无任何底材时返回 0。
+## 用途：BOSS 表把 iLvl 冲到池顶之上（如 L20 +8=28 > 底材 max 22）时，把 iLvl 收回到池顶，
+## 保证「必掉装备」而不是空池回退金币（2-L13 接线时新增）。
+static func _max_template_level(rarity: int) -> int:
+	var top := 0
+	for template: EquipmentData in ConfigLoader.equipment_templates.values():
+		if rarity < template.rarity_min or rarity > template.rarity_max:
+			continue
+		if rarity == GameConstants.Rarity.SET and template.set_id.is_empty():
+			continue
+		if not template.unique_group.is_empty() and locked_unique_groups.has(template.unique_group):
+			continue
+		top = maxi(top, template.item_level_max)
+	return top

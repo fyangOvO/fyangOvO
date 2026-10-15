@@ -190,9 +190,9 @@ func _test_template_filter() -> void:
 		if d["type"] != "equipment":
 			continue
 		eq_count += 1
-		# ⚠️ 判定用**实际 roll 出的 iLvl**，不写死 5 —— 4-W3 后 iLvl 是
-		#    「怪等级 ± 三角抖动」的结果（此处 怪L5 / 玩家L1 ⇒ iLvl ∈ [3,5]），
-		#    写死 5 会把合法的 iLvl=3/4 底材误判成越界。
+		# ⚠️ 判定用**实际 roll 出的 iLvl**，不写死 5 —— 2-L13 后 iLvl 是
+		#    「怪等级 + 掉落表 item_level_spread 三角分布」的结果（normal 表 怪L5 ⇒ iLvl ∈ [2,8]），
+		#    写死 5 会把合法的低/高 iLvl 底材误判成越界。
 		var ilvl := int(d["item_level"])
 		var t: EquipmentData = ConfigLoader.equipment_templates.get(d["item_id"])
 		if t == null or int(d["rarity"]) < t.rarity_min or int(d["rarity"]) > t.rarity_max \
@@ -205,30 +205,58 @@ func _test_template_filter() -> void:
 	var t_set := LootRoller._pick_template(GameConstants.Rarity.SET, 5)
 	_ok("套装稀有度只出带 set_id 的底材",
 		t_set == null or not t_set.set_id.is_empty())
-	# ---- 4-W3 / 4-T10：iLvl = clamp(怪等级 ± 三角抖动, 下限 怪-2, 上限 max(怪, 玩家)) ----
+	# ---- 2-L13 / 2-V13：iLvl = 怪物等级 + 掉落表 item_level_spread 非对称三角分布 ----
+	var t_normal: LootTable = ConfigLoader.loot_tables["monster_normal"]
+	var t_elite: LootTable = ConfigLoader.loot_tables["monster_elite"]
+	var t_boss: LootTable = ConfigLoader.loot_tables["monster_boss"]
+	# normal：怪 L18 ±3（峰值 0）⇒ iLvl ∈ [15,21]，两端可达
 	seed(20260928)
 	var seen := {}
-	var in_range := true
-	for i in 3000:
-		var lv := LootRoller._roll_item_level(18, 20)
+	var n_ok := true
+	for i in 4000:
+		var lv := LootRoller._roll_item_level(t_normal, 18)
 		seen[lv] = int(seen.get(lv, 0)) + 1
-		if lv < 16 or lv > 20:
-			in_range = false
-	_ok("T10：玩家 L20 打 L18 怪 ⇒ iLvl ∈ [16,20] 且两端都**可达**（上限 = max(怪, 玩家) = 20）",
-		in_range and seen.has(16) and seen.has(20))
-	_info("      抽样分布（L18 怪 / L20 玩家）：%s" % str(seen))
-	# 越级：玩家等级 < 怪等级 ⇒ 上限被压回怪等级
-	var no_over := true
+		if lv < 15 or lv > 21:
+			n_ok = false
+	_ok("V13 normal：怪 L18 ±3 ⇒ iLvl ∈ [15,21] 且两端可达（峰值 18）",
+		n_ok and seen.has(15) and seen.has(21))
+	_info("      normal 抽样分布（L18）：%s" % str(seen))
+	# boss：怪 L14 +3~+8（峰值 +5）⇒ iLvl ∈ [17,22]，两端可达（BOSS 必掉高 iLvl）
+	var bseen := {}
+	var b_ok := true
+	for i in 4000:
+		var blv := LootRoller._roll_item_level(t_boss, 14)
+		bseen[blv] = int(bseen.get(blv, 0)) + 1
+		if blv < 17 or blv > 22:
+			b_ok = false
+	_ok("V13 boss：怪 L14 +3~+8 ⇒ iLvl ∈ [17,22] 且两端可达（峰值 19）",
+		b_ok and bseen.has(17) and bseen.has(22))
+	_info("      boss 抽样分布（L14）：%s" % str(bseen))
+	# elite：基础 ±2 ⇒ ≥16；另 10% 概率 +5 bonus，4000 次采样应能见到 >20
+	var e_ok := true
+	var e_bonus := false
+	for i in 4000:
+		var elv := LootRoller._roll_item_level(t_elite, 18)
+		if elv < 16:
+			e_ok = false
+		if elv > 20:
+			e_bonus = true
+	_ok("V13 elite：怪 L18 基础 ±2（≥16），10% +5 bonus 采样可见 >20", e_ok and e_bonus)
+	# 越级：iLvl 不再按玩家等级 clamp（BOSS 表 +3~+8 是表固有奖励）；normal 怪 L20 ⇒ [17,23]。
+	# 越级平衡改由「稀有度越级惩罚（紫/橙/红 ×0.5）」+「装备需求等级 = ilvl-2」承担。
+	var over_ok := true
 	for i in 800:
-		if LootRoller._roll_item_level(20, 1) > 20:
-			no_over = false
-	_ok("玩家 L1 打 L20 怪 ⇒ iLvl 仍 ≤ 20（上限 = max(怪等级, 玩家等级)）", no_over)
+		var lv20 := LootRoller._roll_item_level(t_normal, 20)
+		if lv20 < 17 or lv20 > 23:
+			over_ok = false
+	_ok("V13 normal：怪 L20（与玩家等级无关）⇒ iLvl ∈ [17,23]；越级由稀有度层 + 需求等级兜底",
+		over_ok and GameConstants.required_level_for(23) == 21)
 	# 下限保护：L1 怪不会掉出 iLvl ≤ 0（iLvl 参与 item_stat_ilvl_scale / required_level_for）
 	var floor_ok := true
 	for i in 500:
-		if LootRoller._roll_item_level(1, 1) < 1:
+		if LootRoller._roll_item_level(t_normal, 1) < 1:
 			floor_ok = false
-	_ok("L1 怪 iLvl ≥ 1（下限取 max(1, 怪等级-2)）", floor_ok)
+	_ok("L1 怪 iLvl ≥ 1（下限 max(1, 怪+min_mod)）", floor_ok)
 
 
 # =============================================================================

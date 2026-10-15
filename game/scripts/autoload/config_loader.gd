@@ -549,6 +549,14 @@ func _load_loot_table_dir(dir_path: String) -> void:
 			# 符文掉落桶（2-L12）：**必须**显式映射 —— 本函数是逐字段手写映射，
 			# JSON 里写了而这里没读 = 数据侧有、运行时不生效（静默脱钩，无任何报错）。
 			res.rune_drop_chance = float(raw.get("rune_drop_chance", 0.0))
+			# iLvl 三角分布（2-D6 / 2-L13）：嵌套字典 item_level_spread，逐字段手写映射，
+			# JSON 里写了而这里没读 = 静默脱钩（同 rune_drop_chance 的坑）。
+			var spread: Dictionary = raw.get("item_level_spread", {})
+			res.ilvl_min_mod = int(spread.get("min_mod", -2))
+			res.ilvl_max_mod = int(spread.get("max_mod", 2))
+			res.ilvl_mode_mod = int(spread.get("mode_mod", 0))
+			res.ilvl_bonus_chance = float(spread.get("bonus_chance", 0.0))
+			res.ilvl_bonus_mod = int(spread.get("bonus_mod", 0))
 			res.pity_enabled = bool(raw.get("pity_enabled", false))
 			res.pity_bonus_per_stack = float(raw.get("pity_bonus_per_stack", 0.20))
 			res.pity_max_stacks = int(raw.get("pity_max_stacks", 3))

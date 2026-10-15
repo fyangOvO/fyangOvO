@@ -14,6 +14,8 @@
 ##   E. 底材联动：稀有度分布下掉出的装备 item_id 全部 fits（稀有度 / 等级区间）
 ##   F. 符文掉落桶（2-D6 / 2-V12）：rune_drop_chance 真的从 JSON 映射进 LootTable /
 ##      三表 0.02·0.08·0.25 逐位 / 全表范围合法 + validate() 通过 / 符文池 24 条
+##   G. iLvl 三角分布（2-D6 / 2-L13 / 2-V13）：item_level_spread 真的从 JSON 映射进 LootTable /
+##      三表 + 深渊表逐位 / 范围合法（运行时分布形状见 verify_loot.gd E 段 V13）
 extends Node
 
 var _fail: int = 0
@@ -47,6 +49,14 @@ const EXPECT_RUNE_DROP := {
 	"monster_boss": 0.25,
 }
 
+## iLvl 偏移分布（工单 2-D6 / 2-L13 / 验收 2-V13 · GDD 02 §6.2）。
+## 每张表 [min_mod, max_mod, mode_mod, bonus_chance, bonus_mod]。
+const EXPECT_ILVL_SPREAD := {
+	"monster_normal": [-3, 3, 0, 0.0, 0],
+	"monster_elite": [-2, 2, 0, 0.10, 5],
+	"monster_boss": [3, 8, 5, 0.0, 0],
+}
+
 
 func _ok(label: String, cond: bool) -> void:
 	if not cond:
@@ -70,6 +80,7 @@ func _ready() -> void:
 	await _test_pace_simulation()
 	await _test_template_linkage()
 	await _test_rune_bucket()
+	await _test_ilvl_spread()
 	_finish()
 
 
@@ -316,6 +327,44 @@ func _test_rune_bucket() -> void:
 	_ok("符文概率随档位单调递增（普通 < 精英 < BOSS）",
 		EXPECT_RUNE_DROP["monster_normal"] < EXPECT_RUNE_DROP["monster_elite"]
 		and EXPECT_RUNE_DROP["monster_elite"] < EXPECT_RUNE_DROP["monster_boss"])
+
+
+# =============================================================================
+# G. iLvl 三角分布（2-D6 / 2-L13 / 2-V13）
+# =============================================================================
+
+## 表侧断言：`item_level_spread` 必须从 JSON **真的映射进** 运行时 `LootTable`。
+##
+## ⚠️ 与 F 段同属「逐字段手写映射，JSON 写了而 ConfigLoader 漏读 = 数据侧有、运行时不生效、
+##    零报错」的盯防。运行时分布形状（两端可达 / 峰值 / bonus）由 `verify_loot.gd` E 段实测。
+func _test_ilvl_spread() -> void:
+	print("--- G. iLvl 三角分布（2-D6 / 2-L13 / 2-V13） ---")
+	var map_ok := true
+	for table_id in EXPECT_ILVL_SPREAD:
+		var table: LootTable = ConfigLoader.loot_tables.get(table_id)
+		if table == null:
+			map_ok = false
+			_info("%s 表不存在" % table_id)
+			continue
+		var exp: Array = EXPECT_ILVL_SPREAD[table_id]
+		if table.ilvl_min_mod != int(exp[0]) or table.ilvl_max_mod != int(exp[1]) \
+				or table.ilvl_mode_mod != int(exp[2]) \
+				or absf(table.ilvl_bonus_chance - float(exp[3])) > 1e-9 \
+				or table.ilvl_bonus_mod != int(exp[4]):
+			map_ok = false
+			_info("%s：期望 %s，实际 [%d,%d,%d,%.2f,%d]" % [table_id, str(exp),
+				table.ilvl_min_mod, table.ilvl_max_mod, table.ilvl_mode_mod,
+				table.ilvl_bonus_chance, table.ilvl_bonus_mod])
+	_ok("三表 item_level_spread 从 JSON 逐位映射（normal/elite/boss）", map_ok)
+	# 深渊两张表也配了非默认 spread（盯漏读：abyss_normal 0/5/2·10%+5；abyss_boss 3/8/5）
+	var an: LootTable = ConfigLoader.loot_tables.get("abyss_normal")
+	var ab: LootTable = ConfigLoader.loot_tables.get("abyss_boss")
+	var abyss_ok := an != null and an.ilvl_min_mod == 0 and an.ilvl_max_mod == 5 \
+			and an.ilvl_mode_mod == 2 and absf(an.ilvl_bonus_chance - 0.10) < 1e-9 \
+			and an.ilvl_bonus_mod == 5 \
+			and ab != null and ab.ilvl_min_mod == 3 and ab.ilvl_max_mod == 8 \
+			and ab.ilvl_mode_mod == 5
+	_ok("深渊两表 item_level_spread 已映射（abyss_normal 0/5/2·10%+5；abyss_boss 3/8/5）", abyss_ok)
 
 
 func _finish() -> void:
