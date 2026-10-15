@@ -869,6 +869,10 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   `sprites/enemies` 單張 png + .import，全 24 怪 `sprite_path` 有效（原「指向不存在 png」已消除）
 - `UISkin.affix_icon()` **零調用方**（死函數）；且 TEX 鍵用舊名 `affix_armor_penetration`
   對不上 `stat_key=armor_pierce`（無運行時消費點，留 B7）
+- **`affix_icon()` 已定性（2026-10-15，不接線）**：48/48 詞綴圖標資產齊全、`armor_pierce` vs
+  `armor_penetration` 是**唯一命名漂移**；但詞綴 UI 全是 11px 文本行（equip_panel 等），
+  內聯 32px 圖標會把行高撐到 2× 以上，16px 縮放（0.5×）又違反像素鐵律 ⇒ 無布局合適的消費點。
+  維持「備好待用的工具 API」狀態，等 UI 有詞綴圖標位（如詞綴格子/浮層）再消費。
 
 #### (c) 策劃側仍紅（非工程批）
 
