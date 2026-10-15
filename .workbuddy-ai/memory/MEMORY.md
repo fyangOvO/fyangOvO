@@ -9,7 +9,7 @@
 
 ---
 
-## 🔴 当前位置（2026-10-14）
+## 🔴 当前位置（2026-10-15）
 
 | 线 | 状态 |
 |---|---|
@@ -23,6 +23,7 @@
 | **全面優化第 8 步（掉落物 pop 動畫）** | ✅ **完成**（掉落物改由死亡點**拋物線飛出 + 落地回彈 + 4 顆星光**；全程只改位移不改 scale；**磁吸/外部寫入即讓位**；`verify_loot` K 段 12 斷言；順帶修好 `verify_e2e` 段⑦ 既有偶發假紅；回歸全綠 0 FAIL / 229.9s） |
 | **附：全庫退出告警清零（音頻泄漏）** | ✅ **完成**（77 個 `verify_*` 有 21 個報 `AudioStreamPlaybackWAV leaked`；根因 = headless Dummy 驅動不推進播放頭 ⇒ `finished` 不觸發；**在 `AudioManager.play()` 源頭按驅動名跳過**，1 處改動全清） |
 | **全面升級批次（決策落地+穩定+內容+品質）** | ✅ **完成**（終極階 unlock 20→22；保底改直接入包修 collect；self_check/verify_hud/**e2e 樹外列表**退出泄漏全清；05 `--repo` 82/4→**89/0**；8 新怪素材兜底；**玩家→怪物異常接通+異常染色**；回歸全綠 0 FAIL / 151.4s；詳見 `2026-10-14.md` 追加⑫） |
+| **掉落接線批次（2-D6 收尾 · item_level_spread + 死信號）** | ✅ **完成**（2026-10-15「按你的來」：① **item_level_spread 表驅動**——LootTable 加 5 字段、ConfigLoader 讀、_roll_item_level 改非對稱三角（normal±3/elite±2+10%+5/BOSS+3~8峰5）、移除舊 `hi=max(怪,玩家)` 越级 clamp、超池 cap 到池頂；② **刪死信號 loot_dropped**（零消費）；③ 定性 `material_sub_weights` 為廢棄字段（被 GDD5.3 分解經濟取代，勿接）；verify_loot/loot_tables + self_check 122 + 全量回歸 0 FAIL；詳見 `2026-10-15.md`） |
 | 策划七步 | ✅ 完成（180 工单 / 8 批次） |
 | 素材开发线 | ✅ 收线（ASSET_MANIFEST v7：done 25 / BLOCKED 0） |
 | 工程落地 B0–B5 | ✅ B5 特殊玩法八子批全收线 |

@@ -253,20 +253,20 @@ data/*.json  ──ConfigLoader──▶  Resource 模板（EquipmentData / Mons
 | # | 項 | 一句話 |
 |---|---|---|
 | 1 | `04-check_number_model.py` 仍是**上限 20** 口徑 | 上限已改 30 ⇒ `L2/L2b` 不變式失效。04 仍綠但**文檔與代碼已知分歧** |
-| 2 | 技能終極階 `unlock_level` = **20**（原 22） | 上限回 30 後 L22 又可達 ⇒ 維持 20 or 改回 22？ |
+| ~~2~~ | ~~技能終極階 `unlock_level` 20~~ **已改回 22（2026-10-14）** | blood_rage / spirit_wolf / summon_elemental 回 22；warcry / shadow_volley / mana_surge 維持 18 |
 | 3 | `boss_ember_lord.level_min` **19 → 13** | 刻意偏離策劃等級帶表（表寫 19–20），為讓 `05-check` C19 轉綠 |
 | 4 | 深淵表 `rune_drop_chance` **不會被消費** | 要不要讓深淵房走自己的掉落表？ |
-| 5 | `EventBus.loot_dropped` 是**死信號**（零 emit） | 接線 or 刪除？ |
+| ~~5~~ | ~~`EventBus.loot_dropped` 死信號~~ **已刪除（2026-10-15）** | 零消費；稀有特效走 rare_loot_spawned、拾取走 loot_picked_up |
 
 ### 6.2 工程側待接線（節選，詳見 README §9.2(b)）
 
-分支 7 個 modifier（**刻意延後**）｜ `material_sub_weights` / `item_level_spread` 死字段 ｜
-玩家→怪物施加異常未接通 ｜ 無異常 HUD ｜ `SetPanel` 未掛進真實 UI ｜
-`UISkin.affix_icon()` 零調用方 ｜ 8 隻新怪 `sprite_path` 指向不存在的 png（B7 素材替換）
+分支 7 個 modifier（**刻意延後**）｜ `material_sub_weights` 死字段（`item_level_spread` 已於 2026-10-15 接通）｜
+無異常 HUD ｜ `SetPanel` 未掛進真實 UI ｜
+`UISkin.affix_icon()` 零調用方 ｜ （玩家→怪物異常已接通、8 新怪 sprite_path 已兜底，2026-10-14）
 
 ### 6.3 策劃側仍紅
 
-`05-check` C17 / C20 / C12 / C13（既有口徑差，`05 --repo` 合計 **82/4**）
+`05-check` `--repo` 已 **89/0**（2026-10-14 group_c 重寫後；C17/C20/C12/C13 口徑差已消）
 
 ### 6.4 已知測試噪音（不影響回歸判定）
 

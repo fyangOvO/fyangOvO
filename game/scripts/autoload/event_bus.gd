@@ -157,9 +157,6 @@ signal resource_changed(current: float, maximum: float)
 # 五、掉落与拾取
 # =============================================================================
 
-## 生成一件掉落物（掉落系统 → 地面表现层）
-signal loot_dropped(item: EquipmentInstance, position: Vector2)
-
 ## 掉落物被拾取（步骤 6 起真正广播）。
 ## 载荷契约：LootDrop 拾取 payload（{type, amount, item_id, rarity, item_level, instance?}）。
 ## 消费点：PickupToastHUD（局内拾取提示）。

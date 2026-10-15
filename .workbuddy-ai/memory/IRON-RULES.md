@@ -791,6 +791,13 @@ GDScript 成員參照也不會自動釋放 ⇒ 退出泄漏（1 VBox + 20 關卡
 - **傳奇特效 / 套裝 `effect_id`**：31 條特效 + 6 個 `effect_id` 定義完整但生產代碼零調用（`3-K1`–`K10`）
 - **BOSS 技能** `bone_slam`/`fireball` 被 `bosses.json` 引用，但 `_cast_boss_skill` 只做 `has_summon`/`has_aoe` 兩閘門 ⇒ 死數據（`5-W5-5`）
 - **I1 臨時增益 UI** / **D3 分支圖標**：素材已備、系統未實作
+- **`material_sub_weights` 是廢棄字段（勿接線）**：GDD 02 早期設想怪物直接掉 `forge_stone`/`enchant_scroll`/
+  `reroll_crystal` 三種用途材料；實際材料經濟已走 **GDD 5.3 分解產出**（怪物只掉 stones，高級材料靠分解裝備），
+  這三鍵在 MaterialBag 不存在。接線會讓普通怪直接掉神話結晶、繞過分解循環 ⇒ ConfigLoader 刻意不讀（2026-10-15 定性）。
+- ~~`EventBus.loot_dropped` 死信號~~ **已刪除（2026-10-15）**：零消費；稀有特效走 `rare_loot_spawned`、拾取走 `loot_picked_up`。
+- ~~`item_level_spread` 死字段~~ **已接線（2026-10-15，V13）**：注意舊 `_roll_item_level` 的 `hi=max(怪,玩家)`
+  越级 clamp 會壓平 BOSS 正向分佈（已移除，越级改由稀有度懲罰+需求等級承擔）；非對稱三角用 `randf()` 連續逆變換
+  （randi 兩均勻和只支持對稱）；BOSS iLvl 超池頂時 cap 到該稀有度池頂，否則 `_pick_template` 返回 null 回退金幣=BOSS 不掉裝備。
 
 ---
 

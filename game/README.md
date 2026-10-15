@@ -208,11 +208,11 @@ game/
 ### 4.3 模块间通信只走 EventBus
 
 ```gdscript
-# 正确：掉落系统只管发信号，不认识 UI
-EventBus.loot_dropped.emit(item, global_position)
+# 正确：掉落拾取只管发信号，不认识 UI（消费方 PickupToastHUD 监听 loot_picked_up）
+EventBus.loot_picked_up.emit(entry)
 
 # 错误：直接找到 UI 节点改它
-get_node("/root/Game/UI/PickupToast").show(item)
+get_node("/root/Game/UI/PickupToast").show(entry)
 ```
 
 - 需要「切换场景」时，**只发** `EventBus.request_scene_change`，由 `SceneManager` 响应。
@@ -827,20 +827,30 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
 | # | 項 | 現狀 |
 |---|---|---|
 | 1 | `04-check_number_model.py` / `04-數值與數據模型.md` 仍是**上限 20** 口徑 | 上限已改 30 ⇒ 其 `L2/L2b` 不變式「單周目落點 == 上限 − 1」失效。04 **目前仍綠**（自洽模型、漂移檢測不含該常量），但**文檔與代碼存在已知分歧**。待裁定：接受 20–30 刷級區並改寫 L2/L2b，或同步抬 `reward_xp`（≈ ×2.8）保住不變式 |
-| 2 | 技能終極階 `unlock_level` = **20**（原 22） | 2026-10-13 因上限 20 而改；上限已回 30 ⇒ L22 又可達。待定「維持 20 or 改回 22」 |
+| ~~2~~ | ~~技能終極階 `unlock_level` 20~~ **已裁定改回 22（2026-10-14）** | `blood_rage` / `spirit_wolf` / `summon_elemental` 三終極階回到 22；`warcry` / `shadow_volley` / `mana_surge` 維持 18 |
 | 3 | `boss_ember_lord.level_min` **19 → 13** | 刻意偏離策劃 §1.1 等級帶表（表寫 19–20），為讓 `05-check` C19 轉綠。待裁定「改表 or 改回並放寬 C19」 |
 | 4 | 深淵表的 `rune_drop_chance`（0.05 / 0.30）**當前不會被消費** | `roll_rune_drop` / `roll_loot` 只走 `ConfigLoader.LOOT_TABLE_BY_TIER`（按 `MonsterData.Tier`）；深淵表要經 `LevelData.loot_table_id` 才用得上（只有 `roll_guaranteed_equipment` 支援）。待裁定「要不要讓深淵房走自己的掉落表」 |
-| 5 | `EventBus.loot_dropped` 是**死信號**（已宣告、零 emit） | 待裁定「接線 or 刪除」 |
+| ~~5~~ | ~~`EventBus.loot_dropped` 死信號~~ **已刪除（2026-10-15）** | 地面掉落直接掛 LootDrop 節點；稀有特效走 `rare_loot_spawned`、拾取走 `loot_picked_up`，零消費需求 ⇒ 刪除（README 教學示例改用 `loot_picked_up`） |
 
 #### (b) 工程側待接線（有落點、無消費方）
 
 - **分支 7 個 modifier 未接**（`combo_hits` / `combo_damage_pct` / `linger` / `afterimage` / `pulse` /
   `summon_damage_pct` / `buff_potency_pct`，面板標「暫未生效」）——
   ⚠️ `summon_count` **已接**；2026-09-29 用戶已裁定「只接可映射的 7 個」⇒ 屬**刻意延後**，非 bug
-- **`material_sub_weights` / `item_level_spread` 仍是死字段**（JSON 有、`LootTable` 沒欄位、`ConfigLoader` 沒讀）
-- **`item_level_spread` 與實現矛盾**：`_roll_item_level()` 用硬編碼 `ITEM_LEVEL_JITTER = 2`（±2）
-  給**所有檔位**，而 JSON 寫 BOSS 是 `min_mod 3 / mode_mod 5 / max_mod 8` ⇒ BOSS 本應掉 iLvl+5 左右
-- **玩家→怪物施加異常未接通**（B4-5 拍板不做）⇒ 雷 / 暗異常只能由 2 雷怪 / 2 暗怪打玩家觸發
+- **`material_sub_weights` 屬廢棄字段（刻意不接線，勿誤接）**：GDD 02 §6.1 早期設想怪物直接按
+  `forge_stone` / `enchant_scroll` / `reroll_crystal`（normal 70/20/10）掉三種用途材料；但實際材料經濟
+  已走 **GDD 5.3 分解產出**——怪物只掉 `stones`（魔石），高級材料 `dust` / `essence` / `crystal` 由
+  分解裝備獲得（藍→1 塵 … 紅→6 精粹+1 結晶），特殊檔分解出 `abyss_shard` / `tower_sigil`。
+  這三個鍵在 `MaterialBag` **根本不存在**；若按權重映射成 stones/dust/crystal，會讓普通怪直接掉
+  神話結晶、繞過分解循環、破壞稀有度經濟。⇒ JSON 數據保留（ConfigLoader 刻意不讀），等 GDD 回頭標廢。
+- **`item_level_spread` 已接線（2026-10-15，2-L13 / V13）**：`LootTable` 加 `ilvl_min/max/mode_mod`
+  + `bonus_*` 字段、`ConfigLoader` 讀取、`_roll_item_level()` 改按表的**非對稱三角分佈**（normal ±3、
+  elite ±2 + 10% 再 +5、BOSS 怪 +3~8 峰值 +5）。舊硬編碼 `ITEM_LEVEL_JITTER=2`（±2 全檔位）與
+  `hi=max(怪,玩家)` 越级 clamp **一併移除**：後者會把 BOSS 表正向獎勵壓平；越级平衡改由
+  「稀有度越级懲罰（紫/橙/紅 ×0.5）」+「裝備需求等級 ilvl-2」承擔。L20 BOSS 衝到 iLvl 28 超過
+  底材池頂 22 時，cap 到該稀有度池頂，保證 BOSS 必掉裝備而非回退金幣。
+- **玩家→怪物施加異常已接通（2026-10-14）**：`skill_controller._hit` / `summon` 命中補
+  `apply_ailment_from_element`，`enemy_base` 補轉發到 health；命中後按異常染色（見打擊感）。
 - **無異常 HUD**（`status_shock` / `status_curse` 素材已在但無消費點）
 - `ms_boost.element_attach`（裂界指環附元素）未接線；`extra_loot` 未強制 `loot_quality`
 - **`SetPanel` 尚未掛進真實 UI**（全庫只有 `set_preview` / `capture_set_panel` 在用）
@@ -848,7 +858,8 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
 - 套裝專屬特效視覺 6 套未生產；增益圖標 12 張未生產（B4-1 走佔位繪製）
 - `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）未承載
 - 命名漂移：`AILMENT_SLOW="slow"` vs 素材鍵 `chill`
-- 8 隻新怪 `sprite_path` 指向不存在 png（`use_placeholder_art` 兜底不崩，屬 **B7 素材替換**）
+- 8 隻新怪 `sprite_path` **已兜底（2026-10-14）**：複製 creatures 目錄 `idle_s_01` 生成
+  `sprites/enemies` 單張 png + .import，全 24 怪 `sprite_path` 有效（原「指向不存在 png」已消除）
 - `UISkin.affix_icon()` **零調用方**（死函數）；且 TEX 鍵用舊名 `affix_armor_penetration`
   對不上 `stat_key=armor_pierce`（無運行時消費點，留 B7）
 
