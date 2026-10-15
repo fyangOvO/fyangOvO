@@ -857,7 +857,10 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   `ailment_chill`），核心邏輯鍵未動。`status_shock` / `status_curse` 舊素材鍵仍未消費
   （`ailment_*` 已是 24px 真素材，`status_*` 屬早期預留，可留作他途）。
 - `ms_boost.element_attach`（裂界指環附元素）未接線；`extra_loot` 未強制 `loot_quality`
-- **`SetPanel` 尚未掛進真實 UI**（全庫只有 `set_preview` / `capture_set_panel` 在用）
+- **`SetPanel` 已掛進真實 UI（2026-10-15）**：新增據點「套裝師」NPC 熱區（540,105，`merchant_small`
+  素材）＋ `PANEL_SET` 面板（`SetPanel`），`equipment_changed` 時連動刷新。
+  ⚠️ 已知設計事實：`SetSystem.get_progress` 對每套**無條件**返回進度（0 件也返回），
+  `SetPanel` 的「未穿戴任何套裝」空態是**防禦性死代碼**（sets.json 恆有 3 套時不觸發）。
 - `BIG_NODE_MECHANICS` 前 5 機制仍為展示字串
 - 套裝專屬特效視覺 6 套未生產；增益圖標 12 張未生產（B4-1 走佔位繪製）
 - `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）未承載

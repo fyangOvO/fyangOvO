@@ -6,7 +6,8 @@
 ##
 ## 覆盖（对应 team-lead 的完成标准 #2）：
 ##   A. hub.tscn 可加载：根 = Node2D + hub.gd，且有名为 UI 的 CanvasLayer
-##   B. 5 个面板全部挂上（InventoryPanel / StatPanel / EquipPanel / TalentPanel / ForgePanel）
+##   B. 面板全部挂上（InventoryPanel / StatPanel / EquipPanel / TalentPanel / ForgePanel /
+##      SkillPanel / RuneCodexPanel / SetPanel …）
 ##   C. `StatCalculator.calculate()` 真的被调用：输出 53 键（= FINAL_KEYS），且非全 0
 ##   D. StatPanel 收到真实结算结果（不是 _ready 里的空渲染）
 ##   E. 选关真的发出 `EventBus.request_start_level`（带正确 level_id / tier）
@@ -17,7 +18,10 @@ extends Node2D
 ## 测试专用槽位（避开玩家可能用到的 0–3）
 const TEST_SLOT := 7
 const HUB_SCENE := "res://scenes/main/hub.tscn"
-const EXPECTED_PANELS: Array[String] = ["inventory", "character", "equip", "talent", "forge"]
+const EXPECTED_PANELS: Array[String] = [
+	"inventory", "character", "equip", "talent", "forge", "skills",
+	"rune_codex", "tower", "abyss", "set",
+]
 
 var _fail: int = 0
 
@@ -101,6 +105,7 @@ func _run() -> void:
 	_ok("equip 是 EquipPanel", hub.get_panel("equip") is EquipPanel)
 	_ok("talent 是 TalentPanel", hub.get_panel("talent") is TalentPanel)
 	_ok("forge 是 ForgePanel", hub.get_panel("forge") is ForgePanel)
+	_ok("set 是 SetPanel", hub.get_panel("set") is SetPanel)
 
 	# 面板入树后才 bind —— refresh() 必须真的画出了东西（防「bind 早于 _ready」回归）
 	print("--- B2. 面板内容已渲染 ---")
@@ -112,6 +117,13 @@ func _run() -> void:
 		_count_labels(hub.get_panel("talent"), "") >= 3)
 	_ok("ForgePanel 有费用/材料标签",
 		_count_labels(hub.get_panel("forge"), "") >= 2)
+
+	# 套装面板：3 套全部渲染（标题行 "x/6"）；装配 sword_iron（非套装件）→ 0/6
+	# ⚠️ SetSystem.get_progress 对每套**无条件**返回进度（0 件也返回），故空态分支
+	#    （"未穿戴任何套装"）是防御性死代码（sets.json 恒有 3 套时永不触发）。
+	var sp2 := hub.get_panel("set") as SetPanel
+	_ok("SetPanel 渲染 3 套进度标题（x/6）",
+		sp2 != null and _count_labels_contain(sp2, "/6") >= 3)
 
 	# ---------- C/D. 属性结算 ----------
 	print("--- C/D. StatCalculator.calculate() 真实调用 ---")
@@ -243,6 +255,18 @@ func _count_labels(node: Node, prefix: String) -> int:
 		if c is Label and (c as Label).text.begins_with(prefix):
 			n += 1
 		n += _count_labels(c, prefix)
+	return n
+
+
+## 子串版计数（SetPanel 标题文本为 "套装名  x/6"）
+func _count_labels_contain(node: Node, substr: String) -> int:
+	if node == null:
+		return 0
+	var n := 0
+	for c in node.get_children():
+		if c is Label and (c as Label).text.contains(substr):
+			n += 1
+		n += _count_labels_contain(c, substr)
 	return n
 
 

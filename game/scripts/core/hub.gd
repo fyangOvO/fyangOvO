@@ -29,10 +29,12 @@ const PANEL_SKILLS := "skills"
 const PANEL_RUNE_CODEX := "rune_codex"
 const PANEL_TOWER := "tower"
 const PANEL_ABYSS := "abyss"
+## 套装进度面板（2026-10-15 · §6.2 SetPanel 挂真实 UI）
+const PANEL_SET := "set"
 
 const PANEL_IDS: Array[String] = [
 	PANEL_INVENTORY, PANEL_CHARACTER, PANEL_EQUIP, PANEL_TALENT, PANEL_FORGE, PANEL_SKILLS,
-	PANEL_RUNE_CODEX, PANEL_TOWER, PANEL_ABYSS,
+	PANEL_RUNE_CODEX, PANEL_TOWER, PANEL_ABYSS, PANEL_SET,
 ]
 const PANEL_TITLES := {
 	PANEL_INVENTORY: "背包 / 仓库",
@@ -44,6 +46,7 @@ const PANEL_TITLES := {
 	PANEL_RUNE_CODEX: "符文图鉴",
 	PANEL_TOWER: "永恒之塔",
 	PANEL_ABYSS: "深渊",
+	PANEL_SET: "套装",
 }
 
 ## 背包 / 仓库网格（工程侧默认，见 Inventory 头注释）
@@ -331,6 +334,8 @@ func _ensure_panel(panel_id: String) -> bool:
 			panel = _build_mode_level_list("tower", "永恒之塔 · 选层")
 		PANEL_ABYSS:
 			panel = _build_mode_level_list("abyss", "深渊 · 选副本")
+		PANEL_SET:
+			panel = SetPanel.new()
 	if panel == null:
 		return false
 	# 內面板自身背景透明，讓外層金邊顯現
@@ -458,6 +463,8 @@ func _bind_panel(panel_id: String, panel: Control) -> void:
 			(panel as RuneCodexPanel).bind(
 				data.unlocked_runes,
 				int(last_stats.get("skill_level", GameConstants.SKILL_LEVEL_BASE)))
+		PANEL_SET:
+			(panel as SetPanel).show_sets(data.equipped)
 
 
 ## SkillPanel 的第二层上下文（符文 / 分支 / 解锁 / 等级 / 落盘回调）
@@ -667,6 +674,7 @@ func _on_equipment_changed(_slot: int, _new_item: EquipmentInstance,
 		return
 	_refresh_panel(PANEL_EQUIP)
 	_refresh_panel(PANEL_INVENTORY)
+	_refresh_panel(PANEL_SET)
 	_recalculate_stats(data)
 
 
@@ -869,6 +877,7 @@ func _build_ui() -> void:
 		{"pid": PANEL_SKILLS, "name": "技能師", "pos": Vector2(220, 230), "line": "技能怎麼帶？我幫你調。", "tex": "quest_small"},
 		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔層越高，獎勵越豐。", "tex": "guard_small"},
 		{"pid": PANEL_ABYSS, "name": "深淵使者", "pos": Vector2(540, 230), "line": "深淵之下……你確定要去？", "tex": "abyss_small"},
+		{"pid": PANEL_SET, "name": "套装师", "pos": Vector2(540, 105), "line": "集齐套装，战力飞升。", "tex": "merchant_small"},
 	]
 	for h in HOTSPOTS:
 		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"], h["tex"])
