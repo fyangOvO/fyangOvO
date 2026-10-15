@@ -5,6 +5,8 @@
 ## C. SkillBarUI：3 槽 / 图标名 / 键位 / 冷却遮罩状态
 ## D. PickupToastHUD：金币/材料/装备提示条 + 上限
 ## E. 关卡接线：拾取广播 → 提示流；技能栏挂载
+## F. 異常狀態 HUD（2026-10-15 · §6.2）：ailment_bar 事件驅動 / host 過濾 /
+##    固定順序 / slow→chill 素材鍵映射 / 圖標素材可載入 / 解除移除
 extends Node2D
 
 var _fail: int = 0
@@ -22,6 +24,7 @@ func _run() -> void:
 	await _test_skill_bar()
 	await _test_pickup_toasts()
 	await _test_level_wiring()
+	await _test_ailment_bar()
 	print("===== 步骤 6 实测 结束：%s =====" % ("全部通过" if _fail == 0 else "%d 项失败" % _fail))
 	# 退出前清理播放即焚的 SFX：headless 下 Dummy 音频驱动不推进、`finished` 永不触发，
 	# AudioStreamPlayer 连同 AudioStreamWAV/Playback 挂在 root 上泄漏（6 ObjectDB + 2 resource）。
@@ -192,6 +195,64 @@ func _test_level_wiring() -> void:
 	SaveManager.current_data = null
 	SaveManager.current_slot = -1
 	level.queue_free()
+	await get_tree().process_frame
+
+
+# =============================================================================
+# F. 異常狀態 HUD（2026-10-15 · §6.2 異常 HUD 接通）
+# =============================================================================
+
+func _test_ailment_bar() -> void:
+	print("--- F. 異常狀態 HUD（ailment_bar）---")
+	var bar := AilmentBarUI.new()
+	add_child(bar)
+	var fake := Node.new()
+	fake.name = "FakePlayer"
+	add_child(fake)
+	bar.source = fake
+	await get_tree().process_frame
+	_ok("初始無異常", bar.get_active_ailments().is_empty())
+	# 玩家中燃燒 → 圖標出現
+	EventBus.ailment_status_changed.emit(fake, GameConstants.AILMENT_BURN, true)
+	var act := bar.get_active_ailments()
+	_ok("玩家中燃燒 → 圖標出現（剩餘 = 燃燒時長）", act.size() == 1
+		and act[0]["ailment"] == GameConstants.AILMENT_BURN
+		and absf(float(act[0]["time"]) - GameConstants.AILMENT_BURN_DURATION) < 0.001)
+	# 別人的異常不顯示（host 過濾）
+	var other := Node.new()
+	add_child(other)
+	EventBus.ailment_status_changed.emit(other, GameConstants.AILMENT_POISON, true)
+	_ok("他人中毒不顯示（host 過濾）", bar.get_active_ailments().size() == 1)
+	# 感電 + 詛咒 同時激活 → 順序固定
+	EventBus.ailment_status_changed.emit(fake, GameConstants.AILMENT_SHOCK, true)
+	EventBus.ailment_status_changed.emit(fake, GameConstants.AILMENT_CURSE, true)
+	var three := bar.get_active_ailments()
+	_ok("多異常按固定順序（burn → shock → curse）",
+		three.size() == 3 and three[0]["ailment"] == "burn"
+		and three[1]["ailment"] == "shock" and three[2]["ailment"] == "curse")
+	# 慢速邏輯鍵 → chill 素材鍵映射（命名漂移）
+	EventBus.ailment_status_changed.emit(fake, GameConstants.AILMENT_SLOW, true)
+	var slow_found := false
+	for e in bar.get_active_ailments():
+		if e["ailment"] == GameConstants.AILMENT_SLOW:
+			slow_found = e["icon_key"] == "chill"
+	_ok("slow → chill 素材鍵映射", slow_found)
+	# 圖標資源實際可載入（ailment_*_24 素材存在）
+	var icon_ok := true
+	for e in bar.get_active_ailments():
+		if UISkin.ailment_icon(String(e["icon_key"])) == null:
+			icon_ok = false
+	_ok("激活異常的圖標素材全部可載入", icon_ok)
+	# 解除 → 移除
+	EventBus.ailment_status_changed.emit(fake, GameConstants.AILMENT_BURN, false)
+	var after := false
+	for e in bar.get_active_ailments():
+		if e["ailment"] == GameConstants.AILMENT_BURN:
+			after = true
+	_ok("解除燃燒 → 圖標移除", not after)
+	other.queue_free()
+	fake.queue_free()
+	bar.queue_free()
 	await get_tree().process_frame
 
 

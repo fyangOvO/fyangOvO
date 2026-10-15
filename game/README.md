@@ -851,7 +851,11 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   底材池頂 22 時，cap 到該稀有度池頂，保證 BOSS 必掉裝備而非回退金幣。
 - **玩家→怪物施加異常已接通（2026-10-14）**：`skill_controller._hit` / `summon` 命中補
   `apply_ailment_from_element`，`enemy_base` 補轉發到 health；命中後按異常染色（見打擊感）。
-- **無異常 HUD**（`status_shock` / `status_curse` 素材已在但無消費點）
+- **無異常 HUD 已接通（2026-10-15）**：新增 `AilmentBarUI`（`ailment_bar.gd`）掛在血條正下方，
+  監聽 `EventBus.ailment_status_changed`（host == 玩家）顯示 `ailment_*_24` 真素材圖標 +
+  剩餘秒。⚠️ 命名漂移在** UI 層**做了 `slow → chill` 映射（`AILMENT_SLOW="slow"` vs 素材鍵
+  `ailment_chill`），核心邏輯鍵未動。`status_shock` / `status_curse` 舊素材鍵仍未消費
+  （`ailment_*` 已是 24px 真素材，`status_*` 屬早期預留，可留作他途）。
 - `ms_boost.element_attach`（裂界指環附元素）未接線；`extra_loot` 未強制 `loot_quality`
 - **`SetPanel` 尚未掛進真實 UI**（全庫只有 `set_preview` / `capture_set_panel` 在用）
 - `BIG_NODE_MECHANICS` 前 5 機制仍為展示字串

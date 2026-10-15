@@ -171,6 +171,8 @@ var _pickup_toasts: PickupToastHUD = null
 var _summon_bar: SummonBarUI = null
 ## 臨時增益 HUD（第四步 B4 3-B4 · 召喚欄上方小圖標 + 剩餘時間）
 var _buff_bar: BuffBarUI = null
+## 異常狀態 HUD（2026-10-15 · §6.2）：玩家受異常時的圖標 + 剩餘時間。
+var _ailment_bar: AilmentBarUI = null
 
 ## 8C BOSS 觉醒卡：BOSS 远端沉睡，玩家接近 AWAKEN_TRIGGER_DIST 触发觉醒立绘卡，
 ## 卡结束后解除冻结正式开战（DNF 觉醒立绘风格，步骤 8C）。
@@ -470,6 +472,7 @@ func _build() -> void:
 	_build_quick_slot()
 	_build_summon_bar()
 	_build_buff_bar()
+	_build_ailment_bar()
 	print("[Level] 进入「%s」Lv.%d · 难度 %d · 敌人 %d（精英 %d / BOSS %d）· 目标：%s"
 		% [_level_def.display_name, _level_def.level, difficulty_tier,
 			_alive.size(), _elite_total, _boss_total, _objective_desc])
@@ -1399,6 +1402,9 @@ const SUMMON_BAR_ORIGIN: Vector2 = Vector2(472.0, 268.0)
 ## 臨時增益 HUD 原點（第四步 B4 3-B4）：召喚欄（472,268，24px 高）**正上方**。
 ## 6 槽 × 24px + 5 間隙 × 3 = 159 寬 ⇒ x = 472..631（螢幕 640，右留 9px）。
 const BUFF_BAR_ORIGIN: Vector2 = Vector2(472.0, 244.0)
+## 異常狀態 HUD 原點（2026-10-15 · §6.2）：血條框（HpFrame 16,120-304,152）**正下方**，
+## 5 槽 × 24px + 4 間隙 × 3 = 132 寬 ⇒ x = 16..148，不與任務板（y≤112）/ 橫幅（y=328）重疊。
+const AILMENT_BAR_ORIGIN: Vector2 = Vector2(16.0, 152.0)
 ## 槽邊長（px）。與 `skill_slot_48.png` / `skill_icon_*_48.png` 原生尺寸一致 ⇒ **1× 整數**。
 const SKILL_SLOT_PX: float = 48.0
 ## 槽間距（px）。
@@ -1463,6 +1469,23 @@ func _build_buff_bar() -> void:
 ## 驗證 / 測試鉤子
 func get_buff_bar() -> BuffBarUI:
 	return _buff_bar
+
+
+## 異常狀態 HUD（2026-10-15 · §6.2）：數據源 = 玩家的 `HealthComponent`（經
+## `EventBus.ailment_status_changed` 事件驅動，`host == _player` 才顯示）。
+## 位置：血條框正下方（16,152），5 槽 × 24px。
+func _build_ailment_bar() -> void:
+	var bar := AilmentBarUI.new()
+	bar.name = "AilmentBar"
+	bar.position = AILMENT_BAR_ORIGIN
+	bar.source = _player
+	$HUD.add_child(bar)
+	_ailment_bar = bar
+
+
+## 驗證 / 測試鉤子
+func get_ailment_bar() -> AilmentBarUI:
+	return _ailment_bar
 
 
 ## 章節/關卡名橫幅文字（底板貼圖見 `_apply_hud_skin`）。`_build()` 取得關卡定義後呼叫。
