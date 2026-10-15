@@ -606,6 +606,13 @@ func _load_skill_dir(dir_path: String) -> void:
 			res.mana_cost = float(raw.get("mana_cost", 0.0))
 			res.range = float(raw.get("range", 96.0))
 			res.radius = float(raw.get("radius", 48.0))
+			# 2026-10-15：爆炸投射物判定（`on_projectile_hit` 的 `radius > 0` 分支）。
+			# `SkillData.radius` 默认 48.0 ⇒ 未显式声明 radius 的普通投射物会被误判成爆炸型
+			# （穿透箭/多重/连锁全变爆炸，弹射与射程断言崩溃）。
+			# 语义定死：**只有表里显式带 `radius` 的投射物才是爆炸型**（全库仅 explosive_arrow）。
+			# AOE / GROUND 的 radius 语义（作用范围）不受影响；`radius_pct` 符文对 0 起点仍为 0。
+			if res.type == SkillData.SkillType.PROJECTILE and not raw.has("radius"):
+				res.radius = 0.0
 			res.dash_distance = float(raw.get("dash_distance", 96.0))
 			res.knockback = float(raw.get("knockback", 0.0))
 			res.description = String(raw.get("description", ""))

@@ -92,6 +92,14 @@ func _flash_hit() -> void:
 	tween.tween_property(damage_display, "modulate", Color.WHITE, 0.10)
 
 
+## 元素异常施加接口（契约；`skill_controller._hit` 会按元素调用）：
+## 真实敌人用 `EnemyBase.health.apply_ailment_from_element` 实现；本靶只**记录元素**
+## 供验证断言（`verify_skills` 毒云「使其中毒」）。
+var last_ailment_element: String = ""
+func apply_ailment_from_element(element: String, _source: Node) -> void:
+	last_ailment_element = element
+
+
 ## 击退入口（契约）。offset 为位移向量（px）。
 func apply_knockback(offset: Vector2) -> void:
 	total_knockback += offset.length()
@@ -107,6 +115,7 @@ func reset(hp_value: float = 100.0) -> void:
 	armor = 0.0
 	level = 1
 	resists.clear()
+	last_ailment_element = ""
 
 
 func _solid_texture(w: int, h: int, color: Color) -> ImageTexture:

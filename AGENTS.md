@@ -261,7 +261,8 @@ data/*.json  ──ConfigLoader──▶  Resource 模板（EquipmentData / Mons
 ### 6.2 工程側待接線（節選，詳見 README §9.2(b)）
 
 分支 7 個 modifier（**刻意延後**）｜ `material_sub_weights` 死字段（`item_level_spread` 已於 2026-10-15 接通）｜
-`UISkin.affix_icon()` 零調用方 ｜ （玩家→怪物異常已接通、8 新怪 sprite_path 已兜底、**異常 HUD 已接通（AilmentBarUI）**、
+`UISkin.affix_icon()` 零調用方 ｜ **三技能機制已承載（2026-10-15）：explosive_arrow 命中爆炸 / poison_cloud 使其中毒 /
+rune_echo 回響施放** ｜ （玩家→怪物異常已接通、8 新怪 sprite_path 已兜底、**異常 HUD 已接通（AilmentBarUI）**、
 **SetPanel 已掛真實 UI（套裝師）**，2026-10-14/15）
 
 ### 6.3 策劃側仍紅

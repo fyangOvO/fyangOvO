@@ -135,6 +135,11 @@ const TYPE_KEYS: Array[String] = ["single", "aoe", "dash", "projectile", "ground
 ## 分裂子投射物的伤害占母弹的百分比（`rune_split` 的 `on_hit_split.damage_pct`）。
 @export var split_damage_pct: float = 0.0
 
+## 回响符文（`rune_echo` 附加效果）：重复施放次数（>1 生效，第二发起各 ×`echo_damage_pct`% 伤害）。
+## 由 `_apply_rune_modifiers` 从 `rune_echo.modifiers` 写入（2026-10-15 承载）。
+@export var echo_count: int = 0
+@export var echo_damage_pct: float = 0.0
+
 ## 召唤物 id（= `assets/pack/creatures/<id>/` 目录名）。仅 SUMMON 使用。
 ## ⚠️ 与技能 `id` **不必相同**（如技能 `spirit_wolf` → 召唤物 `summon_spirit_wolf`）。
 @export var summon_id: String = ""

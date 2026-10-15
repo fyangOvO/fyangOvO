@@ -863,7 +863,15 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   `SetPanel` 的「未穿戴任何套裝」空態是**防禦性死代碼**（sets.json 恆有 3 套時不觸發）。
 - `BIG_NODE_MECHANICS` 前 5 機制仍為展示字串
 - 套裝專屬特效視覺 6 套未生產；增益圖標 12 張未生產（B4-1 走佔位繪製）
-- `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）未承載
+- `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）**已承載（2026-10-15）**：
+  - `explosive_arrow`（全庫唯一帶 `radius` 的投射物）：`on_projectile_hit` 命中後以目標為圓心
+    爆炸，`HitQuery.circle(radius)` 內所有敵人各受一次傷害；被命中者只吃爆炸一份（避免 480%）。
+  - `poison_cloud`：屬 2026-10-14「玩家→怪物異常接通」的自然覆蓋（`_hit` 對 element=poison 統一
+    施加中毒），**確認承載**（`verify_skills` E 段「毒云使其中毒」斷言）。
+  - `rune_echo`：`SkillData` 新增 `echo_count` / `echo_damage_pct`；`_apply_rune_modifiers` 讀入
+    （`_meta.modifier_semantics.附加效果` 明確列此二鍵）；`try_cast` 分派後循環 `echo_count-1` 次
+    duplicate 施放，第二發各 × `echo_damage_pct`%。不重複扣費 / 不重設冷卻 / 不重複埋點，
+    代價 = 冷卻 ×1.4（`cooldown_pct` 已生效）。
 - 命名漂移：`AILMENT_SLOW="slow"` vs 素材鍵 `chill`
 - 8 隻新怪 `sprite_path` **已兜底（2026-10-14）**：複製 creatures 目錄 `idle_s_01` 生成
   `sprites/enemies` 單張 png + .import，全 24 怪 `sprite_path` 有效（原「指向不存在 png」已消除）

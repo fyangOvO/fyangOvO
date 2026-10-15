@@ -12,7 +12,8 @@
 ##   C2. 冷却 / 减耗硬顶（2-V11）：+70% 与 +200% 等价（乘区封顶，防零冷却 / 负耗蓝）
 ##   D. 普攻假连段：按住连续挥击（间隔 = 1/攻速）/ 松开停止 / 攻击不打断移动 /
 ##      闪避打断 / 命中回蓝 / 朝向扇区判定
-##   E. 技能效果：裂斩单体 / 旋刃范围+击退 / 突进位移+撞击 / 法力与冷却联动
+##   E. 技能效果：裂斩单体 / 旋刃范围+击退 / 突进位移+撞击 / 法力与冷却联动 /
+##      爆裂箭爆炸（2026-10-15）/ 毒云使其中毒（2026-10-15）/ 回响两次施放（2026-10-15）
 ##   F. 回归：移动 / 朝向 / 闪避不受攻击技能影响
 extends Node
 
@@ -521,6 +522,62 @@ func _test_skill_effects() -> void:
 	# 法力与冷却联动
 	_mana.set_current(10.0)
 	_ok("法力不足（10 < 30）拒绝施放裂斩", not _skills.try_cast("cleave"))
+	_mana.set_current(100.0)
+
+	# ⚠️ 出战栏 = 战士三技，`get_skill_data` 只查出战字典；为端到端测其他职业技能，
+	# 注入技能数据到出战字典（测试专用，不影响存档）。
+	_skills._skills["explosive_arrow"] = ConfigLoader.get_skill("explosive_arrow")
+	_skills._skills["poison_cloud"] = ConfigLoader.get_skill("poison_cloud")
+	# 固定种子序列被新增测试消费后暴击 roll 会漂移（爆裂箭首跑打出 43.2 = 28.8×1.5），
+	# 显式归零暴击使全部伤害断言确定性（cleave/spin/dash 原本也依赖「种子下不暴击」）。
+	_player.apply_combat_stats({"crit_chance": -GameConstants.CRIT_CHANCE_BASE})
+
+	# 爆裂箭（2026-10-15 承载）：爆炸投射物 —— 命中目标受 2.4×12=28.8，
+	# 命中点 40px 半径内（+靶子 12px 命中半径扩展）相邻目标同样受 28.8，远处不受。
+	_player.global_position = Vector2(0, 0)
+	dummy_front.global_position = Vector2(0, 40)
+	dummy_far.global_position = Vector2(0, 62)
+	dummy_behind.global_position = Vector2(0, -120)
+	dummy_front.reset()
+	dummy_far.reset()
+	dummy_behind.reset()
+	_player.set_facing(PlayerController.Facing8.DOWN)
+	_ok("爆裂箭施放成功", _skills.try_cast("explosive_arrow"))
+	await get_tree().create_timer(0.5).timeout
+	_ok("爆裂箭命中目标：伤害 28.8（240%）",
+		is_equal_approx(dummy_front.total_damage_taken, 28.8))
+	_ok("爆裂箭爆炸波及半径内目标：28.8",
+		is_equal_approx(dummy_far.total_damage_taken, 28.8))
+	_ok("爆裂箭未波及远距离目标", dummy_behind.total_damage_taken == 0.0)
+	_skills.tick_cooldowns(6.0)
+	_mana.set_current(100.0)
+
+	# 毒云（2026-10-15 确认承载）：地面区域 tick 造成伤害**并使其中毒**
+	# （element=poison ⇒ `_hit` 里 apply_ailment_from_element 施加，与火/冰/雷同口径）。
+	dummy_front.reset()
+	dummy_front.global_position = Vector2(0, 24)
+	_player.global_position = Vector2(0, 0)
+	_player.set_facing(PlayerController.Facing8.DOWN)
+	_ok("毒云施放成功", _skills.try_cast("poison_cloud"))
+	await get_tree().create_timer(0.6).timeout
+	_ok("毒云 tick 造成伤害", dummy_front.total_damage_taken > 0.0)
+	_ok("毒云使其中毒（元素异常已施加）",
+		dummy_front.last_ailment_element == "poison")
+	_skills.tick_cooldowns(8.0)
+	_mana.set_current(100.0)
+
+	# 回响符文（2026-10-15 承载）：施放两次（第二次 60% 伤害）→ 单体目标 42 × 1.6 = 67.2
+	dummy_front.reset()
+	dummy_behind.reset()
+	dummy_front.global_position = Vector2(0, 40)
+	_player.global_position = Vector2(0, 0)
+	_player.set_facing(PlayerController.Facing8.DOWN)
+	_skills.set_equipped_runes("cleave", ["rune_echo"])
+	_ok("回响施放成功（单次扣费进冷却）", _skills.try_cast("cleave"))
+	_ok("回响两次命中总伤害 = 42 × 1.6 = 67.2",
+		is_equal_approx(dummy_front.total_damage_taken, 42.0 * 1.6))
+	_skills.set_equipped_runes("cleave", [])
+	_skills.tick_cooldowns(7.0)
 	_mana.set_current(100.0)
 
 

@@ -279,6 +279,29 @@ func try_cast(id: String) -> bool:
 	CombatMetrics.begin_cast(id, effective.type == SkillData.SkillType.AOE)
 	var deferred_hits := effective.type == SkillData.SkillType.PROJECTILE \
 		or effective.type == SkillData.SkillType.GROUND
+	_dispatch(effective)
+	# 回响符文（`rune_echo` 附加效果承载，2026-10-15）：施放两次（第二发起各 × echo_damage_pct% 伤害）。
+	# 代价 = 冷却 ×1.4（`cooldown_pct` 符文，RUNE_PCT_KEYS 已生效）；**不重复扣费 / 不重设冷却 /
+	# 不重复埋点**——"施放两次"是同一发技能的扩展，不是独立施放。
+	var echo_n := int(effective.echo_count)
+	if echo_n > 1:
+		var echo_dmg := float(effective.echo_damage_pct) / 100.0
+		for i in range(echo_n - 1):
+			var echo_data: SkillData = effective.duplicate()
+			echo_data.multiplier = effective.multiplier * echo_dmg
+			_dispatch(echo_data)
+	CombatMetrics.end_cast(deferred_hits)
+	# 3-X5：施法 / 耗资源埋点（传奇特效 `on_skill_cast` / `on_resource_spend` 的落点）。
+	# ⚠️ 必须放在**扣费 + 写入冷却之后** —— `resource_refund`（终末回响）要用「已扣的实耗」
+	# 返还法力、要「刚写入的冷却」做 `cooldown_half`。放在前面两者都会算错。
+	# 顺序：先 `resource_spent`（资源在施放前就已扣）再 `skill_cast`（施放成立）。
+	EventBus.resource_spent.emit(real_cost)
+	EventBus.skill_cast.emit(id, real_cost)
+	return true
+
+
+## 技能形态分派（try_cast 与回响第二发共用）：不含扣费 / 冷却 / 埋点。
+func _dispatch(effective: SkillData) -> void:
 	match effective.type:
 		SkillData.SkillType.SINGLE:
 			_execute_single(effective)
@@ -296,15 +319,7 @@ func try_cast(id: String) -> bool:
 			_execute_buff(effective)
 		_:
 			push_warning("[SkillController] 技能 '%s' 的形态 %d 无分派分支（已被静默吞掉）"
-				% [id, effective.type])
-	CombatMetrics.end_cast(deferred_hits)
-	# 3-X5：施法 / 耗资源埋点（传奇特效 `on_skill_cast` / `on_resource_spend` 的落点）。
-	# ⚠️ 必须放在**扣费 + 写入冷却之后** —— `resource_refund`（终末回响）要用「已扣的实耗」
-	# 返还法力、要「刚写入的冷却」做 `cooldown_half`。放在前面两者都会算错。
-	# 顺序：先 `resource_spent`（资源在施放前就已扣）再 `skill_cast`（施放成立）。
-	EventBus.resource_spent.emit(real_cost)
-	EventBus.skill_cast.emit(id, real_cost)
-	return true
+				% [effective.id, effective.type])
 
 
 ## 单体：朝向前方 60° 扇区内、range 内**最近**的一个目标
@@ -427,7 +442,22 @@ func on_dash_hit(target: Node, data: SkillData) -> void:
 
 ## 投射物命中出口（`Projectile` 调用）：走统一伤害管线。
 ## `damage_scale` 承载**连锁衰减**与**分裂占比**（母弹 = 1.0）。
+##
+## 爆炸投射物（爆裂箭等，`SkillData.radius > 0`，2026-10-15 承载）：命中后以目标为圆心
+## **爆炸**——范围内所有敌人（含命中目标）各受一次伤害，**单体的直接命中被爆炸替代**
+## （否则被命中者会吃「命中 + 爆炸」双份 = 480%）。范围口径同 GroundArea（`HitQuery.circle`）。
 func on_projectile_hit(target: Node, data: SkillData, damage_scale: float = 1.0) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	if data.radius > 0.0:
+		_hit(target, data, data.knockback, -1.0, damage_scale, data.id)
+		var blast := HitQuery.circle(target.global_position, data.radius,
+			get_tree().get_nodes_in_group(&"enemies"))
+		for e in blast:
+			if e == target or not is_instance_valid(e):
+				continue
+			_hit(e, data, data.knockback, -1.0, damage_scale, data.id)
+		return
 	_hit(target, data, data.knockback, -1.0, damage_scale, data.id)
 
 
@@ -501,6 +531,10 @@ func _apply_rune_modifiers(data: SkillData, rune_ids: Array) -> SkillData:
 			var v: Variant = mods[key]
 			if k == "on_hit_split":
 				_apply_rune_split(out, v)
+			elif k == "echo_count":
+				out.echo_count = int(v)
+			elif k == "echo_damage_pct":
+				out.echo_damage_pct = float(v)
 			elif k in RUNE_FIELD_KEYS:
 				_apply_rune_field(out, k, v)
 			elif k in RUNE_PCT_KEYS:
