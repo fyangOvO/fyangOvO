@@ -121,6 +121,40 @@ func _draw() -> void:
 	draw_rect(Rect2(pos.x + 1.0, pos.y + 1.0, w - 2.0, 1.0), Color("E8573F"))
 	draw_rect(full, GameConstants.UI_HP_BAR_OUTLINE, false, 1.0)
 
+	# ── 2026-10-16：异常状态图标（血条上方，24×24 原尺寸，`status_*_24.png`）──
+	# 素材键与玩家 HUD 的 `ailment_*_24` 为两套（AilmentBarUI 消费后者）；
+	# 怪物侧走 `status_*`（含 slow→chill 命名漂移映射，与 ailment_bar.gd 同口径）。
+	var ails := _active_ailments()
+	if not ails.is_empty():
+		var icon_y := pos.y - 26.0
+		var gap := 1.0
+		for i in ails.size():
+			var icon := UISkin.texture(String(STATUS_ICONS.get(String(ails[i]), "")))
+			if icon == null:
+				continue
+			draw_texture(icon, Vector2(pos.x + float(i) * (24.0 + gap), icon_y))
+
+
+## 实体激活中的异常键（health.get_active_ailments()；无 health ⇒ 空）。
+func _active_ailments() -> Array:
+	if _target == null or not is_instance_valid(_target) or _target.get("health") == null:
+		return []
+	var h = _target.get("health")
+	if h != null and h.has_method("get_active_ailments"):
+		return h.call("get_active_ailments")
+	return []
+
+
+## 异常逻辑键 → 怪物头顶状态图标键（`status_*_24.png`，已注册 UISkin TEX）。
+## slow→chill 是历史命名漂移（`AILMENT_SLOW` 逻辑键 vs `chill` 素材键），UI 层统一映射。
+const STATUS_ICONS: Dictionary = {
+	GameConstants.AILMENT_POISON: "status_poison",
+	GameConstants.AILMENT_BURN: "status_burn",
+	GameConstants.AILMENT_SLOW: "status_chill",
+	GameConstants.AILMENT_SHOCK: "status_shock",
+	GameConstants.AILMENT_CURSE: "status_curse",
+}
+
 
 func _read_hp() -> float:
 	if _target.has_method("get_current_hp"):

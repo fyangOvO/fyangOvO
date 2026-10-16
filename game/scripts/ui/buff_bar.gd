@@ -49,6 +49,20 @@ const KEY_LABELS: Dictionary = {
 	"elemental_damage": "元素",
 }
 
+## ── 2026-10-16：真素材接通 ────────────────────────────────
+## 增益來源 `source_id`（技能 `buff_id`）→ `UISkin` 狀態圖標鍵（24×24，
+## `status_*_24.png` 12 張已備、已註冊 TEX；本表收「技能增益」7 條中的 5 條 +
+## 通用 `regen`）。`wind_walk` / `mana_surge` 無對應素材 ⇒ 留空走佔位分支。
+## 素材鍵與 AILMENT 同名不衝突：BuffBar 只認來源 id，WorldHealthBar 走 ailment 鍵。
+const BUFF_ICONS: Dictionary = {
+	"buff_warcry": "status_warcry",
+	"buff_blood_rage": "status_blood_rage",
+	"buff_iron_bulwark": "status_iron_bulwark",
+	"buff_hawk_eye": "status_hawk_eye",
+	"buff_arcane_shield": "status_shield",
+	"regen": "status_regen",
+}
+
 ## 数据源（玩家节点；由 `LevelScene` 注入）
 var source: Node = null
 
@@ -79,28 +93,34 @@ func _draw_one(entry: Dictionary, rect: Rect2, font: Font) -> void:
 	var stacks := int(entry.get("stacks", 1))
 	var remain := float(entry.get("remain", 0.0))
 	var total := maxf(float(entry.get("duration", 1.0)), 0.001)
-
-	# ① 底色（正增益蓝 / 负增益红）+ 1px 暗描边
-	var base := POS_COLOR if value >= 0.0 else NEG_COLOR
-	draw_rect(rect, base, true)
-
-	# ② 剩餘時間：左側豎條按剩餘比例收縮（不遮字，一眼讀出「還剩多久」）
-	var ratio := clampf(remain / total, 0.0, 1.0)
 	var bar_w := 2.0
+	var ratio := clampf(remain / total, 0.0, 1.0)
+
+	# ① 真素材优先：来源 id 命中 `status_*` 图标 ⇒ 整格铺图标（24×24 原尺寸）
+	var icon: Texture2D = null
+	var icon_key := String(BUFF_ICONS.get(String(entry.get("source_id", "")), ""))
+	if icon_key != "":
+		icon = UISkin.texture(icon_key)
+	if icon != null:
+		draw_texture_rect(icon, rect, false)
+	else:
+		# 占位分支：正增益蓝 / 负增益红 + 属性缩写（素材未覆盖的来源）
+		var base := POS_COLOR if value >= 0.0 else NEG_COLOR
+		draw_rect(rect, base, true)
+		if font != null:
+			var label := String(KEY_LABELS.get(key, key.substr(0, mini(key.length(), 2))))
+			var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE).x
+			var pos := Vector2(
+				rect.position.x + bar_w + (rect.size.x - bar_w - w) * 0.5,
+				rect.position.y + rect.size.y - SECS_BAR_H - 2.0)
+			draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, TEXT_COLOR)
+
+	# ② 剩余时间：左侧竖条按剩余比例收缩（不遮字，一眼读出「还剩多久」）
 	draw_rect(Rect2(rect.position, Vector2(bar_w, rect.size.y)), Color(0.0, 0.0, 0.0, 0.45), true)
 	draw_rect(Rect2(rect.position.x, rect.position.y + rect.size.y * (1.0 - ratio),
 		bar_w, rect.size.y * ratio), Color("7FE3A1"), true)
 
-	# ③ 屬性縮寫（中央；上方 15px 區域）
-	if font != null:
-		var label := String(KEY_LABELS.get(key, key.substr(0, mini(key.length(), 2))))
-		var w := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE).x
-		var pos := Vector2(
-			rect.position.x + bar_w + (rect.size.x - bar_w - w) * 0.5,
-			rect.position.y + rect.size.y - SECS_BAR_H - 2.0)
-		draw_string(font, pos, label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, TEXT_COLOR)
-
-	# ④ 底部暗條：左 = 疊層數（僅 N > 1），右 = 剩餘秒
+	# ③ 底部暗条：左 = 叠层数（仅 N > 1），右 = 剩余秒
 	if font != null:
 		var strip := Rect2(rect.position.x, rect.position.y + rect.size.y - SECS_BAR_H,
 			rect.size.x, SECS_BAR_H)
@@ -114,7 +134,7 @@ func _draw_one(entry: Dictionary, rect: Rect2, font: Font) -> void:
 		draw_string(font, Vector2(strip.position.x + strip.size.x - sw - 1.0, baseline),
 			secs, HORIZONTAL_ALIGNMENT_LEFT, -1, SECS_SIZE, TEXT_COLOR)
 
-	# ⑤ 1px 暗描邊（最後畫，壓住溢出像素）
+	# ④ 1px 暗描边（最后画，压住溢出像素）
 	draw_rect(rect, Color(0.0, 0.0, 0.0, 0.6), false, 1.0)
 
 
