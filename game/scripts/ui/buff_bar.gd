@@ -51,15 +51,16 @@ const KEY_LABELS: Dictionary = {
 
 ## ── 2026-10-16：真素材接通 ────────────────────────────────
 ## 增益來源 `source_id`（技能 `buff_id`）→ `UISkin` 狀態圖標鍵（24×24，
-## `status_*_24.png` 12 張已備、已註冊 TEX；本表收「技能增益」7 條中的 5 條 +
-## 通用 `regen`）。`wind_walk` / `mana_surge` 無對應素材 ⇒ 留空走佔位分支。
-## 素材鍵與 AILMENT 同名不衝突：BuffBar 只認來源 id，WorldHealthBar 走 ailment 鍵。
+## `status_*_24.png` 已備、已註冊 TEX）。`BUFF_DEFS` 7 條全覆蓋（含 2026-10-16
+## 補產的 wind_walk / mana_surge）；`regen` 通用來源備用。
 const BUFF_ICONS: Dictionary = {
 	"buff_warcry": "status_warcry",
 	"buff_blood_rage": "status_blood_rage",
 	"buff_iron_bulwark": "status_iron_bulwark",
 	"buff_hawk_eye": "status_hawk_eye",
 	"buff_arcane_shield": "status_shield",
+	"buff_wind_walk": "status_wind_walk",
+	"buff_mana_surge": "status_mana_surge",
 	"regen": "status_regen",
 }
 

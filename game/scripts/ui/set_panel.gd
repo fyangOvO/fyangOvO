@@ -5,6 +5,17 @@
 class_name SetPanel
 extends PanelContainer
 
+## 機制檔特效 `effect_id` → UISkin 圖標鍵（6 張 16×16，2026-10-16 生產）。
+## 對應 `data/sets/sets.json` 的 `tier_bonuses[].effect_id`（6 個機制檔）。
+const SET_FX_ICONS: Dictionary = {
+	"frostbite_slow": "set_fx_frostbite_slow",
+	"frostbite_burst": "set_fx_frostbite_burst",
+	"emberpath_frenzy": "set_fx_emberpath_frenzy",
+	"emberpath_ember": "set_fx_emberpath_ember",
+	"oathkeeper_block_heal": "set_fx_oathkeeper_heal",
+	"oathkeeper_last_stand": "set_fx_oathkeeper_stand",
+}
+
 var _box: VBoxContainer = null
 
 
@@ -87,6 +98,19 @@ func _make_set_row(entry: Dictionary) -> VBoxContainer:
 		piece_lbl.add_theme_color_override("font_color", green if active else grey)
 		piece_lbl.text = "%s件" % tier["pieces"]
 		line.add_child(piece_lbl)
+
+		# ── 2026-10-16：機制檔特效小圖標（16×16 原尺寸，`set_fx_*_16.png`）──
+		# effect_id → UISkin 圖標鍵（6 個機制特效：frostbite_slow/burst、
+		# emberpath_frenzy/ember、oathkeeper_heal/stand）。無圖標檔（純數值檔）不畫。
+		var fx_key := String(SET_FX_ICONS.get(String(tier.get("effect_id", "")), ""))
+		if fx_key != "":
+			var fx := TextureRect.new()
+			fx.custom_minimum_size = Vector2(16, 16)
+			fx.size = Vector2(16, 16)
+			fx.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			fx.texture = UISkin.texture(fx_key)
+			fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			line.add_child(fx)
 
 		var effect_name := String(tier.get("effect_name", ""))
 		if not effect_name.is_empty():

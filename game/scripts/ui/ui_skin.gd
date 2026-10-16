@@ -359,6 +359,16 @@ const TEX: Dictionary = {
 	"status_shock": "status_shock_24.png",
 	"status_curse": "status_curse_24.png",
 	"status_sunder": "status_sunder_24.png",
+	# ── 2026-10-16：補 2 張增益（wind_walk / mana_surge），BUFF_DEFS 7 條全覆蓋 ──
+	"status_wind_walk": "status_wind_walk_24.png",
+	"status_mana_surge": "status_mana_surge_24.png",
+	# ── 2026-10-16：套裝專屬特效視覺 6 張（16×16，SetPanel 檔位行）──
+	"set_fx_frostbite_slow": "set_fx_frostbite_slow_16.png",
+	"set_fx_frostbite_burst": "set_fx_frostbite_burst_16.png",
+	"set_fx_emberpath_frenzy": "set_fx_emberpath_frenzy_16.png",
+	"set_fx_emberpath_ember": "set_fx_emberpath_ember_16.png",
+	"set_fx_oathkeeper_heal": "set_fx_oathkeeper_heal_16.png",
+	"set_fx_oathkeeper_stand": "set_fx_oathkeeper_stand_16.png",
 }
 
 ## 稀有度（`GameConstants.Rarity` 下標）→ 格子貼圖名。

@@ -54,9 +54,11 @@ func _test_data() -> void:
 	print("--- A. 数据 ---")
 	_ok("3 套注册", ConfigLoader.sets.size() == 3)
 	for set_id in ConfigLoader.sets:
-		var info: Dictionary = ConfigLoader.sets[set_id]
-		var pieces: Array = info.get("piece_template_ids", [])
-		var tiers: Array = info.get("tier_bonuses", [])
+		# ⚠️ ConfigLoader.sets 的值是 `SetData` Resource（非 Dictionary）——
+		# 声明 `: Dictionary` 会在运行期抛 TypeError（2026-10-16 顺手修）。
+		var info = ConfigLoader.sets[set_id]
+		var pieces: Array = info.piece_template_ids
+		var tiers: Array = info.tier_bonuses
 		_ok("%s 6 件 + 3 档" % set_id, pieces.size() == 6 and tiers.size() == 3)
 		var piece_marks := [2, 4, 6]
 		var ok_tiers := true

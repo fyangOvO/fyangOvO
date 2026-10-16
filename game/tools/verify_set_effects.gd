@@ -538,9 +538,10 @@ func _test_panel() -> void:
 		head4 != null and head6 != null
 		and head4.get_theme_color("font_color").g > head6.get_theme_color("font_color").g)
 	# 機制名與描述**同一行**（HBox）：面板不得因機制行被撐高
+	# 2026-10-16：機制檔新增特效小圖標（set_fx_*_16）⇒ 子節點 3→4（件數/圖標/機制名/描述）
 	_ok("機制行與描述同屬一個 HBox（不新增行高）",
 		mech_lbl != null and mech_lbl.get_parent() is HBoxContainer
-		and (mech_lbl.get_parent() as HBoxContainer).get_child_count() == 3)
+		and (mech_lbl.get_parent() as HBoxContainer).get_child_count() == 4)
 	panel.queue_free()
 	_sections_done.append("G")
 
