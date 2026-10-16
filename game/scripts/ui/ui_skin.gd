@@ -140,7 +140,7 @@ const TEX: Dictionary = {
 	"affix_all_attributes": "affix_all_attributes_32.png",
 	"affix_all_element_damage": "affix_all_element_damage_32.png",
 	"affix_all_resist": "affix_all_resist_32.png",
-	"affix_armor_penetration": "affix_armor_penetration_32.png",
+	"affix_armor_pierce": "affix_armor_penetration_32.png",
 	"affix_attack_speed": "affix_attack_speed_32.png",
 	"affix_block_chance": "affix_block_chance_32.png",
 	"affix_burn_damage": "affix_burn_damage_32.png",

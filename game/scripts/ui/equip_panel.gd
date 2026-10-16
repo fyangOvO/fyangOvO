@@ -243,14 +243,17 @@ func _render_detail() -> void:
 		lines.append("[color=#B3BCC9]词缀：[/color]")
 		for roll in item.affixes:
 			var line := "· "
-			# 2026-10-16：詞綴行加元素小圖標（elem_*_24 內聯，12px 等行高）。
-			# 元素由 `stat_key` 後綴推斷（elemental_damage_fire / cold_resist / burn_damage…
-			# 見 `_affix_element_key`）；通用詞綴（攻擊/暴擊等）無圖標。
-			var elem := _affix_element_key(roll as AffixRoll)
-			if elem != "":
-				var p := UISkin.path_for("elem_%s" % elem)
-				if p != "":
-					line += "[img width=12]%s[/img] " % p
+			# 2026-10-16：詞綴行圖標位 = 詞綴專屬圖標（`affix_*_32`，48 張按 stat_key 一一對應）。
+			# 16px 內聯（32→16 整數倍縮放，像素完整）；缺圖標（素材未備）走 12px 元素圖標兜底。
+			var stat_key: String = (roll as AffixRoll).template.stat_key \
+				if (roll as AffixRoll).template != null else ""
+			var p := UISkin.path_for("affix_%s" % stat_key)
+			if p == "":
+				var elem := _affix_element_key(roll as AffixRoll)
+				if elem != "":
+					p = UISkin.path_for("elem_%s" % elem)
+			if p != "":
+				line += "[img width=16]%s[/img] " % p
 			line += "[color=#%s]%s[/color]" % [
 				(roll as AffixRoll).quality_color().to_html(false), (roll as AffixRoll).to_text()]
 			lines.append(line)
