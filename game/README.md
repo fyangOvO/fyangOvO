@@ -875,12 +875,15 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
 - 命名漂移：`AILMENT_SLOW="slow"` vs 素材鍵 `chill`
 - 8 隻新怪 `sprite_path` **已兜底（2026-10-14）**：複製 creatures 目錄 `idle_s_01` 生成
   `sprites/enemies` 單張 png + .import，全 24 怪 `sprite_path` 有效（原「指向不存在 png」已消除）
+- **8 新怪方向動畫已完整（2026-09-28 素材 done：672 幀/8 隻 = 84 幀/隻）**；2026-10-16
+  `verify_anim` 覆蓋 16→24 隻，四方向 × 五動作契約全過（idle4/walk4/attack4/hurt3/die6）。
+  舊「無方向動畫」說法不實（pack 多幀優先，`sprite_path` 單張僅為兜底）。
 - `UISkin.affix_icon()` **零調用方**（死函數）；且 TEX 鍵用舊名 `affix_armor_penetration`
   對不上 `stat_key=armor_pierce`（無運行時消費點，留 B7）
-- **`affix_icon()` 已定性（2026-10-15，不接線）**：48/48 詞綴圖標資產齊全、`armor_pierce` vs
-  `armor_penetration` 是**唯一命名漂移**；但詞綴 UI 全是 11px 文本行（equip_panel 等），
-  內聯 32px 圖標會把行高撐到 2× 以上，16px 縮放（0.5×）又違反像素鐵律 ⇒ 無布局合適的消費點。
-  維持「備好待用的工具 API」狀態，等 UI 有詞綴圖標位（如詞綴格子/浮層）再消費。
+- **`affix_icon()` 已接線（2026-10-16）**：TEX 鍵 `affix_armor_pierce` 修正（指向原素材檔，
+  素材名待素材線統一）；詞綴行 16px 內聯消費（32→16 **整數倍**縮放，像素完整、行高 16px
+  可控，不違像素鐵律）——舊結論「16px 縮放違反像素鐵律 ⇒ 不接線」**已推翻**。
+  缺圖標詞綴走 12px 元素圖標兜底。
 
 #### (c) 策劃側仍紅（非工程批）
 

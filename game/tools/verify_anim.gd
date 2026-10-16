@@ -104,7 +104,12 @@ const MONSTER_IDS: Array[String] = [
 	"spider_cave", "bat_swarm", "slime_acid", "skeleton_warrior", "mushroom_spore",
 	"warg_dark", "imp_hellfire", "golem_ember", "brute_butcher", "frozen_husk",
 	"pyromancer_cultist", "hound_ash", "wraith_frost", "ice_wraith",
-	"boss_bone_tyrant", "boss_ember_lord"]
+	"boss_bone_tyrant", "boss_ember_lord",
+	# ── 2026-10-16：8 新怪（第五步 D3，2026-09-28 素材 done）補進測試盲區 ──
+	# 素材早已在 `assets/pack/creatures/<id>/`（84 幀/隻），但 B 段此前只測 16 舊怪，
+	# 8 新怪從未被四方向 × 五動作契約覆核。
+	"rat_swarm", "storm_wisp", "plague_bearer", "shade_stalker",
+	"thunder_herald", "bone_archer", "frost_lobber", "void_priest"]
 
 ## 怪物 pack 統一契約：五動作幀數（idle4 / walk4 / attack4 / hurt3 / die6）。
 const MONSTER_WANT_FRAMES: Dictionary = {
@@ -114,7 +119,7 @@ const MONSTER_DIRS: Array[String] = ["n", "e", "s", "w"]
 
 
 func _test_four_dirs() -> void:
-	print("--- B. 豆包 pack 怪物：五動作 × 四方向（16 隻全測）---")
+	print("--- B. 豆包 pack 怪物：五動作 × 四方向（24 隻全測）---")
 	var bad: Array[String] = []
 	for who in MONSTER_IDS:
 		var s := EnemyBase.pack_load_set(who)
