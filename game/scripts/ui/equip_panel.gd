@@ -242,8 +242,18 @@ func _render_detail() -> void:
 	if item.affixes.size() > 0:
 		lines.append("[color=#B3BCC9]词缀：[/color]")
 		for roll in item.affixes:
-			lines.append("· [color=#%s]%s[/color]" % [
-				(roll as AffixRoll).quality_color().to_html(false), (roll as AffixRoll).to_text()])
+			var line := "· "
+			# 2026-10-16：詞綴行加元素小圖標（elem_*_24 內聯，12px 等行高）。
+			# 元素由 `stat_key` 後綴推斷（elemental_damage_fire / cold_resist / burn_damage…
+			# 見 `_affix_element_key`）；通用詞綴（攻擊/暴擊等）無圖標。
+			var elem := _affix_element_key(roll as AffixRoll)
+			if elem != "":
+				var p := UISkin.path_for("elem_%s" % elem)
+				if p != "":
+					line += "[img width=12]%s[/img] " % p
+			line += "[color=#%s]%s[/color]" % [
+				(roll as AffixRoll).quality_color().to_html(false), (roll as AffixRoll).to_text()]
+			lines.append(line)
 	else:
 		lines.append("[color=#5A6270]无词缀[/color]")
 	_detail.text = "\n".join(lines)
@@ -253,6 +263,19 @@ func _fmt(v: float) -> String:
 	if absf(v - roundf(v)) < 0.001:
 		return str(int(roundf(v)))
 	return "%.1f" % v
+
+
+## 2026-10-16 · 詞綴 → 元素鍵（`elem_*_24` 圖標用）。
+## 詞綴數據無 `element` 字段，元素由 `stat_key` 後綴推斷：
+##   elemental_damage_fire / burn_damage / fire_resist → fire（同 cold / lightning /
+##   poison / shadow / physical）；`physical_resist` → physical。
+## 通用詞綴（flat_attack / crit_chance / dodge…）→ ""（無圖標）。
+static func _affix_element_key(roll: AffixRoll) -> String:
+	var key: String = roll.template.stat_key if roll.template != null else ""
+	for elem in ["fire", "cold", "lightning", "poison", "shadow", "physical"]:
+		if key.contains("_%s" % elem):
+			return elem
+	return ""
 
 
 func _on_slot_pressed(slot: int) -> void:
