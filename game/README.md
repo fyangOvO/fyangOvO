@@ -447,8 +447,8 @@ _ok("每个 kill_boss 关都有 boss_id（缺：%s）" % str(missing), missing.i
 > ⚠️ **「回歸全綠」≠「無告警」**：`tools/run_regression.py` 只轉發 `[PASS]/[FAIL]`，
 > **不轉發 stderr** ⇒ 退出期的 `leaked at exit` / `resources still in use`
 > 在全量回歸裡**完全看不到**，只有**單跑**該場景才看得到。
-> 別拿「全綠」當「乾淨」的證明。（已知殘留：`self_check` 退出時漏 28 個物件、
-> `verify_hud` 漏 6 個 —— 均為既有問題，見 `AGENTS.md` 未結遺留。）
+> 別拿「全綠」當「乾淨」的證明。（2026-10-16 覆核：`self_check` 僅剩 1 個裸 Node、
+> `verify_hud` 已 0 泄漏 —— 均見 `AGENTS.md` §6.4，勿再引用舊數字 28 / 6。）
 
 ### 5.2 驗證腳本一覽（**77** 個場景，按域分組）
 
@@ -890,9 +890,12 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
 
 #### (d) 已知測試噪音（不影響回歸判定）
 
-- `self_check` 退出時漏 **28** 個物件（`GDScript` ×8 / `Object` ×7 / `PanelContainer` ×4 /
-  `Control` ×3 / `Node` ×2 / `StyleBoxFlat` ×1 —— **UI 類，非音頻**）
-- `verify_hud` 退出時漏 **6** 個物件 + 2 個資源（段 A 的孤兒 `Node`、段 C 的 `extends Object` 未 `free()`）
+- **self_check 退出漏 1 個裸 Node**（2026-10-16 覆核：原 28 個 UI 物件已於 2026-10-14
+  面板 `free()` 後收斂；verify_hud 6 物件 + 2 資源泄漏已歸零）。殘餘 1 個為驗證鏈路
+  臨時裸 Node（無類型信息、無 RID/資源佔用），修復成本遠高於收益 ⇒ 豁免。
+  ⚠️ 舊記錄「28 個」「6+2」均已過時，勿再引用。
+- `verify_equip_panel` 拖拽段 `set_drag_preview` ERROR 為測試場景直接調 `_drag_data`
+  未走真實拖拽流程所致（預存，與業務代碼無關）。
 
 ### 9.3 全案三條最高危項（改動前務必確認）
 
