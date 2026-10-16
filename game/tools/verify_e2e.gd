@@ -241,17 +241,17 @@ class E2ERunner extends Node:
 		if lv_def == null:
 			return
 		# ⚠️ 关卡列表是**懒挂载**的：`hub._build_ui()` 只造好 `_level_list`（一个孤立的
-		#    VBoxContainer，未入树），点「▶ 出擊 · 選擇關卡」才由 `_toggle_level_list()`
-		#    把它挂进 UI 层。因此 `_find_button(_hub, ...)` 在**点出擊之前**永远找不到关卡按钮。
-		#    这里必须复现真实玩家路径的**第一步**（点出擊），否则 ④ 会假红并连带 ⑤⑥⑦⑧⑨ 全红。
-		var open_btn := _find_button(_hub, "出擊")
-		_ok("④ 据点「出擊 · 選擇關卡」按钮存在", open_btn != null)
+		#    VBoxContainer，未入树），点「▶ 出击 · 选择关卡」才由 `_toggle_level_list()`
+		#    把它挂进 UI 层。因此 `_find_button(_hub, ...)` 在**点出击之前**永远找不到关卡按钮。
+		#    这里必须复现真实玩家路径的**第一步**（点出击），否则 ④ 会假红并连带 ⑤⑥⑦⑧⑨ 全红。
+		var open_btn := _find_button(_hub, "出击")
+		_ok("④ 据点「出击 · 选择关卡」按钮存在", open_btn != null)
 		if open_btn == null:
 			return
 		open_btn.pressed.emit()           # → _toggle_level_list()（挂载并显示列表）
 		await _wait_frames(2)
 		var btn := _find_button(_hub, lv_def.display_name)
-		_ok("④ 点出擊后据点列表里找到该关按钮（按显示名匹配）", btn != null)
+		_ok("④ 点出击后据点列表里找到该关按钮（按显示名匹配）", btn != null)
 		if btn == null:
 			return
 		_ok("④ 该关按钮可点（已解锁）", not btn.disabled)

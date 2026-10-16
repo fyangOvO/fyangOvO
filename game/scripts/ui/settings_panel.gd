@@ -96,13 +96,13 @@ func _build_ui() -> void:
 
 	# 顯示模式：窗口 / 無邊框全屏 / 獨占全屏
 	var mode_l := Label.new()
-	mode_l.text = "顯示模式"
+	mode_l.text = "显示模式"
 	mode_l.add_theme_font_size_override("font_size", 12)
 	root.add_child(mode_l)
 	var mode_opt := OptionButton.new()
 	mode_opt.add_item("窗口")
-	mode_opt.add_item("無邊框全屏")
-	mode_opt.add_item("獨占全屏")
+	mode_opt.add_item("无边框全屏")
+	mode_opt.add_item("独占全屏")
 	var saved_mode := int(SettingsStore.get_value("display_mode")) if SettingsStore.get_value("display_mode") != null else 0
 	mode_opt.selected = saved_mode
 	mode_opt.item_selected.connect(func(idx: int) -> void:
@@ -118,7 +118,7 @@ func _build_ui() -> void:
 
 	# 解析度清單
 	var res_l := Label.new()
-	res_l.text = "解析度"
+	res_l.text = "分辨率"
 	res_l.add_theme_font_size_override("font_size", 12)
 	root.add_child(res_l)
 	var res_opt := OptionButton.new()

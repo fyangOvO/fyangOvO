@@ -112,7 +112,7 @@ const PORTRAIT_POS: Vector2 = Vector2(4, 108)
 const TORCH_LEFT_POS: Vector2 = Vector2(24, 24)
 const TORCH_RIGHT_POS: Vector2 = Vector2(536, 24)
 ## 右下版本欄（11px，色板內 `B3BCC9`；規範 §7.7 白名單）。
-const VERSION_TEXT: String = "v0.1.0 · 七傳說開發版"
+const VERSION_TEXT: String = "v0.1.0 · 七傳說开发版"
 
 ## 裝飾層總入口：任一素材缺失 → 該裝飾安全跳過（不崩、不影響流程）。
 func _build_atmosphere() -> void:

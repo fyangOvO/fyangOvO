@@ -865,7 +865,7 @@ func _on_boss_phase_changed(_enemy: Node, phase: int, _skills: Array) -> void:
 	bar.size = Vector2(640.0, 44.0)
 	layer.add_child(bar)
 	var lab := Label.new()
-	lab.text = "第 %s 階段 · 覺醒之力" % BossPhaseController.PHASE_NAMES[
+	lab.text = "第 %s 阶段 · 觉醒之力" % BossPhaseController.PHASE_NAMES[
 		clampi(phase - 1, 0, BossPhaseController.PHASE_NAMES.size() - 1)]
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lab.add_theme_font_size_override("font_size", 16)
