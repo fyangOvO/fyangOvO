@@ -861,28 +861,28 @@ func _build_ui() -> void:
 	_status.add_theme_color_override("font_color", Color("DCE2E8"))
 	top.add_child(_status)
 	var back := Button.new()
-	back.text = "回主菜單"
+	back.text = "回主菜单"
 	back.custom_minimum_size = Vector2(90, 28)
 	back.add_theme_font_size_override("font_size", 11)
 	back.pressed.connect(_on_back_to_menu)
 	top.add_child(back)
 
-	# 營地整圖已是完整場景，直接在人物位置放隱形熱區（座標對 1920×1080 圖縮放到 640×360）
+	# 营地整图已是完整场景，直接在人物位置放隐形热区（坐标对 1920×1080 图缩放到 640×360）
 	var HOTSPOTS := [
-		{"pid": PANEL_FORGE, "name": "鐵匠", "pos": Vector2(115, 195), "line": "裝備想強化？找我準沒錯。", "tex": "smith_small"},
-		{"pid": PANEL_RUNE_CODEX, "name": "寶石商人", "pos": Vector2(160, 115), "line": "看看這些閃亮的寶石。", "tex": "gem_small"},
-		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "準備好了？先看看自己的數值吧。", "tex": ""},
-		{"pid": PANEL_INVENTORY, "name": "裁縫", "pos": Vector2(435, 200), "line": "要不要縫件新衣服？", "tex": "tailor_small"},
-		{"pid": PANEL_TALENT, "name": "導師", "pos": Vector2(480, 105), "line": "天賦點數別亂花。", "tex": "master_small"},
-		{"pid": PANEL_SKILLS, "name": "技能師", "pos": Vector2(220, 230), "line": "技能怎麼帶？我幫你調。", "tex": "quest_small"},
-		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔層越高，獎勵越豐。", "tex": "guard_small"},
-		{"pid": PANEL_ABYSS, "name": "深淵使者", "pos": Vector2(540, 230), "line": "深淵之下……你確定要去？", "tex": "abyss_small"},
+		{"pid": PANEL_FORGE, "name": "铁匠", "pos": Vector2(115, 195), "line": "装备想强化？找我准没错。", "tex": "smith_small", "portrait": "portrait_blacksmith"},
+		{"pid": PANEL_RUNE_CODEX, "name": "宝石商人", "pos": Vector2(160, 115), "line": "看看这些闪亮的宝石。", "tex": "gem_small", "portrait": "portrait_gemmer"},
+		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "准备好了？先看看自己的数值吧。", "tex": ""},
+		{"pid": PANEL_INVENTORY, "name": "裁缝", "pos": Vector2(435, 200), "line": "要不要缝件新衣服？", "tex": "tailor_small", "portrait": "portrait_tailor"},
+		{"pid": PANEL_TALENT, "name": "导师", "pos": Vector2(480, 105), "line": "天赋点数别乱花。", "tex": "master_small", "portrait": "portrait_mentor"},
+		{"pid": PANEL_SKILLS, "name": "技能师", "pos": Vector2(220, 230), "line": "技能怎么带？我帮你调。", "tex": "quest_small"},
+		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔层越高，奖励越丰。", "tex": "guard_small"},
+		{"pid": PANEL_ABYSS, "name": "深渊使者", "pos": Vector2(540, 230), "line": "深渊之下……你确定要去？", "tex": "abyss_small"},
 		{"pid": PANEL_SET, "name": "套装师", "pos": Vector2(540, 105), "line": "集齐套装，战力飞升。", "tex": "merchant_small"},
 	]
 	for h in HOTSPOTS:
-		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"], h["tex"])
+		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"], h.get("tex", ""), h.get("portrait", ""))
 
-	# 底部：出關按鈕 + toast
+	# 底部：出关按钮 + toast
 	var bottom := VBoxContainer.new()
 	bottom.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	bottom.offset_left = -160
@@ -890,7 +890,7 @@ func _build_ui() -> void:
 	bottom.offset_bottom = -10
 	_ui_layer.add_child(bottom)
 	var start_btn := Button.new()
-	start_btn.text = "▶ 出擊 · 選擇關卡"
+	start_btn.text = "▶ 出击 · 选择关卡"
 	start_btn.custom_minimum_size = Vector2(320, 36)
 	start_btn.add_theme_font_size_override("font_size", 14)
 	start_btn.pressed.connect(_toggle_level_list)
@@ -908,9 +908,10 @@ func _build_ui() -> void:
 
 var _dialogue_bubble: PanelContainer = null
 var _dialogue_label: Label = null
+var _dialogue_portrait: TextureRect = null
 
 
-func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key: String = "") -> void:
+func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key: String = "", portrait_key: String = "") -> void:
 	if tex_key != "":
 		var spr := TextureRect.new()
 		var t := UISkin.texture(tex_key)
@@ -930,7 +931,7 @@ func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key
 	area.modulate = Color(1, 1, 1, 0.01)
 	area.flat = true
 	area.pressed.connect(func() -> void:
-		_speak(line)
+		_speak(line, portrait_key)
 		EventBus.request_panel_toggle.emit(pid, not is_panel_visible(pid)))
 	_ui_layer.add_child(area)
 	var lab := Label.new()
@@ -953,11 +954,18 @@ func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-func _speak(text: String) -> void:
+func _speak(text: String, portrait_key: String = "") -> void:
 	if _dialogue_bubble == null:
 		_dialogue_bubble = PanelContainer.new()
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 8)
+		_dialogue_portrait = TextureRect.new()
+		_dialogue_portrait.custom_minimum_size = Vector2(48, 48)
+		_dialogue_portrait.size = Vector2(48, 48)
+		_dialogue_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(_dialogue_portrait)
 		var m := MarginContainer.new()
-		m.add_theme_constant_override("margin_left", 10)
+		m.add_theme_constant_override("margin_left", 4)
 		m.add_theme_constant_override("margin_right", 10)
 		m.add_theme_constant_override("margin_top", 6)
 		m.add_theme_constant_override("margin_bottom", 6)
@@ -965,12 +973,17 @@ func _speak(text: String) -> void:
 		_dialogue_label.add_theme_font_size_override("font_size", 13)
 		_dialogue_label.add_theme_color_override("font_color", Color("F5E6C8"))
 		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_dialogue_label.custom_minimum_size = Vector2(300, 0)
+		_dialogue_label.custom_minimum_size = Vector2(280, 0)
 		m.add_child(_dialogue_label)
-		_dialogue_bubble.add_child(m)
+		hb.add_child(m)
+		_dialogue_bubble.add_child(hb)
 		_ui_layer.add_child(_dialogue_bubble)
-		_dialogue_bubble.position = Vector2(170, 20)
+		_dialogue_bubble.position = Vector2(170, 250)
 		_dialogue_bubble.z_index = 50
+	var pt: Texture2D = UISkin.texture(portrait_key) if portrait_key != "" else null
+	_dialogue_portrait.visible = pt != null
+	if pt != null:
+		_dialogue_portrait.texture = pt
 	_dialogue_label.text = text
 	_dialogue_bubble.visible = true
 	if DisplayServer.get_name() != "headless":

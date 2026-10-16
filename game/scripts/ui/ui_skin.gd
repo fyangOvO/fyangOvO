@@ -123,6 +123,11 @@ const TEX: Dictionary = {
 	"tailor_small": "npc/tailor_small.png",
 	"gem_small": "npc/gem_small.png",
 	"master_small": "npc/master_small.png",
+	# ── 2026-10-16：據點對話頭像（48×48 像素風，由 small 立繪 NEAREST 派生）──
+	"portrait_blacksmith": "npc/portrait_blacksmith_48.png",
+	"portrait_gemmer": "npc/portrait_gemmer_48.png",
+	"portrait_mentor": "npc/portrait_mentor_48.png",
+	"portrait_tailor": "npc/portrait_tailor_48.png",
 	# ── 2026-09-23 步骤 8A：消耗品药水图标（48×48 像素风，与技能图标同套）──
 	"potion_life": "potion_life_48.png",
 	"potion_mana": "potion_mana_48.png",
