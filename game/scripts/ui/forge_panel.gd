@@ -60,7 +60,16 @@ func _build_ui() -> void:
 	margin.add_child(vb)
 
 	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
 	vb.add_child(head)
+	# 2026-10-19：标题行加锻造图标（forge_icon_48 透明底，1:1 整数缩放）
+	var head_icon := TextureRect.new()
+	head_icon.texture = UISkin.texture("forge_icon")
+	head_icon.custom_minimum_size = Vector2(48, 48)
+	head_icon.stretch_mode = TextureRect.STRETCH_KEEP
+	head_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	head_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(head_icon)
 	var title := Label.new()
 	title.text = "锻造台 · %s" % ConfigLoader.class_display_name(_class_id)
 	title.add_theme_font_size_override("font_size", 16)

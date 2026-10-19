@@ -861,6 +861,8 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   （`affix_icon` / `element_icon` / `element_damage_icon` / `resist_icon` / `skill_icon` /
   `rune_icon` / `ailment_icon` / `backdrop_texture`），字面搜不到鍵 ≠ 死註冊，勿誤刪；
   `ailment_sunder` 為**預留註冊**（真素材，邏輯鍵 `AILMENT_SUNDER` 未定義，未來接入可直接用）。
+  `enchant_icon` / `reroll_icon` 亦為**預留**（附魔/重鑄為鍛造台內流程、無獨立面板）；`forge_icon`
+  已於 2026-10-19 接入 ForgePanel 標題行。
 - `ms_boost.element_attach`（裂界指環附元素）未接線；
   **`extra_loot` 品質強制已接線（2026-10-19）**：`roll_guaranteed_equipment` / `_roll_equipment`
   新增 `min_rarity` 參數（< 0 不強制）；`_exec_extra_loot` 讀 `loot_quality`
