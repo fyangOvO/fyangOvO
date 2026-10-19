@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GAME = os.path.join(ROOT, "game")
 PLAN = os.path.join(ROOT, "deliverables", "gstack", "策划案")
 
-PY = r"C:/Users/11265/.workbuddy-ai/binaries/python/versions/3.13.12/python.exe"
+PY = r"C:/Users/11265/.workbuddy-ai/binaries/python/versions/3.13.12-embed/python.exe"
 GODOT = r"C:\Users\11265\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe"
 
 TIMEOUT = 120
