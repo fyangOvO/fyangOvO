@@ -54,14 +54,16 @@ static func obtain_unique(group: String) -> void:
 ## 一关 30 只怪平均只出 2.4 件，**装备掉落本质上不可靠** —— 保底字段就是为此存在的。
 ##
 ## `table_id` 为空时用普通怪表（`monster_normal`）；关卡可用 `LevelData.loot_table_id` 覆盖。
+## `min_rarity`：保底品质下限（如传奇特效 extra_loot `loot_quality`），< 0 不强制；
+##   命中抬升后仍走底材池过滤，池空时按既有降级/回退金币逻辑兜底。
 static func roll_guaranteed_equipment(level: int, difficulty: int,
 		player_level: int = 0, table_id: String = "",
-		magic_find_pct: float = 0.0) -> Dictionary:
+		magic_find_pct: float = 0.0, min_rarity: int = -1) -> Dictionary:
 	var key := table_id if not table_id.is_empty() else "monster_normal"
 	var table: LootTable = ConfigLoader.loot_tables.get(key)
 	if table == null:
 		return {}
-	return _roll_equipment(table, level, difficulty, player_level, magic_find_pct)
+	return _roll_equipment(table, level, difficulty, player_level, magic_find_pct, min_rarity)
 
 
 ## 对一只怪物 roll 掉落（`monster_level` = 怪物等级，是 iLvl 的**基准**而非等值；
@@ -198,11 +200,14 @@ static func _roll_material(level: int) -> Dictionary:
 ## 装备：稀有度（难度修正 + 越级惩罚）→ iLvl（三角抖动 + clamp）→ 底材（drop_weight 加权，
 ## 稀有度 / iLvl 过滤）→ 词缀（AffixRoller，任务 3.2）：掉落即定型，拾取直接入包。
 static func _roll_equipment(table: LootTable, level: int, difficulty: int,
-		player_level: int, magic_find_pct: float = 0.0) -> Dictionary:
+		player_level: int, magic_find_pct: float = 0.0, min_rarity: int = -1) -> Dictionary:
 	# 稀有度与 iLvl 是**两次独立 roll**：
 	#   · 稀有度的越级惩罚看的是「怪物等级 vs 玩家等级」（见 _roll_rarity）；
 	#   · iLvl 看的是「怪物等级 + 本表 item_level_spread 三角分布」（2-L13 / GDD 02 §6.2）。
 	var rarity := _roll_rarity(table.rarity_weights, difficulty, player_level, level, magic_find_pct)
+	# 品质下限（extra_loot `loot_quality` 等）：roll 出低于下限时抬升到下限。
+	if min_rarity >= 0 and rarity < min_rarity:
+		rarity = min_rarity
 	var ilvl := _roll_item_level(table, level)
 	var template := _pick_template(rarity, ilvl)
 	if template == null:

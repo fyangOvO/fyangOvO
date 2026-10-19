@@ -483,7 +483,9 @@ func _exec_extra_loot(r: Dictionary, result: Dictionary) -> void:
 		return
 	var entry := LootRoller.roll_guaranteed_equipment(
 		_player.get_player_level(), GameConstants.DifficultyTier.NM1,
-		_player.get_player_level(), "", _player.get_combat_stat("magic_find"))
+		_player.get_player_level(), "", _player.get_combat_stat("magic_find"),
+		# `loot_quality`（拾遗者之靴 = magic）：保底品质下限，缺省/未知键 = 不强制
+		GameConstants.rarity_from_key(String(result.get("loot_quality", ""))))
 	# ⚠️ 只有**真的生成**才消耗上限（掉落器在底材池为空时会退化成金币，
 	#    若先计数再 roll，一次退化就白扣一次 `limit_per_run`）。
 	if entry.is_empty() or String(entry.get("type", "")) != "equipment":

@@ -856,13 +856,19 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   剩餘秒。⚠️ 命名漂移在** UI 層**做了 `slow → chill` 映射（`AILMENT_SLOW="slow"` vs 素材鍵
   `ailment_chill`），核心邏輯鍵未動。`status_shock` / `status_curse` 舊素材鍵仍未消費
   （`ailment_*` 已是 24px 真素材，`status_*` 屬早期預留，可留作他途）。
-- `ms_boost.element_attach`（裂界指環附元素）未接線；`extra_loot` 未強制 `loot_quality`
+- `ms_boost.element_attach`（裂界指環附元素）未接線；
+  **`extra_loot` 品質強制已接線（2026-10-19）**：`roll_guaranteed_equipment` / `_roll_equipment`
+  新增 `min_rarity` 參數（< 0 不強制）；`_exec_extra_loot` 讀 `loot_quality`
+  （拾遺者之靴 = `"magic"`）→ `GameConstants.rarity_from_key` → 保底品質下限，roll 出低於
+  下限時抬升（底材池空仍走既有降級/回退金幣兜底）。`verify_legendary_effects` E 段補
+  「配置解析 + 40 次實測 ≥ 藍」雙斷言。
 - **`SetPanel` 已掛進真實 UI（2026-10-15）**：新增據點「套裝師」NPC 熱區（540,105，`merchant_small`
   素材）＋ `PANEL_SET` 面板（`SetPanel`），`equipment_changed` 時連動刷新。
   ⚠️ 已知設計事實：`SetSystem.get_progress` 對每套**無條件**返回進度（0 件也返回），
   `SetPanel` 的「未穿戴任何套裝」空態是**防禦性死代碼**（sets.json 恆有 3 套時不觸發）。
 - `BIG_NODE_MECHANICS` 前 5 機制仍為展示字串
-- 套裝專屬特效視覺 6 套未生產；增益圖標 12 張未生產（B4-1 走佔位繪製）
+- 套裝專屬特效視覺 6 套 **已生產（2026-10-16，`set_fx_*_16`，SetPanel 檔位行內嵌）**；
+  增益圖標 **已補齊（2026-10-16，`status_wind_walk` / `status_mana_surge`，BUFF_DEFS 7 條全覆蓋）**
 - `explosive_arrow` 命中爆炸 / `poison_cloud`「使其中毒」/ `rune_echo`（`echo_count`）**已承載（2026-10-15）**：
   - `explosive_arrow`（全庫唯一帶 `radius` 的投射物）：`on_projectile_hit` 命中後以目標為圓心
     爆炸，`HitQuery.circle(radius)` 內所有敵人各受一次傷害；被命中者只吃爆炸一份（避免 480%）。

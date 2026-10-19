@@ -238,6 +238,22 @@ func _test_effects() -> void:
 	for i in range(200):
 		loot_count += LegendaryEffectSystem.on_event("on_pickup_gold", {}).size()
 	_ok("拾遗者 15% 概率额外掉落（200 次拾取触发 > 0）", loot_count > 0)
+	# 拾遗者之靴 extra_loot 品质强制（2026-10-19 接线：loot_quality="magic"）
+	var boot_fx := LegendaryEffectSystem.get_effect("shi_yi_zhe_zhi_xue")
+	_ok("拾遗者 extra_loot 配置解析出 loot_quality=magic",
+		boot_fx.size() > 0
+		and String(boot_fx.get("effect", {}).get("loot_quality", "")) == "magic")
+	var seen_equip := 0
+	var quality_ok := true
+	for i in range(40):
+		var ee := LootRoller.roll_guaranteed_equipment(20, GameConstants.DifficultyTier.NM1,
+			20, "", 0.0, GameConstants.Rarity.MAGIC)
+		if String(ee.get("type", "")) == "equipment":
+			seen_equip += 1
+			if int(ee.get("rarity", -1)) < GameConstants.Rarity.MAGIC:
+				quality_ok = false
+	_ok("roll_guaranteed_equipment(min_rarity=MAGIC) 掉落实测 ≥ 蓝（%d 件全合格）" % seen_equip,
+		seen_equip > 0 and quality_ok)
 	# 复苏·生命戒：低血 heal 10%
 	LegendaryEffectSystem.clear()
 	var ring := _make_item(GameConstants.Rarity.LEGENDARY)
