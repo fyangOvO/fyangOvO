@@ -294,6 +294,10 @@ func _draw() -> void:
 			_draw_box(Vector2.ZERO, 8, GOLD_COLOR, Color("0B0D10"))
 		"material":
 			_draw_box(Vector2.ZERO, 8, MATERIAL_COLOR, Color("0B0D10"))
+			# 2026-10-19：地面材料（魔石）叠加 16px 图标（透明底，色块透出当底光）
+			var mat_tex := UISkin.texture("stone_forge_16")
+			if mat_tex != null:
+				draw_texture_rect(mat_tex, Rect2(-8.0, -8.0, 16.0, 16.0), false)
 		"consumable":
 			var c := Color("E04848") if item_id == "life_potion" else Color("4890E0")
 			_draw_box(Vector2.ZERO, 16, c, Color("0B0D10"))

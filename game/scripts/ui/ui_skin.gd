@@ -263,6 +263,8 @@ const TEX: Dictionary = {
 	"enchant_icon": "enchant_icon_48.png",
 	"reroll_icon": "reroll_icon_48.png",
 	"stone_forge": "stone_forge_32.png",
+	# 2026-10-19：16px 魔石掉落图标（透明底蓝宝石，PIL 生成；地面材料掉落物用）
+	"stone_forge_16": "stone_forge_16.png",
 	"scroll_enchant": "scroll_enchant_32.png",
 	"crystal_reroll": "crystal_reroll_32.png",
 	# ── 2026-09-28 步骤 3（元素）：异常 6 + 单元素伤害 6 + 附着层 6 + 技能边框 6 + 专精角标 5 ──
