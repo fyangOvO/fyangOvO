@@ -145,14 +145,15 @@ func _active_ailments() -> Array:
 	return []
 
 
-## 异常逻辑键 → 怪物头顶状态图标键（`status_*_24.png`，已注册 UISkin TEX）。
+## 异常逻辑键 → 怪物头顶状态图标键（`ailment_*_24.png` 真素材，已注册 UISkin TEX）。
 ## slow→chill 是历史命名漂移（`AILMENT_SLOW` 逻辑键 vs `chill` 素材键），UI 层统一映射。
+## ⚠️ 2026-10-19：由 `status_*`（全同色占位块，玩家无法区分异常）升级为 `ailment_*`（各异常异色真素材）。
 const STATUS_ICONS: Dictionary = {
-	GameConstants.AILMENT_POISON: "status_poison",
-	GameConstants.AILMENT_BURN: "status_burn",
-	GameConstants.AILMENT_SLOW: "status_chill",
-	GameConstants.AILMENT_SHOCK: "status_shock",
-	GameConstants.AILMENT_CURSE: "status_curse",
+	GameConstants.AILMENT_POISON: "ailment_poison",
+	GameConstants.AILMENT_BURN: "ailment_burn",
+	GameConstants.AILMENT_SLOW: "ailment_chill",
+	GameConstants.AILMENT_SHOCK: "ailment_shock",
+	GameConstants.AILMENT_CURSE: "ailment_curse",
 }
 
 
