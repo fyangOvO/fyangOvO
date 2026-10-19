@@ -854,9 +854,13 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
 - **無異常 HUD 已接通（2026-10-15）**：新增 `AilmentBarUI`（`ailment_bar.gd`）掛在血條正下方，
   監聽 `EventBus.ailment_status_changed`（host == 玩家）顯示 `ailment_*_24` 真素材圖標 +
   剩餘秒。⚠️ 命名漂移在** UI 層**做了 `slow → chill` 映射（`AILMENT_SLOW="slow"` vs 素材鍵
-  `ailment_chill`），核心邏輯鍵未動。**`status_*` 異常 5 鍵已退役（2026-10-19）**：原為全同色
+  `ailment_chill`），核心邏輯鍵未動。**`status_*` 異常 6 鍵已退役（2026-10-19）**：原為全同色
   佔位塊（玩家無法區分怪物異常），`world_health_bar` 怪物頭頂圖標已升級為 `ailment_*` 真素材
-  （各異常異色）；`ui_skin` 中 `status_burn/chill/poison/shock/curse` 死註冊已刪（素材文件保留）。
+  （各異常異色）；`ui_skin` 中 `status_burn/chill/poison/shock/curse/sunder` 死註冊已刪（素材文件保留）。
+  ⚠️ **註冊鍵消費模式（防誤清）**：`ui_skin.gd` 大量圖標經**動態前綴族函數**消費
+  （`affix_icon` / `element_icon` / `element_damage_icon` / `resist_icon` / `skill_icon` /
+  `rune_icon` / `ailment_icon` / `backdrop_texture`），字面搜不到鍵 ≠ 死註冊，勿誤刪；
+  `ailment_sunder` 為**預留註冊**（真素材，邏輯鍵 `AILMENT_SUNDER` 未定義，未來接入可直接用）。
 - `ms_boost.element_attach`（裂界指環附元素）未接線；
   **`extra_loot` 品質強制已接線（2026-10-19）**：`roll_guaranteed_equipment` / `_roll_equipment`
   新增 `min_rarity` 參數（< 0 不強制）；`_exec_extra_loot` 讀 `loot_quality`

@@ -353,7 +353,6 @@ const TEX: Dictionary = {
 	"status_hawk_eye": "status_hawk_eye_24.png",
 	"status_regen": "status_regen_24.png",
 	"status_shield": "status_shield_24.png",
-	"status_sunder": "status_sunder_24.png",
 	# ── 2026-10-16：補 2 張增益（wind_walk / mana_surge），BUFF_DEFS 7 條全覆蓋 ──
 	"status_wind_walk": "status_wind_walk_24.png",
 	"status_mana_surge": "status_mana_surge_24.png",
