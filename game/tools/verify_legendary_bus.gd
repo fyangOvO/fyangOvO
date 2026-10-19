@@ -22,6 +22,7 @@
 ##   H. on_pickup_gold → extra_loot（拾遗者额外掉落 + limit_per_run 上限）
 ##   I. on_block → heal（守护·坚壁：格挡回血）—— 3-BL1 的验收
 ##   J. on_low_hp → heal（复苏：ctx.hp_pct 必须正确填，否则永不触发）—— 3-K9 的验收
+##   K. on_elite_kill → ms_boost.element_attach（裂界指环：附带精英元素伤害，2026-10-19 接线）
 extends Node
 
 var _fail: int = 0
@@ -31,6 +32,15 @@ var _dummy: DamageDummy = null
 var _rng := RandomNumberGenerator.new()
 ## extra_loot 的注入回调计数（真实生成次数）
 var _spawn_calls: int = 0
+## 精英判定回调的可控开关（element_attach 测试用）
+var _elite_flag: bool = false
+
+
+## 测试用假精英：带 `data`（MonsterData）属性 + Node2D（JuiceFX 的 unit_died
+## handler 会访问 `global_position`，纯 Node 会崩）。内置 Node 不支持任意属性 set。
+class FakeEliteUnit:
+	extends Node2D
+	var data: Object = null
 
 
 func _ok(label: String, cond: bool) -> void:
@@ -59,6 +69,7 @@ func _ready() -> void:
 	await _test_extra_loot()
 	await _test_block()
 	await _test_low_hp()
+	await _test_element_attach()
 	_finish()
 
 
@@ -76,7 +87,7 @@ func _setup() -> void:
 	_bus = LegendaryBus.new()
 	_bus.name = "LegendaryBus"
 	add_child(_bus)
-	_bus.setup(_player, _on_spawn_loot, func(_u: Node) -> bool: return false)
+	_bus.setup(_player, _on_spawn_loot, func(_u: Node) -> bool: return _elite_flag)
 	_ok("总线挂载 + 钩子注入（revive / damaged）",
 		_player.health.revive_hook.is_valid() and _player.health.damaged_hook.is_valid())
 
@@ -103,6 +114,9 @@ func _reset() -> void:
 	_player.get_mana_pool().set_current(100.0)
 	_dummy.reset(100000.0)
 	_spawn_calls = 0
+	_elite_flag = false
+	# 清掉裂界指环的附着状态（测试用例间的运行态残留）
+	_bus._attach_element = ""
 	# 清掉可能残留的注入属性（攻击走基准 / 无格挡）
 	_player.apply_combat_stats({}, 1)
 
@@ -311,3 +325,47 @@ func _test_low_hp() -> void:
 func _finish() -> void:
 	print("===== 结果：%d 项失败 =====" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+# =============================================================================
+# K. on_elite_kill → ms_boost.element_attach（裂界指环 · 2026-10-19 接线）
+# =============================================================================
+
+func _test_element_attach() -> void:
+	print("--- K. on_elite_kill → element_attach（裂界指环）---")
+	_reset()
+	_bus.register_item(_make_item("lie_jie_zhi_huan"))
+	# 造一个带元素数据的精英假节点（取表里首个非 physical 元素怪）
+	var fake := FakeEliteUnit.new()
+	fake.name = "FakeElite"
+	var el_mon := ""
+	var mdata: Object = null
+	for mid in ConfigLoader.monsters:
+		var mm: MonsterData = ConfigLoader.get_monster(str(mid))
+		if mm != null:
+			var el := mm.element
+			if not el.is_empty() and el != "physical":
+				el_mon = el
+				mdata = mm
+				break
+	_ok("找到带元素的怪物模板（%s）" % el_mon, mdata != null)
+	if mdata == null:
+		return
+	fake.data = mdata
+	add_child(fake)
+	_elite_flag = true
+	EventBus.unit_died.emit(fake, _player)
+	_ok("击杀精英后记录附着元素（%s）" % _bus._attach_element,
+		_bus._attach_element == el_mon)
+	# 命中靶子 → 附带 20% 攻击力的元素伤害（attach_pct 来自数据）
+	_dummy.reset(100000.0)
+	var atk := _player.get_attack_damage()
+	EventBus.damage_dealt.emit(_dummy, 10.0, false, "physical")
+	_ok("命中附带元素伤害（%.1f = 攻击力 %.1f × 0.2）" % [atk * 0.2, atk],
+		is_equal_approx(_dummy.total_damage_taken, atk * 0.2))
+	# 非精英击杀不附着
+	_reset()
+	_bus.register_item(_make_item("lie_jie_zhi_huan"))
+	EventBus.unit_died.emit(fake, _player)
+	_ok("非精英击杀不记录附着元素", _bus._attach_element.is_empty())
+	fake.queue_free()

@@ -275,7 +275,7 @@
       "slot": "ring_a",
       "rarity_min": 4,
       "trigger": { "type": "on_elite_kill" },
-      "effect": { "type": "ms_boost", "value": 25.0, "duration": 8.0, "element_attach": true },
+      "effect": { "type": "ms_boost", "value": 25.0, "duration": 8.0, "element_attach": true, "attach_pct": 0.2 },
       "cooldown": 0.0,
       "description": "击杀精英后 8 秒内移动速度 +25%，且攻击附带该精英的伤害类型"
     },

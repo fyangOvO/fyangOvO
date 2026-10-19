@@ -58,6 +58,12 @@ var _warned_types: Dictionary = {}
 ## 一次 `on_event` 结算**完整执行完**之前，忽略嵌套的 dispatch（防无限递归 / 栈溢出）。
 var _dispatching: bool = false
 
+## 裂界指环 `element_attach`（2026-10-19 接线）：击杀精英后 8 秒内，
+## 玩家每次命中附加「该精英元素」的伤害（量 = 攻击力 × `_attach_pct`）。
+var _attach_element: String = ""
+var _attach_until: float = 0.0
+var _attach_pct: float = 0.0
+
 
 func _ready() -> void:
 	EventBus.damage_dealt.connect(_on_damage_dealt)
@@ -209,6 +215,16 @@ func _on_damage_dealt(target: Node, amount: float, is_crit: bool, _element: Stri
 	ctx["target"] = target
 	ctx["amount"] = amount
 	_dispatch("on_crit" if is_crit else "on_hit", ctx)
+	# 裂界指环 `element_attach`（2026-10-19）：附着窗口内每次命中附加精英元素伤害。
+	# 量 = 玩家攻击力 × `attach_pct`（0.2 = 词缀级元素伤害，见 legendary_effects.json）。
+	# 不走暴击 / 不吃元素加成 —— 纯附加，避免与词缀/异常体系耦合。
+	if not _attach_element.is_empty():
+		var now := Time.get_ticks_msec() / 1000.0
+		if now >= _attach_until:
+			_attach_element = ""
+		elif _player != null and is_instance_valid(_player):
+			_apply_legendary_damage(target,
+				_player.get_attack_damage() * _attach_pct, _attach_element, 0.0, 0)
 
 
 ## 玩家击杀单位 → on_kill / on_elite_kill。
@@ -315,7 +331,7 @@ func _execute(r: Dictionary, ctx: Dictionary) -> void:
 		"buff_stat":
 			_exec_buff_stat(r, result, ctx)
 		"ms_boost":
-			_exec_ms_boost(r, result)
+			_exec_ms_boost(r, result, ctx)
 		"damage_reduction":
 			_exec_damage_reduction(r, result)
 		"summon":
@@ -516,16 +532,28 @@ func _exec_buff_stat(r: Dictionary, result: Dictionary, ctx: Dictionary) -> void
 		String(r.get("effect_id", "")), int(result.get("max_stacks", 1)))
 
 
-func _exec_ms_boost(r: Dictionary, result: Dictionary) -> void:
+func _exec_ms_boost(r: Dictionary, result: Dictionary, ctx: Dictionary = {}) -> void:
 	var bc := _player_buff()
 	if bc == null:
 		return
 	bc.add_buff("move_speed", float(result.get("value", 0.0)),
 		float(result.get("duration", 1.0)), String(r.get("effect_id", "")))
-	# `element_attach`（裂界指环「攻击附带该精英的伤害类型」）需把精英元素写进攻击管线
-	# —— 属攻击管线改造，本批不实现（显式记一次，不静默）。
+	# `element_attach`（裂界指环「攻击附带该精英的伤害类型」）—— 2026-10-19 接线。
+	# 触发上下文 `ctx["unit"]` 是被击杀的精英节点（`on_elite_kill` 由 `_on_unit_died` 派发），
+	# 取 `MonsterData.element` 记为附带元素；持续时长与 ms_boost 的 `duration` 一致。
 	if bool(result.get("element_attach", false)):
-		_warn_once("ms_boost(element_attach 未接线)", String(r.get("name", "")))
+		var unit: Node = ctx.get("unit", null)
+		var el := ""
+		if unit != null and is_instance_valid(unit) and unit.get("data") != null:
+			var mdata: Object = unit.get("data")
+			if mdata is MonsterData:
+				el = (mdata as MonsterData).element
+		if el.is_empty():
+			_warn_once("ms_boost(element_attach 目标无元素)", String(r.get("name", "")))
+			return
+		_attach_element = el
+		_attach_pct = float(result.get("attach_pct", 0.0))
+		_attach_until = Time.get_ticks_msec() / 1000.0 + float(result.get("duration", 1.0))
 
 
 func _exec_damage_reduction(r: Dictionary, result: Dictionary) -> void:

@@ -240,6 +240,7 @@ static func _resolve_effect(effect: Dictionary, fx: Dictionary, ctx: Dictionary)
 				"value": float(effect.get("value", 0.0)),
 				"duration": float(effect.get("duration", 1.0)),
 				"element_attach": bool(effect.get("element_attach", false)),
+				"attach_pct": float(effect.get("attach_pct", 0.0)),
 			}
 		"damage_reduction":
 			return { "type": "damage_reduction", "value": float(effect.get("value", 0.0)), "duration": float(effect.get("duration", 1.0)) }

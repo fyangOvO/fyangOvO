@@ -863,7 +863,11 @@ InputRemapper.save_bindings()               # 落盘 user://input_bindings.json
   `ailment_sunder` 為**預留註冊**（真素材，邏輯鍵 `AILMENT_SUNDER` 未定義，未來接入可直接用）。
   `enchant_icon` / `reroll_icon` 亦為**預留**（附魔/重鑄為鍛造台內流程、無獨立面板）；`forge_icon`
   已於 2026-10-19 接入 ForgePanel 標題行。
-- `ms_boost.element_attach`（裂界指環附元素）未接線；
+- `ms_boost.element_attach`（裂界指環附元素）**已接線（2026-10-19）**：數據側
+  `attach_pct: 0.2`（攻擊力 ×20% 元素傷害/命中，詞綴級）；`legendary_effect_system`
+  ms_boost 分支透傳 `attach_pct`；`legendary_bus._exec_ms_boost` 讀被擊殺精英
+  `MonsterData.element` 記為附着元素（持續 = duration 8s），`_on_damage_dealt` 窗口內
+  每次命中附加（不走暴擊 / 不吃元素加成）。`verify_legendary_bus` K 段全綠。
   **`extra_loot` 品質強制已接線（2026-10-19）**：`roll_guaranteed_equipment` / `_roll_equipment`
   新增 `min_rarity` 參數（< 0 不強制）；`_exec_extra_loot` 讀 `loot_quality`
   （拾遺者之靴 = `"magic"`）→ `GameConstants.rarity_from_key` → 保底品質下限，roll 出低於
