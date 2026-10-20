@@ -116,6 +116,27 @@ const KNOCKBACK_STOP_EPSILON: float = 4.0
 @export var dodge_input_buffer: bool = true
 
 # =============================================================================
+# 三·五、打击感 / 冲刺跑 / 格挡 / 转向（角色动作优化 · 代码层，不新增美术帧）
+# =============================================================================
+
+## 命中停顿时长（秒）：命中瞬间冻结动画 + 位移，增强挥击打击感
+const HITSTOP_DURATION: float = 0.06
+## 冲刺跑阈值（秒）：持续移动超过此值自动进入冲刺
+const RUN_THRESHOLD: float = 3.0
+## 冲刺跑速度倍率（相对常规走路）
+const RUN_SPEED_MULT: float = 1.35
+## 冲刺跑动画帧速倍率（walk 帧加速播放 → 视觉更快）
+const RUN_FPS_MULT: float = 1.35
+## 格挡减伤：格挡时承受伤害 ×（1 − 0.60）= 40%
+const BLOCK_REDUCTION: float = 0.60
+## 格挡时移动减速倍率
+const BLOCK_MOVE_MULT: float = 0.5
+## 转向去抖阈值（秒）：方向帧最小保持时长，消除 8→4 方向瞬跳
+const TURN_HOLD: float = 0.08
+## 闪避残影数量（沿路径生成渐隐残影帧）
+const DODGE_GHOST_COUNT: int = 4
+
+# =============================================================================
 # 四、手部锚点几何（占位值，等美术产出后按 48×48 精灵重新标定）
 # =============================================================================
 
@@ -202,6 +223,20 @@ var _dodge_timer: float = 0.0
 var _iframe_timer: float = 0.0
 var _cooldown_timer: float = 0.0
 var _buffered_dodge: bool = false
+
+# ---- 角色动作优化状态（打击感 / 冲刺跑 / 格挡 / 转向去抖）----
+## 命中停顿计时（>0 时冻结动画 + 位移）
+var _hitstop_t: float = 0.0
+## 持续移动计时（累计超 RUN_THRESHOLD 进入冲刺跑）
+var _move_time: float = 0.0
+## 是否冲刺跑（持续移动 ≥ RUN_THRESHOLD）
+var _running: bool = false
+## 格挡姿态是否激活（按住 block）
+var _blocking: bool = false
+## 动画方向去抖计时（方向帧最小保持，消除转向瞬跳）
+var _anim_dir_hold_t: float = 0.0
+## 素材基准 fps（冲刺时 × RUN_FPS_MULT 加速播放）
+var _base_fps: float = 12.0
 
 # ---- 攻击与技能（任务 2.2）----
 
@@ -347,6 +382,22 @@ func _physics_process(delta: float) -> void:
 		mana_pool.tick_regen(delta)
 	var input_dir := _read_move_input()
 
+	# 命中停顿：冻结位移（本帧不移动），其余计时照常
+	if _hitstop_t > 0.0:
+		_hitstop_t = maxf(_hitstop_t - delta, 0.0)
+		velocity = Vector2.ZERO
+		_knockback_velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
+	# 冲刺跑计时：持续移动累计，停下 / 闪避重置
+	if _is_dodging() or input_dir == Vector2.ZERO:
+		_move_time = 0.0
+		_running = false
+	else:
+		_move_time += delta
+		_running = _move_time >= RUN_THRESHOLD
+
 	# 通道 1：输入 / 闪避速度。算进局部变量 move_velocity，**不直接写 velocity** ——
 	# 否则击退残留会污染下一帧的加减速曲线（松手后拖尾）。
 	var move_velocity := velocity
@@ -358,8 +409,13 @@ func _physics_process(delta: float) -> void:
 		var slow := 1.0
 		if health != null:
 			slow = health.get_move_speed_factor()
+		var base_speed := LOCAL_MOVE_SPEED * _move_speed_multiplier
+		if _running:
+			base_speed *= RUN_SPEED_MULT
+		if _blocking:
+			base_speed *= BLOCK_MOVE_MULT
 		move_velocity = move_velocity.move_toward(
-			input_dir * LOCAL_MOVE_SPEED * slow * _move_speed_multiplier,
+			input_dir * base_speed * slow,
 			LOCAL_ACCELERATION * delta)
 	else:
 		move_velocity = move_velocity.move_toward(Vector2.ZERO, LOCAL_DECELERATION * delta)
@@ -389,6 +445,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(&"dodge"):
 		_try_dodge()
+		return
+	if event.is_action_pressed(&"block"):
+		_start_blocking()
+		return
+	if event.is_action_released(&"block"):
+		_end_blocking()
 		return
 	# 消耗品快捷（步骤 8A）：Q=生命药水 / R=法力药水（闪避中也允许喝药）
 	if event.is_action_pressed(&"consume_1"):
@@ -617,10 +679,17 @@ func take_damage(amount: float, source: Node) -> void:
 		return
 	# 受击动画只在**真的掉血**时播：无敌帧 / 闪避 / 格挡全免 / 护盾全吸收都不播。
 	# 纯表现层，不改变任何结算（`verify_health` 的 HP 断言因此逐位不变）。
+	var final := amount
+	var was_blocking := _blocking
+	if was_blocking:
+		final *= (1.0 - BLOCK_REDUCTION)   # 格挡减伤：只承受 40%
 	var hp_before := health.get_current_hp()
-	health.take_damage(amount, source)
+	health.take_damage(final, source)
 	if health.get_current_hp() < hp_before:
-		_play_anim_oneshot(EnemyBase.ANIM_HURT, EnemyBase.HURT_ANIM_DURATION)
+		if was_blocking:
+			flash()                        # 格挡受击：闪白反馈，不播 hurt
+		else:
+			_play_anim_oneshot(EnemyBase.ANIM_HURT, EnemyBase.HURT_ANIM_DURATION)
 
 
 ## 击退入口（契约）。offset 为位移向量（px）。
@@ -902,7 +971,7 @@ func perform_skill_dash(data: SkillData) -> void:
 func try_attack() -> bool:
 	if health != null and health.is_dead:
 		return false
-	if _is_dodging() or _attack_timer > 0.0:
+	if _is_dodging() or _attack_timer > 0.0 or _blocking:
 		return false
 	_perform_attack()
 	return true
@@ -1046,11 +1115,63 @@ func _try_dodge() -> bool:
 	velocity = _dodge_dir * (dodge_distance / maxf(dodge_duration, 0.001))
 	# 闪避打断当前攻击动作（假连段下一击在闪避结束后才可继续）
 	_interrupt_attack()
+	_spawn_dodge_ghosts()
 	return true
 
 
 func _is_dodging() -> bool:
 	return _dodge_timer > 0.0
+
+
+# =============================================================================
+# 九·一、格挡（右键主动格挡：减伤 + 姿态 + 打断攻击）
+# =============================================================================
+
+func _start_blocking() -> void:
+	if health != null and health.is_dead:
+		return
+	if _is_dodging():
+		return
+	_blocking = true
+	_interrupt_attack()
+	# 重置动画 clip，切到格挡姿态（复用 idle 帧）
+	_anim_oneshot = ""
+	_anim_oneshot_t = 0.0
+	_clip_key = ""
+
+
+func _end_blocking() -> void:
+	_blocking = false
+	_clip_key = ""
+
+
+# =============================================================================
+# 九·二、闪避残影（瞬移跃动表现 · 复用现有帧，无 dodge 专用帧）
+# =============================================================================
+
+## 闪避时沿路径生成渐隐残影帧，增强瞬移的「跃动」观感。
+func _spawn_dodge_ghosts() -> void:
+	if body_sprite == null or fx_layer == null:
+		return
+	var tex := body_sprite.texture
+	if tex == null:
+		return
+	var dir := _dodge_dir
+	for i in DODGE_GHOST_COUNT:
+		var ghost := Sprite2D.new()
+		ghost.texture = tex
+		ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ghost.centered = body_sprite.centered
+		ghost.offset = body_sprite.offset
+		ghost.scale = body_sprite.scale
+		ghost.modulate = Color(1, 1, 1, 0.32)
+		fx_layer.add_child(ghost)
+		var start := body_sprite.global_position - dir * (6.0 + float(i) * 4.0)
+		ghost.global_position = start
+		var t := create_tween()
+		t.tween_property(ghost, "modulate:a", 0.0, 0.16 + float(i) * 0.04)
+		t.parallel().tween_property(ghost, "global_position", start - dir * 10.0, 0.20)
+		t.tween_callback(ghost.queue_free)
 
 
 # =============================================================================
@@ -1075,7 +1196,8 @@ func _perform_attack() -> void:
 	_attack_timer = interval
 	# 攻擊動作動畫：**只設表現計時器**，不碰 `_attack_timer` / 命中判定 / 傷害時點
 	# （`verify_hit` / `verify_damage` 都靠 `try_attack()` 同幀出傷，這裡不能延後任何東西）。
-	_play_anim_oneshot(EnemyBase.ANIM_ATTACK, minf(interval, EnemyBase.ATTACK_ANIM_MAX))
+	# 動畫時長固定（不再被攻速壓縮）：攻速只影響攻擊間隔（`_attack_timer`）
+	_play_anim_oneshot(EnemyBase.ANIM_ATTACK, EnemyBase.ATTACK_ANIM_MAX)
 	_play_attack_lunge()
 
 	var targets := find_targets_in_arc(GameConstants.ATTACK_RANGE, GameConstants.ATTACK_ARC_DEG)
@@ -1100,6 +1222,7 @@ func _perform_attack() -> void:
 	)
 	if target.has_method("take_damage"):
 		target.take_damage(result.final_damage, self)
+		_hitstop_t = HITSTOP_DURATION   # 命中停顿：冻结动画 + 位移，增强打击感
 	# 普攻命中回蓝（任务 2.2 决策：普攻命中 +2）
 	if mana_pool != null:
 		mana_pool.restore(GameConstants.MANA_ON_HIT)
@@ -1147,6 +1270,7 @@ func _apply_real_art(art: Dictionary) -> void:
 		return
 	_real_frames = art.get("frames", [])
 	_real_fps = maxf(1.0, float(art.get("fps", 12.0)))
+	_base_fps = _real_fps
 	_real_anim = _real_frames.size() > 1
 	# ⚠️ 必須 duplicate：`art["clips"]` 是 `EnemyBase._dnf_cache` 裡的**同一個參照**，
 	#    直接持有會讓本實例改 clip 時污染快取。
@@ -1210,7 +1334,10 @@ func _process(delta: float) -> void:
 		if body_sprite.texture != _clip[0]:
 			body_sprite.texture = _clip[0]
 		return
-	_anim_t += delta * _real_fps
+	var fps := _real_fps * (RUN_FPS_MULT if _running else 1.0)
+	if _hitstop_t > 0.0:
+		return   # 命中停顿：冻结动画帧推进，增强打击感
+	_anim_t += delta * fps
 	if _anim_t >= 1.0:
 		_anim_t -= floorf(_anim_t)
 		if _clip_exact and _anim_state != EnemyBase.AnimState.IDLE \
@@ -1229,7 +1356,15 @@ func _process(delta: float) -> void:
 func _tick_anim_state(delta: float) -> void:
 	if _anim_oneshot_t > 0.0:
 		_anim_oneshot_t = maxf(_anim_oneshot_t - delta, 0.0)
-	_anim_dir = facing_to_dir_letter(_facing)
+	# 转向去抖：动画方向帧不立即跟随 8 方向朝向，方向变化需稳定保持才切（消除瞬跳）
+	var target_dir := facing_to_dir_letter(_facing)
+	if target_dir == _anim_dir:
+		_anim_dir_hold_t = 0.0
+	else:
+		_anim_dir_hold_t += delta
+		if _anim_dir_hold_t >= TURN_HOLD:
+			_anim_dir = target_dir
+			_anim_dir_hold_t = 0.0
 	if health != null and health.is_dead:
 		_anim_state = EnemyBase.AnimState.DIE
 		_anim_action = EnemyBase.ANIM_DIE
@@ -1238,6 +1373,11 @@ func _tick_anim_state(delta: float) -> void:
 		_anim_action = _anim_oneshot
 		_anim_state = EnemyBase.AnimState.ATTACK if _anim_oneshot == EnemyBase.ANIM_ATTACK \
 				else EnemyBase.AnimState.HURT
+		return
+	# 格挡姿态：静止持盾，不切 walk（格挡期间移动减速，画面用 idle 帧）
+	if _blocking:
+		_anim_state = EnemyBase.AnimState.IDLE
+		_anim_action = EnemyBase.ANIM_IDLE
 		return
 	var moving := velocity.length_squared() > 1.0
 	_anim_state = EnemyBase.AnimState.WALK if moving else EnemyBase.AnimState.IDLE
