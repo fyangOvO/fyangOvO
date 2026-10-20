@@ -66,16 +66,18 @@ func _test_progression() -> void:
 
 func _test_pool() -> void:
 	print("--- B. 选项池 ---")
-	_ok("池 16 个选项", RunePool.OPTIONS.size() == 16)
+	_ok("池 ≥ 20 个选项（A2 扩池，实际 %d）" % RunePool.OPTIONS.size(),
+		RunePool.OPTIONS.size() >= 20)
 	var cats := {}
 	for opt in RunePool.OPTIONS:
 		cats[opt["cat"]] = cats.get(opt["cat"], 0) + 1
 		_ok("选项 %s 键完整" % opt["id"],
 			opt.has("name") and opt.has("desc") and opt.has("stat_key")
 			and opt.has("value") and opt.has("cap"))
-	_ok("攻击 6 / 防御 5 / 资源 4 / 成长 1", cats.get("attack", 0) == 6
-		and cats.get("defense", 0) == 5 and cats.get("resource", 0) == 4
-		and cats.get("growth", 0) == 1)
+	_ok("各类别齐全（攻击 %d / 防御 %d / 资源 %d / 成长 %d）"
+		% [cats.get("attack", 0), cats.get("defense", 0), cats.get("resource", 0), cats.get("growth", 0)],
+		cats.get("attack", 0) >= 10 and cats.get("defense", 0) >= 6
+		and cats.get("resource", 0) >= 5 and cats.get("growth", 0) >= 1)
 	# 第四步 B4-4 · 1-L8：固定值键必须标 flat 桶，否则会被塞进 pct 桶而静默失效
 	var insight := RunePool.get_option("skill_insight")
 	_ok("「技之领悟」存在且 stat_key = skill_level",

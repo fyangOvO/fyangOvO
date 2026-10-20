@@ -256,7 +256,8 @@ func _test_all_options_observable() -> void:
 			"bulwark":
 				_ok("   └ 真实 getter get_armor = %.2f > 6" % _player.get_armor(),
 					_player.get_armor() > 6.0)
-	_ok("16 个选项全部纳入逐项断言（实际 %d）" % checked, checked == 16)
+	_ok("%d 个选项全部纳入逐项断言（实际 %d）" % [RunePool.OPTIONS.size(), checked],
+		checked == RunePool.OPTIONS.size())
 	# 复位
 	_level._buff_system.reset()
 	_level._apply_account_stats(false)

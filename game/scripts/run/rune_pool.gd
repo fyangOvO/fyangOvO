@@ -54,6 +54,30 @@ const OPTIONS: Array[Dictionary] = [
 	#    （`out["skill_level"] = flat.get(...)`）。缺省 bucket = "pct" ⇒ 该选项会**静默失效**。
 	{"id": "skill_insight","cat": "growth",   "name": "技之领悟", "desc": "+1 技能等级（本局）",
 		"stat_key": "skill_level", "value": 1.0, "cap": 0.0, "bucket": "flat"},
+	# ---- 元素专精（A2 · 元素附着的轻量兑现：分元素伤害走现有 pct 管线）----
+	{"id": "inferno",   "cat": "attack", "name": "火焰附魔", "desc": "+20% 火焰元素伤害",
+		"stat_key": "elemental_damage_fire", "value": 20.0, "cap": 0.0},
+	{"id": "glacier",   "cat": "attack", "name": "寒冰附魔", "desc": "+20% 寒冰元素伤害",
+		"stat_key": "elemental_damage_cold", "value": 20.0, "cap": 0.0},
+	{"id": "storm",     "cat": "attack", "name": "雷电附魔", "desc": "+20% 雷电元素伤害",
+		"stat_key": "elemental_damage_lightning", "value": 20.0, "cap": 0.0},
+	{"id": "venom",     "cat": "attack", "name": "剧毒附魔", "desc": "+20% 剧毒元素伤害",
+		"stat_key": "elemental_damage_poison", "value": 20.0, "cap": 0.0},
+	{"id": "nether",    "cat": "attack", "name": "暗影附魔", "desc": "+20% 暗影元素伤害",
+		"stat_key": "elemental_damage_shadow", "value": 20.0, "cap": 0.0},
+	{"id": "prism",     "cat": "attack", "name": "元素贯通", "desc": "+15% 全元素伤害",
+		"stat_key": "all_element_damage", "value": 15.0, "cap": 0.0},
+	# ---- 战斗功能（A2）----
+	{"id": "alacrity",  "cat": "resource", "name": "迅捷施法", "desc": "+15% 冷却缩减",
+		"stat_key": "cooldown_reduction", "value": 15.0, "cap": 0.0},
+	{"id": "efficiency","cat": "resource", "name": "节能", "desc": "+15% 技能消耗降低",
+		"stat_key": "skill_cost_reduction", "value": 15.0, "cap": 0.0},
+	{"id": "evasion",   "cat": "defense", "name": "灵巧", "desc": "+10% 闪避率",
+		"stat_key": "dodge", "value": 10.0, "cap": 0.0},
+	{"id": "guard",     "cat": "defense", "name": "格挡", "desc": "+10% 格挡率",
+		"stat_key": "block_chance", "value": 10.0, "cap": 0.0},
+	{"id": "onslaught", "cat": "attack", "name": "全力", "desc": "+15% 全伤害",
+		"stat_key": "all_damage", "value": 15.0, "cap": 0.0},
 ]
 
 
