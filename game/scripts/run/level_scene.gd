@@ -1764,12 +1764,23 @@ func _set_banner(text: String) -> void:
 ##   实测 `ch1_l01` 717/829/770 个、`ch1_l02` 574 个。
 ##   合并后降到百来个（`tools/probe_level.gd` 可复现）。
 func _build_collision() -> void:
+	var cells: Dictionary = _layout.get("cells", {})
+	# 墙：layer 1 world（保留 canary 契约）。合并只含 TILE_WALL。
+	_add_tile_collision("TileCollision", 1,
+		_merge_blocking_rects(cells, LevelGenerator.TILE_WALL))
+	# 障碍：独立 layer 10 obstacle（供玩家跳跃越障）。合并只含 TILE_OBSTACLE。
+	_add_tile_collision("TileObstacle", 10,
+		_merge_blocking_rects(cells, LevelGenerator.TILE_OBSTACLE))
+
+
+## 建一个合并矩形碰撞体（layer 契约由调用方决定）。
+func _add_tile_collision(node_name: String, layer: int, rects: Array[Rect2i]) -> void:
 	var body := StaticBody2D.new()
-	body.name = "TileCollision"
-	body.collision_layer = 1
+	body.name = node_name
+	body.collision_layer = layer
 	body.collision_mask = 0
 	add_child(body)
-	for r in _merge_blocking_rects(_layout.get("cells", {})):
+	for r in rects:
 		var shape := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
 		rect.size = Vector2(r.size.x * TILE_PX, r.size.y * TILE_PX)
@@ -1791,15 +1802,18 @@ func _build_collision() -> void:
 ##    （`verify_level_gen` 的 canary 段会用逐格枚举点做集合比较来盯这一条。）
 ##
 ## 返回顺序不保证，调用方不应依赖。
-func _merge_blocking_rects(cells: Dictionary) -> Array[Rect2i]:
-	# ① 按行归集挡人格的 x
+func _merge_blocking_rects(cells: Dictionary, kind: int = -1) -> Array[Rect2i]:
+	# ① 按行归集挡人格的 x（kind >= 0 只归集该类型；-1 归集 wall+obstacle 全集）
 	var by_row: Dictionary = {}   # y -> Array[int]
 	for key in cells:
 		if not key is Vector2i:
 			continue
 		var c: Vector2i = key
 		var t: int = int(cells[c])
-		if t != LevelGenerator.TILE_WALL and t != LevelGenerator.TILE_OBSTACLE:
+		if kind >= 0:
+			if t != kind:
+				continue
+		elif t != LevelGenerator.TILE_WALL and t != LevelGenerator.TILE_OBSTACLE:
 			continue
 		if not by_row.has(c.y):
 			by_row[c.y] = []

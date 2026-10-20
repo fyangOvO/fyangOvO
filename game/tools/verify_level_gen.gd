@@ -749,74 +749,71 @@ func _test_authored() -> void:
 	await get_tree().process_frame
 	_freeze_enemies(lvl)
 
-	var body := lvl.get_node_or_null("TileCollision") as StaticBody2D
-	_ok("canary：关卡运行时**真的**建出了地形碰撞体 TileCollision（不再靠 instantiate 复述空场景）",
-		body != null)
-	_ok("canary：TileCollision 层契约 layer=1 / mask=0（层 1 = world）",
-		body != null and body.collision_layer == 1 and body.collision_mask == 0)
+	var wall_body := lvl.get_node_or_null("TileCollision") as StaticBody2D
+	var obs_body := lvl.get_node_or_null("TileObstacle") as StaticBody2D
+	_ok("canary：关卡运行时**真的**建出了地形碰撞体 TileCollision + TileObstacle",
+		wall_body != null and obs_body != null)
+	_ok("canary：TileCollision（墙）层契约 layer=1 / mask=0（层 1 = world）",
+		wall_body != null and wall_body.collision_layer == 1 and wall_body.collision_mask == 0)
+	_ok("canary：TileObstacle（障碍）独立层 layer=10 / mask=0（供玩家跳跃越障）",
+		obs_body != null and obs_body.collision_layer == 10 and obs_body.collision_mask == 0)
 
-	# 逐格**集合比较**：碰撞体覆盖的格子集合必须**恰好等于**挡人格集合。
-	# 只比数量是不够的 —— 合并写错时「多吞一排空格 + 少盖一排墙」数量可以一样。
+	# 逐格集合比较：墙/障碍碰撞体各自覆盖 == 各自类型格集合（等价性硬约束）。
+	# 只比数量不够 —— 合并写错时「多吞一排空格 + 少盖一排墙」数量可以一样。
 	var cells: Dictionary = lvl._layout.get("cells", {})
-	var want: Dictionary = {}
+	var wall_want: Dictionary = {}
+	var obs_want: Dictionary = {}
 	for key in cells:
 		if not key is Vector2i:
 			continue
-		var c: Vector2i = key
-		var t: int = int(cells[c])
-		if t == LevelGenerator.TILE_WALL or t == LevelGenerator.TILE_OBSTACLE:
-			want[c] = true
-	var got: Dictionary = {}
-	var shape_count := 0
-	if body != null:
-		for ch in body.get_children():
-			var cs := ch as CollisionShape2D
-			if cs == null:
-				continue
-			var rs := cs.shape as RectangleShape2D
-			if rs == null:
-				continue
-			shape_count += 1
-			var tl: Vector2 = cs.position - rs.size / 2.0
-			var x0 := int(round(tl.x / float(LevelScene.TILE_PX)))
-			var y0 := int(round(tl.y / float(LevelScene.TILE_PX)))
-			var nx := int(round(rs.size.x / float(LevelScene.TILE_PX)))
-			var ny := int(round(rs.size.y / float(LevelScene.TILE_PX)))
-			for dy in ny:
-				for dx in nx:
-					got[Vector2i(x0 + dx, y0 + dy)] = true
-	var missing: Array[Vector2i] = []
-	for c in want:
-		if not got.has(c):
-			missing.append(c)
-	var extra: Array[Vector2i] = []
-	for c in got:
-		if not want.has(c):
-			extra.append(c)
-	# ⚠️ `want.size() > 0` 不能省：基准关挑空时 `want` / `got` 都是空字典，
-	#    「缺 0 / 多 0」会**假绿** —— 那正是旧版 canary 犯过的错（复述空场景还报通过）。
-	_ok("canary：碰撞体覆盖格集合 == 挡人格集合（%d 格，逐格枚举比较；缺 %d / 多 %d）"
-		% [want.size(), missing.size(), extra.size()],
-		want.size() > 0 and missing.is_empty() and extra.is_empty())
-	for c in missing:
-		print("       缺：%s" % str(c))
-	for c in extra:
-		print("       多：%s" % str(c))
+		var t: int = int(cells[key])
+		if t == LevelGenerator.TILE_WALL:
+			wall_want[key] = true
+		elif t == LevelGenerator.TILE_OBSTACLE:
+			obs_want[key] = true
+	var wall_got := _gather_cells(wall_body)
+	var obs_got := _gather_cells(obs_body)
+
+	var wall_missing := _diff_keys(wall_want, wall_got)
+	var wall_extra := _diff_keys(wall_got, wall_want)
+	var obs_missing := _diff_keys(obs_want, obs_got)
+	var obs_extra := _diff_keys(obs_got, obs_want)
+	_ok("canary：墙碰撞覆盖 == 墙格集合（%d 格；缺 %d / 多 %d）"
+		% [wall_want.size(), wall_missing.size(), wall_extra.size()],
+		wall_want.size() > 0 and wall_missing.is_empty() and wall_extra.is_empty())
+	_ok("canary：障碍碰撞覆盖 == 障碍格集合（%d 格；缺 %d / 多 %d）"
+		% [obs_want.size(), obs_missing.size(), obs_extra.size()],
+		obs_want.size() == 0 or (obs_missing.is_empty() and obs_extra.is_empty()))
+	for c in wall_missing:
+		print("       墙缺：%s" % str(c))
+	for c in wall_extra:
+		print("       墙多：%s" % str(c))
+	for c in obs_missing:
+		print("       障缺：%s" % str(c))
+	for c in obs_extra:
+		print("       障多：%s" % str(c))
 
 	# 地面格必须**没有**被覆盖（合并不能扩边吞掉空格）
+	var both_got := wall_got.duplicate()
+	for k in obs_got:
+		both_got[k] = true
 	var ground_covered := 0
 	for key2 in cells:
 		if key2 is Vector2i and int(cells[key2]) == LevelGenerator.TILE_GROUND \
-				and got.has(key2):
+				and both_got.has(key2):
 			ground_covered += 1
 	_ok("canary：地面格无一被碰撞体覆盖（%d 个）" % ground_covered, ground_covered == 0)
 
-	# 形状合并收益：同时把「逐格」这个旧基线钉进日志，便于前后对比
-	var per_cell := want.size()
-	_ok("canary：形状已合并（%s 逐格 %d → 实际 %d，降 %.0f%%）"
-		% [_canary_level_id, per_cell, shape_count,
-			100.0 * (1.0 - float(shape_count) / float(maxi(per_cell, 1)))],
-		shape_count > 0 and shape_count < per_cell)
+	# 形状合并收益：分别记录墙/障碍的逐格→矩形压缩
+	var wall_shapes := _shape_count(wall_body)
+	var obs_shapes := _shape_count(obs_body)
+	_ok("canary：墙形状已合并（%s 逐格 %d → 实际 %d，降 %.0f%%）"
+		% [_canary_level_id, wall_want.size(), wall_shapes,
+			100.0 * (1.0 - float(wall_shapes) / float(maxi(wall_want.size(), 1)))],
+		wall_shapes > 0 and wall_shapes < wall_want.size())
+	_ok("canary：障碍形状已合并（%d 逐格 → %d 矩形）"
+		% [obs_want.size(), obs_shapes],
+		obs_want.size() == 0 or (obs_shapes > 0 and obs_shapes <= obs_want.size()))
 
 	await get_tree().process_frame
 	if lvl.get_parent() != null:
@@ -824,8 +821,9 @@ func _test_authored() -> void:
 	await get_tree().process_frame
 
 	var player_probe := (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
-	_ok("canary：玩家 collision_mask 仍打 world 层（1）⇒ 「墙阻挡」有代码为证，不是我编的规则",
-		int((player_probe as CollisionObject2D).collision_mask) == 1)
+	# 玩家 mask = 1(world) + 1024(obstacle)：默认撞墙+障碍；跳跃越障时临时去掉 obstacle 层
+	_ok("canary：玩家 collision_mask 打 world(1) + obstacle(1024) ⇒ 墙/障碍默认阻挡",
+		int((player_probe as CollisionObject2D).collision_mask) == 1025)
 	player_probe.free()
 
 
@@ -890,6 +888,47 @@ func _test_authored() -> void:
 
 ## 冻结关卡里全部敌人的 AI（照 `capture_ui_page.gd:_freeze_enemies`）：
 ## canary 只需要静态地形，怪物乱跑 / 互殴只会引入噪声。
+## 收集一个碰撞体所有 CollisionShape2D 覆盖的格集合（逐格展开）。
+static func _gather_cells(body: Node) -> Dictionary:
+	var got: Dictionary = {}
+	if body == null:
+		return got
+	for ch in body.get_children():
+		var cs := ch as CollisionShape2D
+		if cs == null:
+			continue
+		var rs := cs.shape as RectangleShape2D
+		if rs == null:
+			continue
+		var tl: Vector2 = cs.position - rs.size / 2.0
+		var x0 := int(round(tl.x / float(LevelScene.TILE_PX)))
+		var y0 := int(round(tl.y / float(LevelScene.TILE_PX)))
+		var nx := int(round(rs.size.x / float(LevelScene.TILE_PX)))
+		var ny := int(round(rs.size.y / float(LevelScene.TILE_PX)))
+		for dy in ny:
+			for dx in nx:
+				got[Vector2i(x0 + dx, y0 + dy)] = true
+	return got
+
+
+static func _shape_count(body: Node) -> int:
+	var n := 0
+	if body == null:
+		return n
+	for ch in body.get_children():
+		if ch is CollisionShape2D:
+			n += 1
+	return n
+
+
+static func _diff_keys(a: Dictionary, b: Dictionary) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for k in a:
+		if not b.has(k):
+			out.append(k)
+	return out
+
+
 func _freeze_enemies(level: LevelScene) -> void:
 	for e in level._alive:
 		if is_instance_valid(e):

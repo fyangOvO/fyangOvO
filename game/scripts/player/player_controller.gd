@@ -135,6 +135,14 @@ const BLOCK_MOVE_MULT: float = 0.5
 const TURN_HOLD: float = 0.08
 ## 闪避残影数量（沿路径生成渐隐残影帧）
 const DODGE_GHOST_COUNT: int = 4
+## 跳跃持续时间（越障窗口 + 跃起表现）
+const JUMP_DURATION: float = 0.28
+## 跳跃期间位移加速倍率（跃动前进）
+const JUMP_SPEED_MULT: float = 1.25
+## 跳跃跃起视觉：BodySprite 上移最大像素
+const JUMP_LIFT_PX: float = 8.0
+## 跳跃冷却（秒）：防连按刷
+const JUMP_COOLDOWN: float = 0.35
 
 # =============================================================================
 # 四、手部锚点几何（占位值，等美术产出后按 48×48 精灵重新标定）
@@ -237,6 +245,16 @@ var _blocking: bool = false
 var _anim_dir_hold_t: float = 0.0
 ## 素材基准 fps（冲刺时 × RUN_FPS_MULT 加速播放）
 var _base_fps: float = 12.0
+## 是否跳跃（越障窗口内：碰撞临时忽略 obstacle 层，墙仍挡）
+var _jumping: bool = false
+## 跳跃剩余时间
+var _jump_t: float = 0.0
+## 跳跃冷却剩余
+var _jump_cd: float = 0.0
+## 跳跃前记录的碰撞 mask（结束恢复）
+var _jump_base_mask: int = 0
+## BodySprite 原始 offset（跃起视觉叠加用）
+var _jump_base_offset: Vector2 = Vector2.ZERO
 
 # ---- 攻击与技能（任务 2.2）----
 
@@ -390,6 +408,21 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
+	# 跳跃越障窗口：递减，结束恢复碰撞 mask（obstacle 层）+ 视觉
+	if _jumping:
+		_jump_t -= delta
+		if body_sprite != null:
+			var phase := clampf(_jump_t / JUMP_DURATION, 0.0, 1.0)
+			body_sprite.offset = Vector2(_jump_base_offset.x,
+				_jump_base_offset.y - JUMP_LIFT_PX * sin(phase * PI))
+		if _jump_t <= 0.0:
+			_jumping = false
+			collision_mask = _jump_base_mask
+			if body_sprite != null:
+				body_sprite.offset = _jump_base_offset
+	if _jump_cd > 0.0:
+		_jump_cd -= delta
+
 	# 冲刺跑计时：持续移动累计，停下 / 闪避重置
 	if _is_dodging() or input_dir == Vector2.ZERO:
 		_move_time = 0.0
@@ -412,6 +445,8 @@ func _physics_process(delta: float) -> void:
 		var base_speed := LOCAL_MOVE_SPEED * _move_speed_multiplier
 		if _running:
 			base_speed *= RUN_SPEED_MULT
+		if _jumping:
+			base_speed *= JUMP_SPEED_MULT
 		if _blocking:
 			base_speed *= BLOCK_MOVE_MULT
 		move_velocity = move_velocity.move_toward(
@@ -445,6 +480,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(&"dodge"):
 		_try_dodge()
+		return
+	if event.is_action_pressed(&"jump"):
+		_try_jump()
 		return
 	if event.is_action_pressed(&"block"):
 		_start_blocking()
@@ -1146,17 +1184,44 @@ func _end_blocking() -> void:
 
 
 # =============================================================================
+# 九·三、跳跃（Shift 可越障碍：越障窗口内临时忽略 obstacle 层，墙仍挡）
+# =============================================================================
+
+func _try_jump() -> void:
+	if _jump_cd > 0.0 or _jumping or _is_dodging():
+		return
+	if health != null and health.is_dead:
+		return
+	_jumping = true
+	_jump_t = JUMP_DURATION
+	_jump_cd = JUMP_COOLDOWN
+	_jump_base_mask = collision_mask
+	collision_mask = 1   # 越障：临时只撞墙（去掉 obstacle 层），墙仍挡
+	if body_sprite != null:
+		_jump_base_offset = body_sprite.offset
+	# 跃起残影（复用闪避残影，dir 用当前朝向向量）
+	_spawn_dodge_ghosts_dir(_facing_to_vector(_facing))
+	_anim_oneshot = ""
+	_anim_oneshot_t = 0.0
+	_clip_key = ""
+
+
+# =============================================================================
 # 九·二、闪避残影（瞬移跃动表现 · 复用现有帧，无 dodge 专用帧）
 # =============================================================================
 
 ## 闪避时沿路径生成渐隐残影帧，增强瞬移的「跃动」观感。
 func _spawn_dodge_ghosts() -> void:
+	_spawn_dodge_ghosts_dir(_dodge_dir)
+
+
+func _spawn_dodge_ghosts_dir(dir: Vector2) -> void:
 	if body_sprite == null or fx_layer == null:
 		return
 	var tex := body_sprite.texture
 	if tex == null:
 		return
-	var dir := _dodge_dir
+	var dir2 := dir if dir != Vector2.ZERO else Vector2.DOWN
 	for i in DODGE_GHOST_COUNT:
 		var ghost := Sprite2D.new()
 		ghost.texture = tex
@@ -1166,11 +1231,11 @@ func _spawn_dodge_ghosts() -> void:
 		ghost.scale = body_sprite.scale
 		ghost.modulate = Color(1, 1, 1, 0.32)
 		fx_layer.add_child(ghost)
-		var start := body_sprite.global_position - dir * (6.0 + float(i) * 4.0)
+		var start := body_sprite.global_position - dir2 * (6.0 + float(i) * 4.0)
 		ghost.global_position = start
 		var t := create_tween()
 		t.tween_property(ghost, "modulate:a", 0.0, 0.16 + float(i) * 0.04)
-		t.parallel().tween_property(ghost, "global_position", start - dir * 10.0, 0.20)
+		t.parallel().tween_property(ghost, "global_position", start - dir2 * 10.0, 0.20)
 		t.tween_callback(ghost.queue_free)
 
 

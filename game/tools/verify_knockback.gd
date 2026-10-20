@@ -93,16 +93,18 @@ func _test_contract() -> void:
 		_ok("敌人碰撞形状 == 24×24（与 get_hit_radius()=12 一致）",
 			rshape != null and rshape.size == Vector2(24.0, 24.0))
 
-	# 层契约：敌人 = **层 3 = enemy（值 4）**，mask 只打 world（值 1）。
+	# 层契约：敌人 = **层 3 = enemy（值 4）**，mask 打 world(1) + obstacle(1024)。
 	#   · `layer = 4` 才是 README §7 层表里的「层 3 = enemy」；旧值 3 = 层 1+2（world+player），
 	#     会把敌人放到**地形层**上 ⇒ 玩家（mask=1）会撞到怪、怪之间也互撞。
 	#   · `mask` 刻意**不含玩家层**：README 任务 10.10 已记录，敌人与玩家贴脸时形状几何
 	#     重叠被物理分离推到 ≈34px，而 `attack_range` 恰好 34 ⇒ CHASE↔ATTACK 震荡、
 	#     攻击时断时续。那条要等「攻击判定加迟滞」（退出阈值 = `attack_range` + Δ）才能开，
 	#     属 10.10，不在本轮。
+	#   · 角色动作优化（跳跃越障）把障碍拆到独立层 10 = obstacle：敌人默认撞墙+障碍，
+	#     仍**不含玩家层** ⇒ 10.10 防震荡的约束未放松。
 	#   ⇒ 本断言**钉住现状**：谁把 mask 放开到含玩家层，这里立刻变红，逼他先读 10.10。
-	_ok("敌人层契约 = layer 4（层 3 = enemy）/ mask 1（只打 world 地形）",
-		e.collision_layer == 4 and e.collision_mask == 1)
+	_ok("敌人层契约 = layer 4（层 3 = enemy）/ mask 1+1024（打 world+obstacle，不含玩家层）",
+		e.collision_layer == 4 and e.collision_mask == 1025)
 
 	# 与玩家侧同签名的证明：能按 (Vector2) -> void 调用而不报错
 	var before := e.global_position
