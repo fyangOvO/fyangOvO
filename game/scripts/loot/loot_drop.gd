@@ -77,6 +77,10 @@ var _age: float = 0.0
 var _picked: bool = false
 var _player: Node = null
 
+## 地面光柱特效累计时长（秒）。`_draw_beam` 各形状分支用它做呼吸 / 脉动 / 粒子相位
+## （DNF 式掉落閃光：光柱 + 十字爆闪 + 火环 + 上升粒子，全部程序化绘制、零新素材）。
+var _fx_t: float = 0.0
+
 ## 吸附当前速度（px/s）。进入磁吸半径后逐帧加速，见 `_process`。
 var _magnet_speed: float = 0.0
 
@@ -156,6 +160,7 @@ func _process(delta: float) -> void:
 	if _lifetime <= 0.0:
 		queue_free()
 		return
+	_fx_t += delta
 	if _pop_elapsed >= 0.0:
 		# 外部改写让位：`_advance_pop` 每帧都写 `global_position` ⇒ 若**别人**（磁吸 / 测试 /
 		# 未来任何调用方）在本帧之前动过位置，动画必须**立刻交出控制权**，否则会把对方写的
@@ -385,6 +390,24 @@ func _draw_beam(c: Color, height_override: float = -1.0) -> void:
 		GameConstants.BeamShape.SPECIAL_SPIRE:
 			_draw_spire_beam(h, c)
 			return
+		GameConstants.BeamShape.LINE_PULSE:
+			_draw_pulse_beam(h, c)
+			return
+		GameConstants.BeamShape.LINE_RING:
+			_draw_ring_beam(h, c)
+			return
+		GameConstants.BeamShape.LINE_BURST:
+			_draw_burst_beam(h, c)
+			return
+		GameConstants.BeamShape.LINE_FIRERING:
+			_draw_firering_beam(h, c)
+			return
+		GameConstants.BeamShape.DIAMOND_RING:
+			_draw_diamond_ring(c)
+			return
+		GameConstants.BeamShape.GRADIENT_SEG:
+			_draw_gradient_beam(h)
+			return
 	# 普通档：渐变柱（分段纵向渐隐，顶部淡）
 	var seg := 4
 	for i in seg:
@@ -431,3 +454,133 @@ func _draw_spire_beam(h: float, c: Color) -> void:
 		var alpha := 0.7 - float(i) * 0.15
 		draw_rect(Rect2(-w * 0.5, y0, w, y1 - y0), Color(c, alpha))
 	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(c, 0.8))
+
+
+# -----------------------------------------------------------------------------
+# DNF 式掉落闪光（B5-4 已聲明、此前未實現的光柱形狀）
+# 全部程序化 `_draw` 繪製、零新素材；相位統一用 `_fx_t`（見 `_process`）。
+# 像素鐵律：所有座標取整、只畫 1px 系矩形，不做運行時旋轉。
+# -----------------------------------------------------------------------------
+
+## 柱頂十字閃光（legendary 爆閃用）：垂直 + 水平亮線，alpha 隨 len 呼吸。
+## 垂直線從柱頂再向上 14px；水平線以柱軸為中點向兩側各 6px。
+func _draw_top_cross(c: Color, strength: float) -> void:
+	var top: float = -12.0
+	if rarity >= 0 and rarity < GameConstants.RARITY_BEAM_HEIGHTS.size():
+		top = -float(GameConstants.RARITY_BEAM_HEIGHTS[rarity])
+	var a := clampf(strength, 0.0, 1.0)
+	if a <= 0.02:
+		return
+	# 垂直線（柱頂向上延伸，1px 寬）
+	draw_rect(Rect2(-1.0, top - 14.0, 2.0, 14.0), Color(c, 0.85 * a))
+	# 水平線（柱頂向兩側，2px 高）
+	draw_rect(Rect2(-8.0, top - 2.0, 16.0, 2.0), Color(c, 0.75 * a))
+	# 中心亮點
+	draw_rect(Rect2(-1.0, top - 3.0, 3.0, 3.0), Color(1.0, 1.0, 1.0, 0.9 * a))
+
+
+## 上升光點（legendary/mythic 粒子）：count 個光點沿柱頂往上循環上浮 + 淡出。
+func _draw_rising_particles(c: Color, count: int, span: float, speed: float) -> void:
+	for i in count:
+		var phase := fmod(_fx_t * speed + float(i) * span / float(count), span)
+		var y := -span * 0.5 - phase  # 從柱半腰往上浮出畫面
+		var x := -1 + (i % 3)  # 1px 橫向錯開，避免粒子疊成一條線
+		var a := 0.85 * (1.0 - phase / span)
+		draw_rect(Rect2(float(x), roundf(y), 2.0, 2.0), Color(c, a))
+
+
+## 地面像素環（epic 光環 / mythic 火環共用）：r 半徑的 8 點環 + 對角 4 點，
+## alpha 呼吸（`breath` 0..1）。點為 2×2 亮塊（1px 見方在整數縮放下會跳格）。
+func _draw_ground_ring(c: Color, r: float, breath: float) -> void:
+	var a := clampf(breath, 0.0, 1.0)
+	if a <= 0.02:
+		return
+	var pts: Array[Vector2] = []
+	for i in 8:
+		var ang := TAU * float(i) / 8.0
+		pts.append(Vector2(roundf(cos(ang) * r), roundf(sin(ang) * r)))
+	for p in pts:
+		draw_rect(Rect2(p.x - 1.0, p.y - 1.0, 2.0, 2.0), Color(c, 0.8 * a))
+	# 物件腳下一圈底座亮點（環的「錨」）
+	draw_rect(Rect2(-4.0, -1.0, 8.0, 1.0), Color(c, 0.9 * a))
+
+
+## 稀有（LINE_PULSE）：直線柱 + 呼吸脈動（alpha 整體起伏）。
+func _draw_pulse_beam(h: float, c: Color) -> void:
+	var pulse := 0.72 + 0.28 * sin(_fx_t * 3.2)
+	var seg := 4
+	for i in seg:
+		var y0 := -h + float(i) * float(h) / float(seg)
+		var y1 := -h + float(i + 1) * float(h) / float(seg)
+		var alpha := 0.6 * (1.0 - float(i) / float(seg)) * pulse
+		draw_rect(Rect2(-1.0, y0, 2.0, y1 - y0), Color(c, alpha))
+	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(c, 0.8 * pulse))
+
+
+## 史詩（LINE_RING）：直線柱 + 地面光環（8 點環呼吸擴散）。
+func _draw_ring_beam(h: float, c: Color) -> void:
+	_draw_pulse_beam(h, c)
+	var r := 9.0 + 4.0 * sin(_fx_t * 2.4)
+	var breath := 0.55 + 0.45 * sin(_fx_t * 2.4)
+	_draw_ground_ring(c, r, breath)
+
+
+## 傳說（LINE_BURST）：直線柱（更亮）+ 掉落瞬間柱頂十字爆閃 + 上升粒子。
+func _draw_burst_beam(h: float, c: Color) -> void:
+	var seg := 4
+	for i in seg:
+		var y0 := -h + float(i) * float(h) / float(seg)
+		var y1 := -h + float(i + 1) * float(h) / float(seg)
+		var alpha := 0.75 * (1.0 - float(i) / float(seg))
+		draw_rect(Rect2(-1.0, y0, 2.0, y1 - y0), Color(c, alpha))
+	# 地面爆閃（出生後 0.5s 內）：十字向外擴 + 淡出
+	if _fx_t < 0.5:
+		var u := _fx_t / 0.5
+		var burst := (1.0 - u) * 0.9
+		_draw_top_cross(c, burst)
+		_draw_ground_ring(c, 10.0 + 8.0 * u, burst)
+	# 持續：上升粒子
+	_draw_rising_particles(c, 3, h + 10.0, 18.0)
+	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(c, 0.9))
+
+
+## 神話（LINE_FIRERING）：直線柱 + 地面持續火環（呼吸）+ 上升金色粒子。
+## 火環色固定金色（與角色神話紅主色分離，一眼認出「火」）。
+func _draw_firering_beam(h: float, c: Color) -> void:
+	_draw_pulse_beam(h, c)
+	var fire := Color("F5C542")
+	var r := 11.0 + 3.0 * sin(_fx_t * 3.6)
+	var breath := 0.6 + 0.4 * sin(_fx_t * 3.6)
+	_draw_ground_ring(fire, r, breath)
+	_draw_rising_particles(fire, 4, h + 12.0, 22.0)
+	_draw_ground_ring(c, 5.0, 0.8)  # 內圈主色底座
+
+
+## 套裝（DIAMOND_RING）：菱形環（青綠）取代直線柱 —— 換形狀不比高度。
+func _draw_diamond_ring(c: Color) -> void:
+	var r := 10.0 + 2.0 * sin(_fx_t * 2.0)
+	var a := 0.7 + 0.3 * sin(_fx_t * 2.0)
+	# 菱形 4 角 + 4 邊點（像素菱形，靜態不旋轉）
+	var pts: Array[Vector2] = [
+		Vector2(0.0, -r), Vector2(r, 0.0), Vector2(0.0, r), Vector2(-r, 0.0),
+		Vector2(r * 0.5, -r * 0.5), Vector2(r * 0.5, r * 0.5),
+		Vector2(-r * 0.5, r * 0.5), Vector2(-r * 0.5, -r * 0.5),
+	]
+	for p in pts:
+		draw_rect(Rect2(p.x - 1.0, p.y - 1.0, 2.0, 2.0), Color(c, 0.9 * a))
+	draw_rect(Rect2(-3.0, -1.0, 6.0, 1.0), Color(c, 0.95))
+
+
+## 隱藏（GRADIENT_SEG）：6 色分段柱 + 上升白星點（彩蛋專屬，全池最低權重）。
+func _draw_gradient_beam(h: float) -> void:
+	var colors := [
+		Color("FF2D55"), Color("FF8A2B"), Color("F5C542"),
+		Color("2FA37A"), Color("4C8BF5"), Color("A96BFF"),
+	]
+	var seg_h := h / 6.0
+	for i in 6:
+		var y0 := -h + float(i) * seg_h
+		var y1 := -h + float(i + 1) * seg_h
+		draw_rect(Rect2(-2.0, y0, 4.0, y1 - y0), Color(colors[i], 0.8))
+	_draw_rising_particles(Color(1.0, 1.0, 1.0), 4, h + 8.0, 20.0)
+	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(colors[1], 0.9))
