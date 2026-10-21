@@ -67,6 +67,7 @@ func _ready() -> void:
 	await _test_weapon_mount()
 	await _test_visual_tier()
 	await _test_armor_piece()
+	await _test_armor_piece_lower()
 	await _test_rebind()
 
 	_finish()
@@ -463,6 +464,64 @@ func _test_armor_piece() -> void:
 	_player.apply_equipment_visual([])
 	await _await_frames(1)
 	_ok("卸下后分件隐藏", head_sp != null and not head_sp.visible and chest_sp != null and not chest_sp.visible)
+
+
+# =============================================================================
+# I2. 装备可视化延伸：防具外观分件层（手套 / 腿甲 / 靴子）
+# =============================================================================
+
+## 覆盖装备可视化第1期·防具外观层延伸：穿 gloves / legs / boots → 对应锚点下
+## 各挂 RealArmorPiece 可见、纹理非空、帧名目录前缀正确；卸下隐藏。
+func _test_armor_piece_lower() -> void:
+	print("--- I2. 装备可视化：防具外观分件层（手/腿/靴）---")
+	var gloves := _player.get_node_or_null(NodePath("ArmorLayer/GlovesAnchor")) as Marker2D
+	var legs := _player.get_node_or_null(NodePath("ArmorLayer/LegsAnchor")) as Marker2D
+	var boots := _player.get_node_or_null(NodePath("ArmorLayer/BootsAnchor")) as Marker2D
+	_ok("ArmorLayer 锚点存在（Gloves/Legs/BootsAnchor）",
+		gloves != null and legs != null and boots != null)
+	if gloves == null or legs == null or boots == null:
+		return
+	var g_tpl: EquipmentData = ConfigLoader.get_equipment_template("gloves_leather")
+	var l_tpl: EquipmentData = ConfigLoader.get_equipment_template("legs_plate")
+	var b_tpl: EquipmentData = ConfigLoader.get_equipment_template("boots_wanderer")
+	_ok("分件模板存在（gloves_leather / legs_plate / boots_wanderer）",
+		g_tpl != null and l_tpl != null and b_tpl != null)
+	if g_tpl == null or l_tpl == null or b_tpl == null:
+		return
+	if _player.art_id != "warrior":
+		_player.art_id = "warrior"
+		_player._apply_real_art(EnemyBase.resolve_character_set("warrior"))
+		_player._apply_facing()
+		await _await_frames(2)
+
+	var g_inst := EquipmentInstance.create_from_template(g_tpl, 1, GameConstants.Rarity.COMMON)
+	var l_inst := EquipmentInstance.create_from_template(l_tpl, 1, GameConstants.Rarity.COMMON)
+	var b_inst := EquipmentInstance.create_from_template(b_tpl, 1, GameConstants.Rarity.COMMON)
+	_player.apply_equipment_visual([g_inst, l_inst, b_inst])
+	await _await_frames(2)
+	var g_sp := gloves.get_node_or_null(NodePath("RealArmorPiece")) as Sprite2D
+	var l_sp := legs.get_node_or_null(NodePath("RealArmorPiece")) as Sprite2D
+	var b_sp := boots.get_node_or_null(NodePath("RealArmorPiece")) as Sprite2D
+	_ok("挂载后三锚点下生成 RealArmorPiece", g_sp != null and l_sp != null and b_sp != null)
+	_ok("分件可见且纹理非空", g_sp != null and g_sp.visible and g_sp.texture != null
+		and l_sp != null and l_sp.visible and l_sp.texture != null
+		and b_sp != null and b_sp.visible and b_sp.texture != null)
+	_ok("手套分件帧来自 gloves_leather 素材目录",
+		g_sp != null and g_sp.texture != null
+		and g_sp.texture.resource_path.contains("armor_gloves_leather_idle_"))
+	_ok("腿甲分件帧来自 legs_plate 素材目录",
+		l_sp != null and l_sp.texture != null
+		and l_sp.texture.resource_path.contains("armor_legs_plate_idle_"))
+	_ok("靴子分件帧来自 boots_wanderer 素材目录",
+		b_sp != null and b_sp.texture != null
+		and b_sp.texture.resource_path.contains("armor_boots_wanderer_idle_"))
+
+	# 卸下 → 隐藏
+	_player.apply_equipment_visual([])
+	await _await_frames(1)
+	_ok("卸下后三槽分件隐藏",
+		g_sp != null and not g_sp.visible and l_sp != null and not l_sp.visible
+		and b_sp != null and not b_sp.visible)
 
 
 # =============================================================================

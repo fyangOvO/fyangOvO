@@ -172,6 +172,9 @@ const HAND_SPREAD_Y_DAMP: float = 0.5
 @onready var armor_layer: Node2D = $ArmorLayer
 @onready var head_anchor: Marker2D = $ArmorLayer/HeadAnchor
 @onready var chest_anchor: Marker2D = $ArmorLayer/ChestAnchor
+@onready var gloves_anchor: Marker2D = $ArmorLayer/GlovesAnchor
+@onready var legs_anchor: Marker2D = $ArmorLayer/LegsAnchor
+@onready var boots_anchor: Marker2D = $ArmorLayer/BootsAnchor
 @onready var fx_layer: Node2D = $FxLayer
 
 ## 法力池（任务 2.2，挂在 Player 下）
@@ -1416,12 +1419,15 @@ var _weapon_tex_cache: Dictionary = {}
 
 ## 按穿戴清單計算主 / 副手武器原型並掛載（關卡進入、裝備變更時調用）。
 ## 同時計算「防具槽最高稀有度」作為角色外觀檔（換色），見 `set_visual_tier`；
-## 並為頭 / 胸槽掛載對應防具外觀分件（`pack/armor/<item_id>/`）。
+## 並為頭/胸/手/腿/靴五個防具槽掛載對應防具外觀分件（`pack/armor/<item_id>/`）。
 func apply_equipment_visual(equipped: Array) -> void:
 	var main_key := ""
 	var off_key := ""
 	var helm_id := ""
 	var chest_id := ""
+	var gloves_id := ""
+	var legs_id := ""
+	var boots_id := ""
 	var armor_top_rarity := -1
 	for item in equipped:
 		if item == null:
@@ -1437,15 +1443,25 @@ func apply_equipment_visual(equipped: Array) -> void:
 		# 外觀檔只由防具槽（頭/胸/手/腿/鞋）驅動；武器 / 飾品不換角色外觀
 		if item.rarity > armor_top_rarity and _is_armor_slot(t.slot):
 			armor_top_rarity = item.rarity
-		# 頭 / 胸分件層：部件 id 即防具模板 id（helm_*/chest_*），素材在 pack/armor/<id>/
-		if t.slot == GameConstants.EquipSlot.HELM:
-			helm_id = t.id
-		elif t.slot == GameConstants.EquipSlot.CHEST:
-			chest_id = t.id
+		# 分件層：部件 id 即防具模板 id（helm_*/chest_*/gloves_*/legs_*/boots_*），素材在 pack/armor/<id>/
+		match t.slot:
+			GameConstants.EquipSlot.HELM:
+				helm_id = t.id
+			GameConstants.EquipSlot.CHEST:
+				chest_id = t.id
+			GameConstants.EquipSlot.GLOVES:
+				gloves_id = t.id
+			GameConstants.EquipSlot.LEGS:
+				legs_id = t.id
+			GameConstants.EquipSlot.BOOTS:
+				boots_id = t.id
 	_mount_weapon(main_hand_anchor, main_key)
 	_mount_weapon(off_hand_anchor, off_key)
 	_mount_armor_piece(head_anchor, helm_id)
 	_mount_armor_piece(chest_anchor, chest_id)
+	_mount_armor_piece(gloves_anchor, gloves_id)
+	_mount_armor_piece(legs_anchor, legs_id)
+	_mount_armor_piece(boots_anchor, boots_id)
 	set_visual_tier(armor_top_rarity)
 
 
@@ -1621,6 +1637,12 @@ func _refresh_armor_pieces() -> void:
 		_refresh_armor_sprite(head_anchor, head_anchor.get_node_or_null(NodePath("RealArmorPiece")))
 	if chest_anchor != null:
 		_refresh_armor_sprite(chest_anchor, chest_anchor.get_node_or_null(NodePath("RealArmorPiece")))
+	if gloves_anchor != null:
+		_refresh_armor_sprite(gloves_anchor, gloves_anchor.get_node_or_null(NodePath("RealArmorPiece")))
+	if legs_anchor != null:
+		_refresh_armor_sprite(legs_anchor, legs_anchor.get_node_or_null(NodePath("RealArmorPiece")))
+	if boots_anchor != null:
+		_refresh_armor_sprite(boots_anchor, boots_anchor.get_node_or_null(NodePath("RealArmorPiece")))
 
 
 ## （朝向翻轉由既有 `_apply_facing()` 負責；有方向素材時它會自動不翻。）

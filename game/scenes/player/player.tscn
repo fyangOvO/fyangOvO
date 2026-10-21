@@ -33,6 +33,15 @@ position = Vector2(0, 0)
 [node name="ChestAnchor" type="Marker2D" parent="ArmorLayer"]
 position = Vector2(0, 0)
 
+[node name="GlovesAnchor" type="Marker2D" parent="ArmorLayer"]
+position = Vector2(0, 0)
+
+[node name="LegsAnchor" type="Marker2D" parent="ArmorLayer"]
+position = Vector2(0, 0)
+
+[node name="BootsAnchor" type="Marker2D" parent="ArmorLayer"]
+position = Vector2(0, 0)
+
 [node name="FxLayer" type="Node2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

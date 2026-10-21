@@ -91,6 +91,8 @@ func _run() -> void:
 	archer.apply_equipment_visual([_mk_instance("helm_hide"), _mk_instance("chest_chainmail")])
 	await _settle(0.3)
 	await _shot("archer_helm_chest_idle_e.png")
+	archer.queue_free()
+	await _settle(0.1)
 
 	# ⑦ mage（法袍）同樣穿法
 	var mage := PLAYER_SCENE.instantiate()
@@ -103,6 +105,46 @@ func _run() -> void:
 	mage.apply_equipment_visual([_mk_instance("helm_hide"), _mk_instance("chest_chainmail")])
 	await _settle(0.3)
 	await _shot("mage_helm_chest_idle_e.png")
+	mage.queue_free()
+	await _settle(0.1)
+
+	# ⑧ 下肢延伸：手套 / 腿甲 / 靴子（warrior，三槽分件）
+	player._facing = PlayerController.Facing8.RIGHT
+	player._apply_facing()
+	player.apply_equipment_visual([
+		_mk_instance("gloves_leather"), _mk_instance("legs_plate"), _mk_instance("boots_wanderer")])
+	await _settle(0.3)
+	await _shot("gloves_legs_boots_idle_e.png")
+
+	# ⑨ 傳說檔：三槽隨稀有度換色（橙）
+	var g_leg := EquipmentInstance.new()
+	g_leg.template = ConfigLoader.get_equipment_template("legs_plate")
+	g_leg.rarity = GameConstants.Rarity.LEGENDARY
+	var g_boot := EquipmentInstance.new()
+	g_boot.template = ConfigLoader.get_equipment_template("boots_wind")
+	g_boot.rarity = GameConstants.Rarity.LEGENDARY
+	player.apply_equipment_visual([
+		_mk_instance("helm_golem"), _mk_instance("chest_ember"),
+		_mk_instance("gloves_cold"), g_leg, g_boot])
+	await _settle(0.3)
+	await _shot("full5_slot_legendary_e.png")
+
+	# ⑩ archer / mage 下肢分件對齊
+	for cid in ["archer", "mage"]:
+		var pc := PLAYER_SCENE.instantiate()
+		pc.art_id = cid
+		add_child(pc)
+		pc.global_position = Vector2(320, 180)
+		await _settle(0.2)
+		pc._facing = PlayerController.Facing8.RIGHT
+		pc._apply_facing()
+		pc.apply_equipment_visual([
+			_mk_instance("helm_hide"), _mk_instance("chest_chainmail"),
+			_mk_instance("gloves_leather"), _mk_instance("legs_plate"), _mk_instance("boots_wanderer")])
+		await _settle(0.3)
+		await _shot("%s_full_set_idle_e.png" % cid)
+		pc.queue_free()
+		await _settle(0.1)
 
 	print("===== 分件層抓圖完成 =====")
 	get_tree().quit(0)
