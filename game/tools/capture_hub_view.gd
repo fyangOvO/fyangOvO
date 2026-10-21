@@ -72,6 +72,20 @@ func _run() -> void:
 		hub.call("_toggle_panel", "inventory")
 	await get_tree().create_timer(0.4).timeout
 	await _shot("hub-2-背包面板.png")
+	# 技能师對話氣泡（portrait_quest 立繪；缺口驗收）
+	if hub.has_method("_speak"):
+		hub.call("_speak", "技能怎么带？我帮你调。", "portrait_quest")
+	await get_tree().create_timer(0.4).timeout
+	await _shot("hub-3-技能师对话.png")
+	# 熱區 hover 金框反饋（鼠標移到技能師熱區中心）
+	Input.warp_mouse(Vector2(220, 230))
+	await get_tree().create_timer(0.4).timeout
+	await _shot("hub-4-热区hover.png")
+	# 深渊使者對話氣泡（portrait_abyss 立繪）
+	if hub.has_method("_speak"):
+		hub.call("_speak", "深渊之下……你确定要去？", "portrait_abyss")
+	await get_tree().create_timer(0.4).timeout
+	await _shot("hub-5-深渊使者对话.png")
 
 	print("[Capture] 完成 → %s" % OUT_DIR)
 	_cleanup()

@@ -128,6 +128,10 @@ const TEX: Dictionary = {
 	"portrait_gemmer": "npc/portrait_gemmer_48.png",
 	"portrait_mentor": "npc/portrait_mentor_48.png",
 	"portrait_tailor": "npc/portrait_tailor_48.png",
+	"portrait_quest": "npc/portrait_quest_48.png",
+	"portrait_guard": "npc/portrait_guard_48.png",
+	"portrait_abyss": "npc/portrait_abyss_48.png",
+	"portrait_merchant": "npc/portrait_merchant_48.png",
 	# ── 2026-09-23 步骤 8A：消耗品药水图标（48×48 像素风，与技能图标同套）──
 	"potion_life": "potion_life_48.png",
 	"potion_mana": "potion_mana_48.png",

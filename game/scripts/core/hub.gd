@@ -874,10 +874,10 @@ func _build_ui() -> void:
 		{"pid": PANEL_CHARACTER, "name": "主角", "pos": Vector2(307, 155), "line": "准备好了？先看看自己的数值吧。", "tex": ""},
 		{"pid": PANEL_INVENTORY, "name": "裁缝", "pos": Vector2(435, 200), "line": "要不要缝件新衣服？", "tex": "tailor_small", "portrait": "portrait_tailor"},
 		{"pid": PANEL_TALENT, "name": "导师", "pos": Vector2(480, 105), "line": "天赋点数别乱花。", "tex": "master_small", "portrait": "portrait_mentor"},
-		{"pid": PANEL_SKILLS, "name": "技能师", "pos": Vector2(220, 230), "line": "技能怎么带？我帮你调。", "tex": "quest_small"},
-		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔层越高，奖励越丰。", "tex": "guard_small"},
-		{"pid": PANEL_ABYSS, "name": "深渊使者", "pos": Vector2(540, 230), "line": "深渊之下……你确定要去？", "tex": "abyss_small"},
-		{"pid": PANEL_SET, "name": "套装师", "pos": Vector2(540, 105), "line": "集齐套装，战力飞升。", "tex": "merchant_small"},
+		{"pid": PANEL_SKILLS, "name": "技能师", "pos": Vector2(220, 230), "line": "技能怎么带？我帮你调。", "tex": "quest_small", "portrait": "portrait_quest"},
+		{"pid": PANEL_TOWER, "name": "守塔人", "pos": Vector2(380, 230), "line": "塔层越高，奖励越丰。", "tex": "guard_small", "portrait": "portrait_guard"},
+		{"pid": PANEL_ABYSS, "name": "深渊使者", "pos": Vector2(540, 230), "line": "深渊之下……你确定要去？", "tex": "abyss_small", "portrait": "portrait_abyss"},
+		{"pid": PANEL_SET, "name": "套装师", "pos": Vector2(540, 105), "line": "集齐套装，战力飞升。", "tex": "merchant_small", "portrait": "portrait_merchant"},
 	]
 	for h in HOTSPOTS:
 		_add_hotspot(h["pos"], h["pid"], h["name"], h["line"], h.get("tex", ""), h.get("portrait", ""))
@@ -930,6 +930,19 @@ func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key
 	area.focus_mode = Control.FOCUS_NONE
 	area.modulate = Color(1, 1, 1, 0.01)
 	area.flat = true
+	# 交互反饋：hover 金框 + 微亮底，pressed 金框加亮（程序化 StyleBoxFlat，不拉伸貼圖）
+	var hover_sb := StyleBoxFlat.new()
+	hover_sb.bg_color = Color(1, 1, 1, 0.05)
+	hover_sb.border_color = GameConstants.COLOR_ACCENT_GOLD
+	hover_sb.set_border_width_all(1)
+	hover_sb.set_corner_radius_all(2)
+	var pressed_sb := StyleBoxFlat.new()
+	pressed_sb.bg_color = Color(1, 1, 1, 0.10)
+	pressed_sb.border_color = Color(1.0, 0.83, 0.31)
+	pressed_sb.set_border_width_all(2)
+	pressed_sb.set_corner_radius_all(2)
+	area.add_theme_stylebox_override("hover", hover_sb)
+	area.add_theme_stylebox_override("pressed", pressed_sb)
 	area.pressed.connect(func() -> void:
 		_speak(line, portrait_key)
 		EventBus.request_panel_toggle.emit(pid, not is_panel_visible(pid)))
@@ -957,6 +970,10 @@ func _add_hotspot(pos: Vector2, pid: String, name: String, line: String, tex_key
 func _speak(text: String, portrait_key: String = "") -> void:
 	if _dialogue_bubble == null:
 		_dialogue_bubble = PanelContainer.new()
+		# 金色 9slice 面板（quest_panel_9slice，與據點/任務 UI 同套）
+		var panel_sb := UISkin.panel_stylebox()
+		if panel_sb != null:
+			_dialogue_bubble.add_theme_stylebox_override("panel", panel_sb)
 		var hb := HBoxContainer.new()
 		hb.add_theme_constant_override("separation", 8)
 		_dialogue_portrait = TextureRect.new()
