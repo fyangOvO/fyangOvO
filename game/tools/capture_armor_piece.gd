@@ -80,5 +80,29 @@ func _run() -> void:
 	await _settle(0.3)
 	await _shot("pieces_s.png")
 
+	# ⑥ 全職業錨點對齊：archer（頭身比例不同）穿兜帽+鎖子甲
+	var archer := PLAYER_SCENE.instantiate()
+	archer.art_id = "archer"
+	add_child(archer)
+	archer.global_position = Vector2(320, 180)
+	await _settle(0.2)
+	archer._facing = PlayerController.Facing8.RIGHT
+	archer._apply_facing()
+	archer.apply_equipment_visual([_mk_instance("helm_hide"), _mk_instance("chest_chainmail")])
+	await _settle(0.3)
+	await _shot("archer_helm_chest_idle_e.png")
+
+	# ⑦ mage（法袍）同樣穿法
+	var mage := PLAYER_SCENE.instantiate()
+	mage.art_id = "mage"
+	add_child(mage)
+	mage.global_position = Vector2(320, 180)
+	await _settle(0.2)
+	mage._facing = PlayerController.Facing8.RIGHT
+	mage._apply_facing()
+	mage.apply_equipment_visual([_mk_instance("helm_hide"), _mk_instance("chest_chainmail")])
+	await _settle(0.3)
+	await _shot("mage_helm_chest_idle_e.png")
+
 	print("===== 分件層抓圖完成 =====")
 	get_tree().quit(0)

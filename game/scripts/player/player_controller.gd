@@ -1545,8 +1545,8 @@ func _refresh_weapons() -> void:
 # 頭盔 / 胸甲部件：pack/armor/<item_id>/armor_<item_id>_<action>_<dir>_<NN>.png
 #   稀有度色檔：pack/armor/<item_id>_tint_<rarity>/armor_<item_id>_tint_<rarity>_<action>_<dir>_<NN>.png
 # 部件幀中心 = (96, 74) 頭 / (96, 122) 胸（192 畫布），offset=(0,-96) 使畫布頂對齊錨點 ⇒
-# 部件中心自然落在 HeadAnchor(0,18) / ChestAnchor(0,30)。動畫與身體同步（同變體參數）：
-# idle 4 幀 / walk 6 幀 / attack 6 幀；非這三種動作時用 idle 幀（fallback）。
+# 部件與身體共用畫布座標系（offset 同為 (0,-96)），錨點 (0,0) 即自然對齊部位。
+# 動畫與身體同步（同變體參數）：idle 4 幀 / walk 6 幀 / attack 6 幀；非這三種動作時用 idle 幀（fallback）。
 # 缺目錄 / 缺幀靜默保持（素材線允許缺件，不影響運行）。
 # =============================================================================
 
