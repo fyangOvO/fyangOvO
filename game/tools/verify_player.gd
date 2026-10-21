@@ -65,6 +65,7 @@ func _ready() -> void:
 	await _test_dodge()
 	await _test_anchor_follows_facing()
 	await _test_weapon_mount()
+	await _test_visual_tier()
 	await _test_rebind()
 
 	_finish()
@@ -363,6 +364,47 @@ func _test_weapon_mount() -> void:
 	_player.apply_equipment_visual([])
 	await _await_frames(1)
 	_ok("卸下后 RealWeapon 隐藏", rw != null and not rw.visible)
+
+
+# =============================================================================
+# H. 装备可视化第1期：防具换色（外观档）
+# =============================================================================
+
+## 覆盖装备可视化子批3：防具槽最高稀有度 → 外观档 → 预烘换色帧集切换；
+## 普通防具 / 卸下后必须回到默认职业色。
+func _test_visual_tier() -> void:
+	print("--- H. 装备可视化：防具换色（外观档） ---")
+	var chest_tpl: EquipmentData = ConfigLoader.get_equipment_template("chest_chainmail")
+	_ok("chest_chainmail 模板存在（外观档测试源）", chest_tpl != null)
+	if chest_tpl == null:
+		return
+	# 玩家游戏内 art_id 由职业驱动（warrior / archer / mage）；测试统一用 warrior 外观基准。
+	# 注：set_visual_tier(-1) 首调因 _visual_tier_rarity 初值即 -1 会早退，须手动应用基准。
+	_player.art_id = "warrior"
+	var art_w := EnemyBase.resolve_character_set("warrior")
+	_player._apply_real_art(art_w)
+	_player._apply_facing()
+	await _await_frames(2)
+	var base_tex: Texture2D = _player.body_sprite.texture
+	_ok("默认外观帧已加载（warrior 金色）", base_tex != null)
+	var inst := EquipmentInstance.create_from_template(
+		chest_tpl, 1, GameConstants.Rarity.MAGIC)
+	_player.apply_equipment_visual([inst])
+	await _await_frames(2)
+	var tint_tex: Texture2D = _player.body_sprite.texture
+	_ok("穿魔法防具后角色帧切换为换色档（纹理改变）",
+		tint_tex != null and base_tex != null and tint_tex != base_tex)
+	_player.apply_equipment_visual([])
+	await _await_frames(4)
+	_ok("卸下后回到默认职业色（warrior 素材，非换色档）",
+		_player.body_sprite.texture.resource_path.begins_with("res://assets/pack/creatures/warrior/"))
+	var inst_c := EquipmentInstance.create_from_template(
+		chest_tpl, 1, GameConstants.Rarity.COMMON)
+	_player.apply_equipment_visual([inst_c])
+	await _await_frames(4)
+	_ok("普通防具保持默认职业色（warrior 素材，非换色档）",
+		_player.body_sprite.texture.resource_path.begins_with("res://assets/pack/creatures/warrior/"))
+	_player.apply_equipment_visual([])
 
 
 # =============================================================================

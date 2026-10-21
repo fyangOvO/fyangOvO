@@ -1411,22 +1411,57 @@ var _weapon_off_key: String = ""
 var _weapon_tex_cache: Dictionary = {}
 
 
-## 由穿戴清單計算主 / 副手武器原型並掛載（關卡進入、裝備變更時調用）
+## 由穿戴清單計算主 / 副手武器原型並掛載（關卡進入、裝備變更時調用）。
+## 同時計算「防具槽最高稀有度」作為角色外觀檔（換色），見 `set_visual_tier`。
 func apply_equipment_visual(equipped: Array) -> void:
 	var main_key := ""
 	var off_key := ""
+	var armor_top_rarity := -1
 	for item in equipped:
 		if item == null:
 			continue
 		var t: EquipmentData = item.template if item.template != null else null
-		if t == null or t.weapon_archetype < 0:
+		if t == null:
 			continue
-		if t.slot == GameConstants.EquipSlot.MAIN_HAND:
-			main_key = GameConstants.WEAPON_ARCHETYPE_KEYS[t.weapon_archetype]
-		elif t.slot == GameConstants.EquipSlot.OFF_HAND:
-			off_key = GameConstants.WEAPON_ARCHETYPE_KEYS[t.weapon_archetype]
+		if t.weapon_archetype >= 0:
+			if t.slot == GameConstants.EquipSlot.MAIN_HAND:
+				main_key = GameConstants.WEAPON_ARCHETYPE_KEYS[t.weapon_archetype]
+			elif t.slot == GameConstants.EquipSlot.OFF_HAND:
+				off_key = GameConstants.WEAPON_ARCHETYPE_KEYS[t.weapon_archetype]
+		# 外觀檔只由防具槽（頭/胸/手/腿/鞋）驅動；武器 / 飾品不換角色外觀
+		if item.rarity > armor_top_rarity and _is_armor_slot(t.slot):
+			armor_top_rarity = item.rarity
 	_mount_weapon(main_hand_anchor, main_key)
 	_mount_weapon(off_hand_anchor, off_key)
+	set_visual_tier(armor_top_rarity)
+
+
+## 角色外觀稀有度檔（-1 = 未計算 / 默認職業色；Rarity.COMMON 同樣默認）。
+var _visual_tier_rarity: int = -1
+
+## 防具槽位判定（外觀換色只認這 5 個槽）。
+static func _is_armor_slot(slot: int) -> bool:
+	return slot >= GameConstants.EquipSlot.HELM and slot <= GameConstants.EquipSlot.BOOTS
+
+
+## 切換角色外觀檔：目標幀集 = `pack/creatures/<art_id>_tint_<rarity_key>/`（預烘換色變體）。
+## 規則：防具最高稀有度 > common ⇒ 換成該稀有度主題色；否則保持職業默認色。
+## 幀集缺失時**靜默保持當前外觀**（不回退、不報錯 —— 素材線允許缺檔，不影響運行）。
+func set_visual_tier(rarity: int) -> void:
+	var tier := maxi(rarity, -1)
+	if tier == _visual_tier_rarity:
+		return
+	_visual_tier_rarity = tier
+	if body_sprite == null:
+		return
+	var target_id := art_id
+	if tier > GameConstants.Rarity.COMMON and tier < GameConstants.RARITY_KEYS.size():
+		target_id = "%s_tint_%s" % [art_id, GameConstants.RARITY_KEYS[tier]]
+	var art := EnemyBase.resolve_character_set(target_id)
+	if not art["ok"]:
+		return
+	_apply_real_art(art)
+	_apply_facing()
 
 
 ## 把武器掛到錨點下（新建 RealWeapon 節點，不動佔位節點）

@@ -37,6 +37,17 @@ func _run() -> void:
 	player._perform_attack()
 	await _settle(0.18)
 	await _shot("weapon_attack_e.png")
+	# 防具換色檔驗收（子批3）：同朝向右逐檔抓 idle，驗證預烘主題色變體
+	var tiers := {
+		"default": -1,
+		"magic": GameConstants.Rarity.MAGIC,
+		"legendary": GameConstants.Rarity.LEGENDARY,
+		"mythic": GameConstants.Rarity.MYTHIC,
+	}
+	for label in tiers:
+		player.set_visual_tier(tiers[label])
+		await _settle(0.15)
+		await _shot("tier_%s_e.png" % label)
 	_finish()
 
 
