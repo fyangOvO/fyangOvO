@@ -525,29 +525,45 @@ func _draw_ring_beam(h: float, c: Color) -> void:
 	_draw_ground_ring(c, r, breath)
 
 
-## 傳說（LINE_BURST）：直線柱（更亮）+ 掉落瞬間柱頂十字爆閃 + 上升粒子。
-func _draw_burst_beam(h: float, c: Color) -> void:
-	var seg := 4
+## 金色大柱（legendary/mythic 共用，DNF 式冲击）：外层金色光晕 3px + 内芯白亮 1px，
+## 顶段更亮（上实下虚）。与普通单柱在「宽度 + 双层 + 金色」三维拉开差距。
+func _draw_gold_beam(h: float) -> void:
+	var gold := Color("F5C542")
+	# 外层金色光晕（3px 宽，纵向分段渐隐）
+	var seg := 5
 	for i in seg:
 		var y0 := -h + float(i) * float(h) / float(seg)
 		var y1 := -h + float(i + 1) * float(h) / float(seg)
-		var alpha := 0.75 * (1.0 - float(i) / float(seg))
-		draw_rect(Rect2(-1.0, y0, 2.0, y1 - y0), Color(c, alpha))
-	# 地面爆閃（出生後 0.5s 內）：十字向外擴 + 淡出
+		var alpha := 0.55 * (1.0 - float(i) / float(seg))
+		draw_rect(Rect2(-1.5, y0, 3.0, y1 - y0), Color(gold, alpha))
+	# 内芯白亮（1px）
+	for i in seg:
+		var y0 := -h + float(i) * float(h) / float(seg)
+		var y1 := -h + float(i + 1) * float(h) / float(seg)
+		var alpha := 0.9 * (1.0 - float(i) / float(seg))
+		draw_rect(Rect2(-0.5, y0, 1.0, y1 - y0), Color(1.0, 1.0, 1.0, alpha))
+	# 底部金色底座圈
+	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(gold, 0.95))
+
+
+## 傳說（LINE_BURST）：金色大柱 + 掉落瞬間柱頂十字爆閃 + 上升金色粒子。
+func _draw_burst_beam(h: float, c: Color) -> void:
+	_draw_gold_beam(h)
+	var gold := Color("F5C542")
+	# 地面爆閃（出生後 0.5s 內）：金色十字向外擴 + 淡出
 	if _fx_t < 0.5:
 		var u := _fx_t / 0.5
 		var burst := (1.0 - u) * 0.9
-		_draw_top_cross(c, burst)
-		_draw_ground_ring(c, 10.0 + 8.0 * u, burst)
-	# 持續：上升粒子
-	_draw_rising_particles(c, 3, h + 10.0, 18.0)
-	draw_rect(Rect2(-4.0, 0.0, 8.0, 1.0), Color(c, 0.9))
+		_draw_top_cross(gold, burst)
+		_draw_ground_ring(gold, 12.0 + 10.0 * u, burst)
+	# 持續：上升金色粒子
+	_draw_rising_particles(gold, 3, h + 10.0, 18.0)
 
 
-## 神話（LINE_FIRERING）：直線柱 + 地面持續火環（呼吸）+ 上升金色粒子。
+## 神話（LINE_FIRERING）：金色大柱 + 地面持續火環（呼吸）+ 上升金色粒子。
 ## 火環色固定金色（與角色神話紅主色分離，一眼認出「火」）。
 func _draw_firering_beam(h: float, c: Color) -> void:
-	_draw_pulse_beam(h, c)
+	_draw_gold_beam(h)
 	var fire := Color("F5C542")
 	var r := 11.0 + 3.0 * sin(_fx_t * 3.6)
 	var breath := 0.6 + 0.4 * sin(_fx_t * 3.6)
