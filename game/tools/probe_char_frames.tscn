@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://probe_char_frames"]
+
+[ext_resource type="Script" path="res://tools/probe_char_frames.gd" id="1_p"]
+
+[node name="ProbeCharFrames" type="Node"]
+script = ExtResource("1_p")

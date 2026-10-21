@@ -215,6 +215,11 @@ const ANIM_WALK: String = "walk"
 const ANIM_ATTACK: String = "attack"
 const ANIM_HURT: String = "hurt"
 const ANIM_DIE: String = "die"
+## 2026-10-21 玩家專用動作幀（三職業新畫風素材）：衝刺 / 跳躍 / 格擋。
+## 僅玩家側消費；怪物素材包無此三動作，探測遇缺自動跳過（不影響既有怪）。
+const ANIM_SPRINT: String = "sprint"
+const ANIM_JUMP: String = "jump"
+const ANIM_BLOCK: String = "block"
 
 ## 動畫狀態（**純表現層**：不參與 AI、不閘門傷害、不影響 TTK）
 enum AnimState { IDLE, WALK, ATTACK, HURT, DIE }
@@ -227,6 +232,9 @@ const ANIM_FALLBACK: Dictionary = {
 	ANIM_ATTACK: [ANIM_ATTACK, ANIM_WALK, ANIM_IDLE, ANIM_HURT, ANIM_DIE],
 	ANIM_HURT: [ANIM_HURT, ANIM_IDLE, ANIM_WALK, ANIM_ATTACK, ANIM_DIE],
 	ANIM_DIE: [ANIM_DIE, ANIM_HURT, ANIM_IDLE, ANIM_WALK, ANIM_ATTACK],
+	ANIM_SPRINT: [ANIM_SPRINT, ANIM_WALK, ANIM_IDLE, ANIM_ATTACK, ANIM_HURT, ANIM_DIE],
+	ANIM_JUMP: [ANIM_JUMP, ANIM_WALK, ANIM_IDLE, ANIM_ATTACK, ANIM_HURT, ANIM_DIE],
+	ANIM_BLOCK: [ANIM_BLOCK, ANIM_IDLE, ANIM_WALK, ANIM_ATTACK, ANIM_HURT, ANIM_DIE],
 }
 
 ## 四方向字母（檔名 `<dir>` 段）：n = 北/上 · e = 東/右 · s = 南/下 · w = 西/左。
@@ -550,7 +558,7 @@ static func dnf_load_user_dir(id: String) -> Dictionary:
 ## 2026-09-24 新增 `cast`（策劃案 01-技能体系.md 附錄A §A.9#3 的 1 行改動）：
 ##   原本沒有 cast ⇒ 法師/弓手施法會回退去播 attack 的劈砍動作，與技能語義不符。
 ##   `cast` 排在 `attack` 後、`hurt` 前，順序不影響探測結果（只是遍歷順序）。
-const PACK_ACTIONS: Array[String] = ["idle", "walk", "attack", "cast", "hurt", "death", "die"]
+const PACK_ACTIONS: Array[String] = ["idle", "walk", "attack", "sprint", "jump", "block", "cast", "hurt", "death", "die"]
 const PACK_DIRS: Array[String] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
 const PACK_MAX_FRAMES: int = 8
 

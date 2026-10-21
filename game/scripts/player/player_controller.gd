@@ -1439,12 +1439,22 @@ func _tick_anim_state(delta: float) -> void:
 		_anim_state = EnemyBase.AnimState.ATTACK if _anim_oneshot == EnemyBase.ANIM_ATTACK \
 				else EnemyBase.AnimState.HURT
 		return
-	# 格挡姿态：静止持盾，不切 walk（格挡期间移动减速，画面用 idle 帧）
+	# 跳跃姿态：越障窗口内播 jump 专用帧（跃起表现由 JUMP_LIFT_PX 叠加）
+	if _jumping:
+		_anim_state = EnemyBase.AnimState.WALK
+		_anim_action = EnemyBase.ANIM_JUMP
+		return
+	# 格挡姿态：播 block 专用帧（格挡期间移动减速，不切 walk）
 	if _blocking:
 		_anim_state = EnemyBase.AnimState.IDLE
-		_anim_action = EnemyBase.ANIM_IDLE
+		_anim_action = EnemyBase.ANIM_BLOCK
 		return
 	var moving := velocity.length_squared() > 1.0
+	# 冲刺跑：持续移动超阈值 → sprint 专用帧（播放速率仍 × RUN_FPS_MULT 更带感）
+	if moving and _running:
+		_anim_state = EnemyBase.AnimState.WALK
+		_anim_action = EnemyBase.ANIM_SPRINT
+		return
 	_anim_state = EnemyBase.AnimState.WALK if moving else EnemyBase.AnimState.IDLE
 	_anim_action = EnemyBase.ANIM_WALK if moving else EnemyBase.ANIM_IDLE
 
