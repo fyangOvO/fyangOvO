@@ -25,6 +25,14 @@ position = Vector2(-11, -25)
 [node name="OffHandAnchor" type="Marker2D" parent="WeaponLayer"]
 position = Vector2(11, -25)
 
+[node name="ArmorLayer" type="Node2D" parent="."]
+
+[node name="HeadAnchor" type="Marker2D" parent="ArmorLayer"]
+position = Vector2(0, 0)
+
+[node name="ChestAnchor" type="Marker2D" parent="ArmorLayer"]
+position = Vector2(0, 0)
+
 [node name="FxLayer" type="Node2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

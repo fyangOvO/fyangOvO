@@ -66,6 +66,7 @@ func _ready() -> void:
 	await _test_anchor_follows_facing()
 	await _test_weapon_mount()
 	await _test_visual_tier()
+	await _test_armor_piece()
 	await _test_rebind()
 
 	_finish()
@@ -405,6 +406,63 @@ func _test_visual_tier() -> void:
 	_ok("普通防具保持默认职业色（warrior 素材，非换色档）",
 		_player.body_sprite.texture.resource_path.begins_with("res://assets/pack/creatures/warrior/"))
 	_player.apply_equipment_visual([])
+
+
+# =============================================================================
+# I. 装备可视化第2期：防具外观分件层（头盔 / 胸甲）
+# =============================================================================
+
+## 覆盖装备可视化子批4：穿 helm / chest → HeadAnchor / ChestAnchor 下各挂
+## RealArmorPiece 可见、纹理非空、Nearest、帧名目录前缀正确；换稀有度走
+## tint 目录；卸下隐藏。
+func _test_armor_piece() -> void:
+	print("--- I. 装备可视化：防具外观分件层 ---")
+	var head := _player.get_node_or_null(NodePath("ArmorLayer/HeadAnchor")) as Marker2D
+	var chest := _player.get_node_or_null(NodePath("ArmorLayer/ChestAnchor")) as Marker2D
+	_ok("ArmorLayer 锚点存在（HeadAnchor/ChestAnchor）", head != null and chest != null)
+	if head == null or chest == null:
+		return
+	var helm_tpl: EquipmentData = ConfigLoader.get_equipment_template("helm_hide")
+	var chest_tpl: EquipmentData = ConfigLoader.get_equipment_template("chest_chainmail")
+	_ok("分件模板存在（helm_hide / chest_chainmail）", helm_tpl != null and chest_tpl != null)
+	if helm_tpl == null or chest_tpl == null:
+		return
+	_player.art_id = "warrior"
+	var art_w := EnemyBase.resolve_character_set("warrior")
+	_player._apply_real_art(art_w)
+	_player._apply_facing()
+	await _await_frames(2)
+
+	var helm_inst := EquipmentInstance.create_from_template(helm_tpl, 1, GameConstants.Rarity.COMMON)
+	var chest_inst := EquipmentInstance.create_from_template(chest_tpl, 1, GameConstants.Rarity.COMMON)
+	_player.apply_equipment_visual([helm_inst, chest_inst])
+	await _await_frames(2)
+	var head_sp := head.get_node_or_null(NodePath("RealArmorPiece")) as Sprite2D
+	var chest_sp := chest.get_node_or_null(NodePath("RealArmorPiece")) as Sprite2D
+	_ok("挂载后 HeadAnchor/ChestAnchor 下生成 RealArmorPiece", head_sp != null and chest_sp != null)
+	_ok("分件可见且纹理非空", head_sp != null and head_sp.visible and head_sp.texture != null
+		and chest_sp != null and chest_sp.visible and chest_sp.texture != null)
+	_ok("分件纹理过滤为 Nearest（像素铁律）",
+		head_sp != null and head_sp.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST)
+	_ok("分件帧来自 armor 素材目录（helmet idle）",
+		head_sp != null and head_sp.texture != null
+		and head_sp.texture.resource_path.contains("armor_helm_hide_idle_"))
+	_ok("胸甲分件帧来自 chest_chainmail 素材目录",
+		chest_sp != null and chest_sp.texture != null
+		and chest_sp.texture.resource_path.contains("armor_chest_chainmail_idle_"))
+
+	# 换稀有度 → 部件走 tint 目录（与角色外观档同稀有度）
+	var leg_inst := EquipmentInstance.create_from_template(chest_tpl, 1, GameConstants.Rarity.LEGENDARY)
+	_player.apply_equipment_visual([helm_inst, leg_inst])
+	await _await_frames(2)
+	_ok("传说档胸甲分件切到 tint_legendary 目录",
+		chest_sp != null and chest_sp.texture != null
+		and chest_sp.texture.resource_path.contains("chest_chainmail_tint_legendary"))
+
+	# 卸下 → 隐藏
+	_player.apply_equipment_visual([])
+	await _await_frames(1)
+	_ok("卸下后分件隐藏", head_sp != null and not head_sp.visible and chest_sp != null and not chest_sp.visible)
 
 
 # =============================================================================

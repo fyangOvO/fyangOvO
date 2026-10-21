@@ -169,6 +169,9 @@ const HAND_SPREAD_Y_DAMP: float = 0.5
 @onready var weapon_layer: Node2D = $WeaponLayer
 @onready var main_hand_anchor: Marker2D = $WeaponLayer/MainHandAnchor
 @onready var off_hand_anchor: Marker2D = $WeaponLayer/OffHandAnchor
+@onready var armor_layer: Node2D = $ArmorLayer
+@onready var head_anchor: Marker2D = $ArmorLayer/HeadAnchor
+@onready var chest_anchor: Marker2D = $ArmorLayer/ChestAnchor
 @onready var fx_layer: Node2D = $FxLayer
 
 ## 法力池（任务 2.2，挂在 Player 下）
@@ -1411,11 +1414,14 @@ var _weapon_off_key: String = ""
 var _weapon_tex_cache: Dictionary = {}
 
 
-## 由穿戴清單計算主 / 副手武器原型並掛載（關卡進入、裝備變更時調用）。
-## 同時計算「防具槽最高稀有度」作為角色外觀檔（換色），見 `set_visual_tier`。
+## 按穿戴清單計算主 / 副手武器原型並掛載（關卡進入、裝備變更時調用）。
+## 同時計算「防具槽最高稀有度」作為角色外觀檔（換色），見 `set_visual_tier`；
+## 並為頭 / 胸槽掛載對應防具外觀分件（`pack/armor/<item_id>/`）。
 func apply_equipment_visual(equipped: Array) -> void:
 	var main_key := ""
 	var off_key := ""
+	var helm_id := ""
+	var chest_id := ""
 	var armor_top_rarity := -1
 	for item in equipped:
 		if item == null:
@@ -1431,8 +1437,15 @@ func apply_equipment_visual(equipped: Array) -> void:
 		# 外觀檔只由防具槽（頭/胸/手/腿/鞋）驅動；武器 / 飾品不換角色外觀
 		if item.rarity > armor_top_rarity and _is_armor_slot(t.slot):
 			armor_top_rarity = item.rarity
+		# 頭 / 胸分件層：部件 id 即防具模板 id（helm_*/chest_*），素材在 pack/armor/<id>/
+		if t.slot == GameConstants.EquipSlot.HELM:
+			helm_id = t.id
+		elif t.slot == GameConstants.EquipSlot.CHEST:
+			chest_id = t.id
 	_mount_weapon(main_hand_anchor, main_key)
 	_mount_weapon(off_hand_anchor, off_key)
+	_mount_armor_piece(head_anchor, helm_id)
+	_mount_armor_piece(chest_anchor, chest_id)
 	set_visual_tier(armor_top_rarity)
 
 
@@ -1527,6 +1540,89 @@ func _refresh_weapons() -> void:
 		_refresh_weapon_sprite(off_hand_anchor, off_hand_anchor.get_node_or_null(NodePath("RealWeapon")))
 
 
+# =============================================================================
+# 防具外觀分件層（裝備可視化第1期子批4）
+# 頭盔 / 胸甲部件：pack/armor/<item_id>/armor_<item_id>_<action>_<dir>_<NN>.png
+#   稀有度色檔：pack/armor/<item_id>_tint_<rarity>/armor_<item_id>_tint_<rarity>_<action>_<dir>_<NN>.png
+# 部件幀中心 = (96, 74) 頭 / (96, 122) 胸（192 畫布），offset=(0,-96) 使畫布頂對齊錨點 ⇒
+# 部件中心自然落在 HeadAnchor(0,18) / ChestAnchor(0,30)。動畫與身體同步（同變體參數）：
+# idle 4 幀 / walk 6 幀 / attack 6 幀；非這三種動作時用 idle 幀（fallback）。
+# 缺目錄 / 缺幀靜默保持（素材線允許缺件，不影響運行）。
+# =============================================================================
+
+## 當前掛載的分件：錨點名 → 部件 id（"" = 未掛載）。錨點名含層路徑，用錨點實例引用。
+var _armor_keys: Dictionary = {}
+## 分件紋理緩存：path → Texture2D（避免每幀 load）
+var _armor_tex_cache: Dictionary = {}
+
+
+## 掛 / 卸防具分件到錨點下（新建 RealArmorPiece 節點，不動其他節點）
+func _mount_armor_piece(anchor: Marker2D, item_id: String) -> void:
+	if anchor == null:
+		return
+	var sp: Sprite2D = _get_or_make_armor_sprite(anchor)
+	if item_id.is_empty():
+		sp.visible = false
+		_armor_keys[anchor] = ""
+		return
+	sp.visible = true
+	sp.offset = Vector2(0.0, -WEAPON_FRAME_HALF)
+	sp.scale = Vector2.ONE * _game_scale_for(WEAPON_CANVAS)
+	_armor_keys[anchor] = item_id
+	_refresh_armor_sprite(anchor, sp)
+
+
+func _get_or_make_armor_sprite(anchor: Marker2D) -> Sprite2D:
+	var node := anchor.get_node_or_null(NodePath("RealArmorPiece"))
+	if node is Sprite2D:
+		return node as Sprite2D
+	var sp := Sprite2D.new()
+	sp.name = "RealArmorPiece"
+	sp.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	anchor.add_child(sp)
+	return sp
+
+
+## 按當前方向 / 動作 / 外觀檔刷新分件幀（與身體動畫同變體參數 ⇒ 同步）
+func _refresh_armor_sprite(anchor: Marker2D, sp: Sprite2D) -> void:
+	if sp == null or not sp.visible:
+		return
+	var item_id: String = _armor_keys.get(anchor, "")
+	if item_id.is_empty():
+		return
+	# 外觀檔：與角色換色檔同稀有度（common/未計算 = 素材原色目錄）
+	var dir_id := item_id
+	if _visual_tier_rarity > GameConstants.Rarity.COMMON \
+			and _visual_tier_rarity < GameConstants.RARITY_KEYS.size():
+		dir_id = "%s_tint_%s" % [item_id, GameConstants.RARITY_KEYS[_visual_tier_rarity]]
+	# 動作：攻擊窗口播 attack；走路 walk；其餘（cast/sprint/jump/block/hurt/death）用 idle fallback
+	var action := "idle"
+	if _anim_oneshot == EnemyBase.ANIM_ATTACK and _anim_oneshot_t > 0.0:
+		action = "attack"
+	elif _anim_state == EnemyBase.AnimState.WALK:
+		action = "walk"
+	# 幀序號：部件幀數（idle 4 / walk 6 / attack 6）與身體一致，直接取同名序號
+	var clip_len := maxi(_clip.size(), 1)
+	var idx := mini(_anim_i, 5) + 1
+	var fname := "armor_%s_%s_%s_%02d.png" % [dir_id, action, _anim_dir, idx]
+	var path := "res://assets/pack/armor/%s/%s" % [dir_id, fname]
+	var tex: Texture2D = _armor_tex_cache.get(path)
+	if tex == null:
+		tex = load(path) as Texture2D
+		if tex != null:
+			_armor_tex_cache[path] = tex
+	if tex != null and sp.texture != tex:
+		sp.texture = tex
+
+
+## 每幀同步（掛在 _process 末尾）
+func _refresh_armor_pieces() -> void:
+	if head_anchor != null:
+		_refresh_armor_sprite(head_anchor, head_anchor.get_node_or_null(NodePath("RealArmorPiece")))
+	if chest_anchor != null:
+		_refresh_armor_sprite(chest_anchor, chest_anchor.get_node_or_null(NodePath("RealArmorPiece")))
+
+
 ## （朝向翻轉由既有 `_apply_facing()` 負責；有方向素材時它會自動不翻。）
 func _process(delta: float) -> void:
 	if _clips.is_empty() or body_sprite == null:
@@ -1534,6 +1630,7 @@ func _process(delta: float) -> void:
 	_tick_anim_state(delta)
 	_refresh_clip()
 	_refresh_weapons()
+	_refresh_armor_pieces()
 	if _clip.is_empty():
 		return
 	if _clip.size() <= 1:
