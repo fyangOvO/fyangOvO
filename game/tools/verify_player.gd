@@ -64,6 +64,7 @@ func _ready() -> void:
 	await _test_movement()
 	await _test_dodge()
 	await _test_anchor_follows_facing()
+	await _test_weapon_mount()
 	await _test_rebind()
 
 	_finish()
@@ -316,6 +317,52 @@ func _test_anchor_follows_facing() -> void:
 		absf(gp.x - (500.0 + _player.main_hand_anchor.position.x)) < 0.01)
 	_player.global_position = Vector2.ZERO
 	await _await_frames(1)
+
+
+# =============================================================================
+# G. 装备可视化第1期：武器层挂载
+# =============================================================================
+
+## 覆盖装备可视化子批2：apply_equipment_visual 挂载主手武器 → RealWeapon
+## 生成 / 可见 / 纹理非空 / 朝向刷新 / 卸下隐藏；占位节点必须原样保留。
+func _test_weapon_mount() -> void:
+	print("--- G. 装备可视化：武器层挂载 ---")
+	var main_anchor := _player.get_node_or_null(NodePath("WeaponLayer/MainHandAnchor"))
+	var off_anchor := _player.get_node_or_null(NodePath("WeaponLayer/OffHandAnchor"))
+	var tpl: EquipmentData = ConfigLoader.get_equipment_template("sword_flame")
+	_ok("sword_flame 模板存在（武器层挂载测试源）", tpl != null)
+	if tpl == null or main_anchor == null or off_anchor == null:
+		return
+
+	var inst := EquipmentInstance.new()
+	inst.template = tpl
+	_player.apply_equipment_visual([inst])
+	await _await_frames(2)
+	var rw := main_anchor.get_node_or_null(NodePath("RealWeapon")) as Sprite2D
+	_ok("挂载后主手锚点下生成 RealWeapon", rw != null)
+	_ok("RealWeapon 直接挂在 MainHandAnchor 下", rw != null and rw.get_parent() == main_anchor)
+	_ok("RealWeapon 可见", rw != null and rw.visible)
+	_ok("RealWeapon 已加载武器纹理", rw != null and rw.texture != null)
+	_ok("RealWeapon 纹理过滤为 Nearest（像素铁律）",
+		rw != null and rw.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST)
+
+	var ph := main_anchor.get_node_or_null(NodePath("PlaceholderMainWeapon"))
+	_ok("占位武器节点未被挂载破坏", ph is Sprite2D)
+	_ok("占位武器纹理仍是 32×8（既有契约）",
+		ph is Sprite2D and (ph as Sprite2D).texture != null
+		and (ph as Sprite2D).texture.get_width() == 32
+		and (ph as Sprite2D).texture.get_height() == 8)
+
+	var tex_s: Texture2D = rw.texture if rw != null else null
+	_player.set_facing(PlayerController.Facing8.RIGHT)
+	# 转向去抖：_anim_dir 需稳定保持 TURN_HOLD 秒才切换，等 12 帧（0.2s > 0.08s）越过窗口
+	await _await_frames(12)
+	var tex_e: Texture2D = rw.texture if rw != null else null
+	_ok("朝向右后武器纹理切换（s→e 不同文件）", tex_s != null and tex_e != null and tex_s != tex_e)
+
+	_player.apply_equipment_visual([])
+	await _await_frames(1)
+	_ok("卸下后 RealWeapon 隐藏", rw != null and not rw.visible)
 
 
 # =============================================================================

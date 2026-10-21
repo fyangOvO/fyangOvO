@@ -581,6 +581,8 @@ func _setup_legendary_bus() -> void:
 		_legendary_bus.register_equipped(data.equipped)
 		# 第四步 B4 3-S3：套装机制特效与装备特效一起注册（穿满 4/6 件才生效）
 		_legendary_bus.sync_set_effects(data.equipped)
+		# 装备可视化第1期：按穿戴清单挂载武器层（主/副手武器帧）
+		_player.apply_equipment_visual(data.equipped)
 
 
 ## 3-K3：装备变更（穿上 / 脱下 / 替换）→ 注销旧件、注册新件。
@@ -598,6 +600,8 @@ func _on_equipment_changed(_slot: int, new_item: EquipmentInstance, old_item: Eq
 	var data := SaveManager.current_data
 	if data != null:
 		_legendary_bus.sync_set_effects(data.equipped)
+		# 装备可视化第1期：关卡内换装即时刷新武器层
+		_player.apply_equipment_visual(data.equipped)
 
 
 ## 注入给总线的掉落生成器（`extra_loot` 效果用）：在指定位置放一件额外掉落。

@@ -149,10 +149,13 @@ const JUMP_COOLDOWN: float = 0.35
 # =============================================================================
 
 ## 手部距脚底中心的高度（px，负值向上）。原点在脚底中心（对齐美术规范 2.1 的锚点 (24,44)）。
-const HAND_HEIGHT: float = -25.0
+## 【2026-10-21 装备可视化第1期】旧 24px 占位角色参数（-25/11）不适用于 192 画布角色。
+## 锚点单位为**游戏坐标**（角色 48px = 192 画布 × 0.25）：
+## 画布手部 ≈ (x ±34, y 131 即脚底上 60px) → 游戏内 HAND_SPREAD=8.5、HAND_HEIGHT=-15。
+const HAND_HEIGHT: float = -15.0
 
 ## 手部横向张距（px）：手相对身体中线的左右偏移量。
-const HAND_SPREAD: float = 11.0
+const HAND_SPREAD: float = 8.5
 
 ## 斜向朝向时 y 分量的衰减系数。
 ## 不衰减的话，斜向时「手」会按 45° 甩到脚下，看起来像掉在地上。
@@ -1387,12 +1390,115 @@ func _hide_placeholder_weapons() -> void:
 
 ## 真實精靈逐幀推進 + 動作狀態機（idle / walk / attack / hurt / die）。
 ## 未接真素材時 `_clips` 為空 → 第一行早退，占位行為與接入前逐位相同。
+# =============================================================================
+# 裝備可視化（第1期：武器層掛載）
+# 由 level_scene 在關卡進入 / 裝備變更時調用 `apply_equipment_visual()`。
+# 武器幀：res://assets/pack/weapons/<arch>/weapon_<arch>_<dir>.png（靜態）
+#         res://assets/pack/weapons/<arch>/weapon_<arch>_attack_<dir>_<NN>.png（攻擊序列）
+# 掛載點：WeaponLayer 下 MainHandAnchor / OffHandAnchor（錨點位置由 _apply_facing 按朝向重算）。
+# 注意：**不動 PlaceholderMainWeapon / OffWeapon 佔位節點**（verify_player 斷言其紋理 32×8）。
+# =============================================================================
+
+## 192 畫布的一半。武器幀底部=握柄，offset 讓握柄對齊錨點。
+const WEAPON_FRAME_HALF: float = 96.0
+## 武器/角色素材画布边长（与切帧脚本一致）
+const WEAPON_CANVAS: float = 192.0
+
+## 主 / 副手當前武器原型鍵（"" = 未掛載）
+var _weapon_main_key: String = ""
+var _weapon_off_key: String = ""
+## 武器紋理緩存：path → Texture2D（避免每幀 load）
+var _weapon_tex_cache: Dictionary = {}
+
+
+## 由穿戴清單計算主 / 副手武器原型並掛載（關卡進入、裝備變更時調用）
+func apply_equipment_visual(equipped: Array) -> void:
+	var main_key := ""
+	var off_key := ""
+	for item in equipped:
+		if item == null:
+			continue
+		var t: EquipmentData = item.template if item.template != null else null
+		if t == null or t.weapon_archetype < 0:
+			continue
+		if t.slot == GameConstants.EquipSlot.MAIN_HAND:
+			main_key = GameConstants.WEAPON_ARCHETYPE_KEYS[t.weapon_archetype]
+		elif t.slot == GameConstants.EquipSlot.OFF_HAND:
+			off_key = GameConstants.WEAPON_ARCHETYPE_KEYS[t.weapon_archetype]
+	_mount_weapon(main_hand_anchor, main_key)
+	_mount_weapon(off_hand_anchor, off_key)
+
+
+## 把武器掛到錨點下（新建 RealWeapon 節點，不動佔位節點）
+func _mount_weapon(anchor: Marker2D, key: String) -> void:
+	if anchor == null:
+		return
+	var sp: Sprite2D = _get_or_make_weapon_sprite(anchor)
+	if key.is_empty():
+		sp.visible = false
+		return
+	# 副手複用：offblade 取匕首幀目錄（sprite_source）
+	if key == "offblade":
+		key = "dagger"
+	sp.visible = true
+	sp.offset = Vector2(0.0, -WEAPON_FRAME_HALF)
+	sp.scale = Vector2.ONE * _game_scale_for(WEAPON_CANVAS)
+	if anchor == main_hand_anchor:
+		_weapon_main_key = key
+	else:
+		_weapon_off_key = key
+	_refresh_weapon_sprite(anchor, sp)
+
+
+func _get_or_make_weapon_sprite(anchor: Marker2D) -> Sprite2D:
+	var node := anchor.get_node_or_null(NodePath("RealWeapon"))
+	if node is Sprite2D:
+		return node as Sprite2D
+	var sp := Sprite2D.new()
+	sp.name = "RealWeapon"
+	sp.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	anchor.add_child(sp)
+	return sp
+
+
+## 按當前方向 / 動作刷新武器幀（靜態；攻擊窗口播武器攻擊序列）
+func _refresh_weapon_sprite(anchor: Marker2D, sp: Sprite2D) -> void:
+	if sp == null or not sp.visible:
+		return
+	var key := _weapon_main_key if anchor == main_hand_anchor else _weapon_off_key
+	if key.is_empty():
+		return
+	var dir := _anim_dir
+	var frame_name := "weapon_%s_%s" % [key, dir]
+	if _anim_oneshot == EnemyBase.ANIM_ATTACK and _anim_oneshot_t > 0.0:
+		var clip_len := maxi(_clip.size(), 1)
+		var idx := 1 + mini(3, int(floor(float(_anim_i) * 4.0 / clip_len)))
+		frame_name = "weapon_%s_attack_%s_%02d" % [key, dir, idx]
+	var path := "res://assets/pack/weapons/%s/%s.png" % [key, frame_name]
+	var tex: Texture2D = _weapon_tex_cache.get(path)
+	if tex == null:
+		tex = load(path) as Texture2D
+		if tex != null:
+			_weapon_tex_cache[path] = tex
+	if tex != null and sp.texture != tex:
+		sp.texture = tex
+
+
+## 每幀同步（掛在 _process 末尾）
+func _refresh_weapons() -> void:
+	if main_hand_anchor != null:
+		_refresh_weapon_sprite(main_hand_anchor, main_hand_anchor.get_node_or_null(NodePath("RealWeapon")))
+	if off_hand_anchor != null:
+		_refresh_weapon_sprite(off_hand_anchor, off_hand_anchor.get_node_or_null(NodePath("RealWeapon")))
+
+
 ## （朝向翻轉由既有 `_apply_facing()` 負責；有方向素材時它會自動不翻。）
 func _process(delta: float) -> void:
 	if _clips.is_empty() or body_sprite == null:
 		return
 	_tick_anim_state(delta)
 	_refresh_clip()
+	_refresh_weapons()
 	if _clip.is_empty():
 		return
 	if _clip.size() <= 1:
