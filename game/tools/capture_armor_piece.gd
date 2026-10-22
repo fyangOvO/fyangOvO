@@ -155,7 +155,7 @@ func _run() -> void:
 				print("[DBG] %s %s sp.position=%s global=%s tex=%s" % [cid, a, sp.position, sp.global_position, (sp.texture.resource_path if sp.texture != null else "none")])
 			else:
 				print("[DBG] %s %s 無分件節點" % [cid, a])
-		print("[DBG] %s anim_dir=%s facing=%s offset=%s" % [cid, pc._anim_dir, pc._facing, pc._armor_anchor_offset()])
+		print("[DBG] %s anim_dir=%s facing=%s offset=%s" % [cid, pc._anim_dir, pc._facing, pc._armor_anchor_offset("head")])
 		await _shot("%s_full_set_idle_e.png" % cid)
 		pc.queue_free()
 		await _settle(0.1)

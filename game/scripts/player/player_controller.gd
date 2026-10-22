@@ -1410,26 +1410,54 @@ const WEAPON_FRAME_HALF: float = 96.0
 ## 武器/角色素材画布边长（与切帧脚本一致）
 const WEAPON_CANVAS: float = 192.0
 
-## 防具分件錨點 x 偏移（畫布 px，按職業×朝向查表）。
-## 來源：身體素材 8 方向 idle 幀「主體質心（濾黑底）− 畫布中心 96」實測：
-##   角色側身面朝右（e/ne/s/se）主體偏右 +17~+25；面朝左（w/nw/sw）主體偏左 −17~−26。
-## 分件素材本身居中（質心≈96），若錨點仍釘在 96 會與側身主體錯位（「套不上」）。
-## 擴展口：新職業在此表加一行；新部位（肩甲/披風等）沿用同偏移並自行補 y。
-const ARMOR_ANCHOR_X_OFFSET: Dictionary = {
-	"warrior": {"e": 21, "ne": 20, "n": 19, "nw": -21, "w": -22, "sw": -23, "s": 22, "se": 22},
-	"archer": {"e": 17, "ne": 17, "n": 15, "nw": -17, "w": -18, "sw": -19, "s": 18, "se": 18},
-	"mage": {"e": 24, "ne": 24, "n": 21, "nw": -25, "w": -25, "sw": -26, "s": 25, "se": 25},
+## 防具分件錨點偏移（畫布 px，按職業×朝向×部位查表；Vector2(x, y)）。
+## 來源：身體素材 8 方向 idle 幀各部位「主體質心（濾黑底）− 分件素材各部位主體質心」實測。
+##   身體素材為不透明黑底烘入且主體畫偏（面朝右偏 +14~+26、左偏 −19~−32）；分件素材居中（質心≈96）。
+##   部位 y 亦測出偏移（身體頭部偏低 +8~+22、胸部偏高 −1~−8、手腿偏低 +14~+20）。
+## 擴展口：新職業在此表加一行；新部位（肩甲/披風等）在此表加一列，偏移沿用相近部位再微調。
+const ARMOR_ANCHOR_OFFSET: Dictionary = {
+	"warrior": {
+		"e": {"head": Vector2(19, 0), "chest": Vector2(18, 0), "gloves": Vector2(19, 0), "legs": Vector2(19, 0), "boots": Vector2(19, 0)},
+		"ne": {"head": Vector2(18, 0), "chest": Vector2(18, 0), "gloves": Vector2(18, 0), "legs": Vector2(18, 0), "boots": Vector2(18, 0)},
+		"n": {"head": Vector2(17, 0), "chest": Vector2(16, 0), "gloves": Vector2(16, 0), "legs": Vector2(17, 0), "boots": Vector2(17, 0)},
+		"nw": {"head": Vector2(-25, 0), "chest": Vector2(-24, 0), "gloves": Vector2(-22, 0), "legs": Vector2(-24, 0), "boots": Vector2(-24, 0)},
+		"w": {"head": Vector2(-26, 0), "chest": Vector2(-25, 0), "gloves": Vector2(-23, 0), "legs": Vector2(-24, 0), "boots": Vector2(-24, 0)},
+		"sw": {"head": Vector2(-26, 0), "chest": Vector2(-25, 0), "gloves": Vector2(-24, 0), "legs": Vector2(-25, 0), "boots": Vector2(-25, 0)},
+		"s": {"head": Vector2(19, 0), "chest": Vector2(19, 0), "gloves": Vector2(19, 0), "legs": Vector2(20, 0), "boots": Vector2(20, 0)},
+		"se": {"head": Vector2(19, 0), "chest": Vector2(19, 0), "gloves": Vector2(19, 0), "legs": Vector2(19, 0), "boots": Vector2(19, 0)},
+	},
+	"archer": {
+		"e": {"head": Vector2(14, 0), "chest": Vector2(14, 0), "gloves": Vector2(15, 0), "legs": Vector2(19, 0), "boots": Vector2(19, 0)},
+		"ne": {"head": Vector2(14, 0), "chest": Vector2(14, 0), "gloves": Vector2(15, 0), "legs": Vector2(16, 0), "boots": Vector2(16, 0)},
+		"n": {"head": Vector2(12, 0), "chest": Vector2(12, 0), "gloves": Vector2(13, 0), "legs": Vector2(19, 0), "boots": Vector2(19, 0)},
+		"nw": {"head": Vector2(-21, 0), "chest": Vector2(-20, 0), "gloves": Vector2(-19, 0), "legs": Vector2(-27, 0), "boots": Vector2(-27, 0)},
+		"w": {"head": Vector2(-21, 0), "chest": Vector2(-21, 0), "gloves": Vector2(-19, 0), "legs": Vector2(-25, 0), "boots": Vector2(-25, 0)},
+		"sw": {"head": Vector2(-22, 0), "chest": Vector2(-22, 0), "gloves": Vector2(-20, 0), "legs": Vector2(-26, 0), "boots": Vector2(-26, 0)},
+		"s": {"head": Vector2(15, 0), "chest": Vector2(16, 0), "gloves": Vector2(16, 0), "legs": Vector2(21, 0), "boots": Vector2(21, 0)},
+		"se": {"head": Vector2(15, 0), "chest": Vector2(15, 0), "gloves": Vector2(15, 0), "legs": Vector2(21, 0), "boots": Vector2(21, 0)},
+	},
+	"mage": {
+		"e": {"head": Vector2(23, 0), "chest": Vector2(21, 0), "gloves": Vector2(21, 0), "legs": Vector2(21, 0), "boots": Vector2(21, 0)},
+		"ne": {"head": Vector2(26, 0), "chest": Vector2(20, 0), "gloves": Vector2(21, 0), "legs": Vector2(21, 0), "boots": Vector2(21, 0)},
+		"n": {"head": Vector2(21, 0), "chest": Vector2(19, 0), "gloves": Vector2(18, 0), "legs": Vector2(19, 0), "boots": Vector2(19, 0)},
+		"nw": {"head": Vector2(-32, 0), "chest": Vector2(-27, 0), "gloves": Vector2(-25, 0), "legs": Vector2(-27, 0), "boots": Vector2(-27, 0)},
+		"w": {"head": Vector2(-30, 0), "chest": Vector2(-27, 0), "gloves": Vector2(-25, 0), "legs": Vector2(-27, 0), "boots": Vector2(-27, 0)},
+		"sw": {"head": Vector2(-29, 0), "chest": Vector2(-28, 0), "gloves": Vector2(-25, 0), "legs": Vector2(-28, 0), "boots": Vector2(-28, 0)},
+		"s": {"head": Vector2(22, 0), "chest": Vector2(21, 0), "gloves": Vector2(22, 0), "legs": Vector2(21, 0), "boots": Vector2(21, 0)},
+		"se": {"head": Vector2(22, 0), "chest": Vector2(21, 0), "gloves": Vector2(21, 0), "legs": Vector2(21, 0), "boots": Vector2(21, 0)},
+	},
 }
 
-## 當前朝向的防具錨點 x 偏移（畫布 px；未收錄的職業/朝向回退 0 = 畫布中心）。
+## 當前朝向 + 部位的防具錨點偏移（畫布 px；未收錄的職業/朝向/部位回退 0 = 畫布中心）。
 ## 與身體共用方向：優先用 `_anim_dir`（方向去抖後動畫方向，與身體幀同步）；
 ## 動畫尚未啟動（_anim_dir 為空）時回退 `_facing` 的即時方向，避免掛載瞬間查表落空。
-func _armor_anchor_offset() -> float:
+func _armor_anchor_offset(slot_key: String) -> Vector2:
 	var dir := _anim_dir
 	if dir.is_empty():
 		dir = facing_to_dir_letter(_facing)
-	var tbl: Dictionary = ARMOR_ANCHOR_X_OFFSET.get(art_id, {})
-	return float(tbl.get(dir, 0.0))
+	var cls: Dictionary = ARMOR_ANCHOR_OFFSET.get(art_id, {})
+	var dir_tbl: Dictionary = cls.get(dir, {})
+	return dir_tbl.get(slot_key, Vector2.ZERO)
 
 ## 主 / 副手當前武器原型鍵（"" = 未掛載）
 var _weapon_main_key: String = ""
@@ -1478,11 +1506,11 @@ func apply_equipment_visual(equipped: Array) -> void:
 				boots_id = t.id
 	_mount_weapon(main_hand_anchor, main_key)
 	_mount_weapon(off_hand_anchor, off_key)
-	_mount_armor_piece(head_anchor, helm_id)
-	_mount_armor_piece(chest_anchor, chest_id)
-	_mount_armor_piece(gloves_anchor, gloves_id)
-	_mount_armor_piece(legs_anchor, legs_id)
-	_mount_armor_piece(boots_anchor, boots_id)
+	_mount_armor_piece(head_anchor, helm_id, "head")
+	_mount_armor_piece(chest_anchor, chest_id, "chest")
+	_mount_armor_piece(gloves_anchor, gloves_id, "gloves")
+	_mount_armor_piece(legs_anchor, legs_id, "legs")
+	_mount_armor_piece(boots_anchor, boots_id, "boots")
 	set_visual_tier(armor_top_rarity)
 
 
@@ -1589,26 +1617,31 @@ func _refresh_weapons() -> void:
 
 ## 當前掛載的分件：錨點名 → 部件 id（"" = 未掛載）。錨點名含層路徑，用錨點實例引用。
 var _armor_keys: Dictionary = {}
+## 錨點 → 部位 key（head/chest/gloves/legs/boots），供部位級錨點偏移查表
+var _armor_slots: Dictionary = {}
 ## 分件紋理緩存：path → Texture2D（避免每幀 load）
 var _armor_tex_cache: Dictionary = {}
 
 
 ## 掛 / 卸防具分件到錨點下（新建 RealArmorPiece 節點，不動其他節點）
-func _mount_armor_piece(anchor: Marker2D, item_id: String) -> void:
+func _mount_armor_piece(anchor: Marker2D, item_id: String, slot_key: String) -> void:
 	if anchor == null:
 		return
 	var sp: Sprite2D = _get_or_make_armor_sprite(anchor)
 	if item_id.is_empty():
 		sp.visible = false
 		_armor_keys[anchor] = ""
+		_armor_slots[anchor] = slot_key
 		return
 	sp.visible = true
-	# 錨點 x 偏移走 offset.x（畫布座標，渲染時自動乘 scale）；
-	# 不能用 position.x（世界座標不乘自身 scale，會把畫布偏移放大 4 倍）。
-	sp.offset = Vector2(_armor_anchor_offset(), -WEAPON_FRAME_HALF)
+	# 錨點偏移走 offset（畫布座標，渲染時自動乘 scale）；
+	# 不能用 position（世界座標不乘自身 scale，會把畫布偏移放大 4 倍）。
+	var off := _armor_anchor_offset(slot_key)
+	sp.offset = Vector2(off.x, off.y - WEAPON_FRAME_HALF)
 	sp.scale = Vector2.ONE * _game_scale_for(WEAPON_CANVAS)
 	sp.position = Vector2.ZERO
 	_armor_keys[anchor] = item_id
+	_armor_slots[anchor] = slot_key
 	_refresh_armor_sprite(anchor, sp)
 
 
@@ -1630,8 +1663,13 @@ func _refresh_armor_sprite(anchor: Marker2D, sp: Sprite2D) -> void:
 	var item_id: String = _armor_keys.get(anchor, "")
 	if item_id.is_empty():
 		return
-	# 錨點 x 偏移隨朝向同步（身體側身時分件同偏，避免「套不上」）；offset 畫布座標自動乘 scale
-	sp.offset.x = _armor_anchor_offset()
+	# 錨點偏移隨朝向/部位同步（身體側身時分件同偏，避免「套不上」）；offset 畫布座標自動乘 scale
+	var slot_key: String = _armor_slots.get(anchor, "")
+	if slot_key.is_empty():
+		return
+	var off := _armor_anchor_offset(slot_key)
+	sp.offset.x = off.x
+	sp.offset.y = off.y - WEAPON_FRAME_HALF
 	# 外觀檔：與角色換色檔同稀有度（common/未計算 = 素材原色目錄）
 	var dir_id := item_id
 	if _visual_tier_rarity > GameConstants.Rarity.COMMON \
