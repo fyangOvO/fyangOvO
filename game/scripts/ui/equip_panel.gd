@@ -34,6 +34,7 @@ var on_unequip: Callable = Callable()
 
 var _class_id: String = GameConstants.CLASS_DEFAULT
 var _title: Label = null
+var _preview: EquipPreview = null
 var _grid: GridContainer = null
 var _slot_buttons: Array[Button] = []
 var _list: RichTextLabel = null
@@ -85,10 +86,32 @@ func _build_ui() -> void:
 	body.add_theme_constant_override("separation", 14)
 	vb.add_child(body)
 
-	# —— 左：六格装备位 ——
+	# —— 左：角色预览（纸娃娃）+ 六格装备位 ——
 	var left := VBoxContainer.new()
 	left.add_theme_constant_override("separation", 4)
 	body.add_child(left)
+
+	# 角色预览：SubViewport 内渲染身体 + 五槽分件（部位级锚点，同局内）
+	var prev_l := Label.new()
+	prev_l.text = "角色预览"
+	prev_l.add_theme_font_size_override("font_size", 12)
+	prev_l.add_theme_color_override("font_color", GameConstants.PALETTE_NEUTRAL[9])
+	left.add_child(prev_l)
+
+	var prev_box := SubViewportContainer.new()
+	prev_box.custom_minimum_size = Vector2(160, 176)
+	prev_box.stretch = true
+	left.add_child(prev_box)
+	var vp := SubViewport.new()
+	vp.size = Vector2i(160, 176)
+	vp.transparent_bg = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	prev_box.add_child(vp)
+	_preview = EquipPreview.new()
+	# 角色脚底落在预览区底部留白处（body offset 已把底边对齐节点原点）
+	_preview.position = Vector2(80, 168)
+	vp.add_child(_preview)
+
 	var slot_l := Label.new()
 	slot_l.text = "六格装备位"
 	slot_l.add_theme_font_size_override("font_size", 12)
@@ -159,9 +182,16 @@ func refresh() -> void:
 	_title.text = "装备 · %s" % ConfigLoader.class_display_name(_class_id)
 	_title.add_theme_color_override("font_color",
 		Color(String(cls.get("color", "F5D77A"))))
+	_render_preview()
 	_render_slots()
 	_render_list()
 	_render_detail()
+
+
+## 角色预览：按职业 + 当前装备渲染穿甲效果（身体 idle e 帧 + 五槽分件）
+func _render_preview() -> void:
+	if _preview != null:
+		_preview.render(_class_id, equipped)
 
 
 ## 六格槽位：图标（有）或空位，边框按稀有度着色；选中槽位底色提亮
