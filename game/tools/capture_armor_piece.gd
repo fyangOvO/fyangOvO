@@ -130,6 +130,9 @@ func _run() -> void:
 	await _shot("full5_slot_legendary_e.png")
 
 	# ⑩ archer / mage 下肢分件對齊
+	# ⚠️ 先把 ①–⑨ 的 warrior（player）移出畫面，否則會與新職業疊在同一位置（歷史坑）。
+	player.global_position = Vector2(1000, 1000)
+	await _settle(0.1)
 	for cid in ["archer", "mage"]:
 		var pc := PLAYER_SCENE.instantiate()
 		pc.art_id = cid
@@ -142,6 +145,17 @@ func _run() -> void:
 			_mk_instance("helm_hide"), _mk_instance("chest_chainmail"),
 			_mk_instance("gloves_leather"), _mk_instance("legs_plate"), _mk_instance("boots_wanderer")])
 		await _settle(0.3)
+		for a in ["head_anchor", "chest_anchor", "gloves_anchor", "legs_anchor", "boots_anchor"]:
+			var anc: Marker2D = pc.get(a)
+			if anc == null:
+				print("[DBG] %s %s 錨點缺失" % [cid, a])
+				continue
+			var sp := anc.get_node_or_null(NodePath("RealArmorPiece"))
+			if sp is Sprite2D:
+				print("[DBG] %s %s sp.position=%s global=%s tex=%s" % [cid, a, sp.position, sp.global_position, (sp.texture.resource_path if sp.texture != null else "none")])
+			else:
+				print("[DBG] %s %s 無分件節點" % [cid, a])
+		print("[DBG] %s anim_dir=%s facing=%s offset=%s" % [cid, pc._anim_dir, pc._facing, pc._armor_anchor_offset()])
 		await _shot("%s_full_set_idle_e.png" % cid)
 		pc.queue_free()
 		await _settle(0.1)

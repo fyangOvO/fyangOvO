@@ -1410,6 +1410,27 @@ const WEAPON_FRAME_HALF: float = 96.0
 ## 武器/角色素材画布边长（与切帧脚本一致）
 const WEAPON_CANVAS: float = 192.0
 
+## 防具分件錨點 x 偏移（畫布 px，按職業×朝向查表）。
+## 來源：身體素材 8 方向 idle 幀「主體質心（濾黑底）− 畫布中心 96」實測：
+##   角色側身面朝右（e/ne/s/se）主體偏右 +17~+25；面朝左（w/nw/sw）主體偏左 −17~−26。
+## 分件素材本身居中（質心≈96），若錨點仍釘在 96 會與側身主體錯位（「套不上」）。
+## 擴展口：新職業在此表加一行；新部位（肩甲/披風等）沿用同偏移並自行補 y。
+const ARMOR_ANCHOR_X_OFFSET: Dictionary = {
+	"warrior": {"e": 21, "ne": 20, "n": 19, "nw": -21, "w": -22, "sw": -23, "s": 22, "se": 22},
+	"archer": {"e": 17, "ne": 17, "n": 15, "nw": -17, "w": -18, "sw": -19, "s": 18, "se": 18},
+	"mage": {"e": 24, "ne": 24, "n": 21, "nw": -25, "w": -25, "sw": -26, "s": 25, "se": 25},
+}
+
+## 當前朝向的防具錨點 x 偏移（畫布 px；未收錄的職業/朝向回退 0 = 畫布中心）。
+## 與身體共用方向：優先用 `_anim_dir`（方向去抖後動畫方向，與身體幀同步）；
+## 動畫尚未啟動（_anim_dir 為空）時回退 `_facing` 的即時方向，避免掛載瞬間查表落空。
+func _armor_anchor_offset() -> float:
+	var dir := _anim_dir
+	if dir.is_empty():
+		dir = facing_to_dir_letter(_facing)
+	var tbl: Dictionary = ARMOR_ANCHOR_X_OFFSET.get(art_id, {})
+	return float(tbl.get(dir, 0.0))
+
 ## 主 / 副手當前武器原型鍵（"" = 未掛載）
 var _weapon_main_key: String = ""
 var _weapon_off_key: String = ""
@@ -1582,8 +1603,11 @@ func _mount_armor_piece(anchor: Marker2D, item_id: String) -> void:
 		_armor_keys[anchor] = ""
 		return
 	sp.visible = true
-	sp.offset = Vector2(0.0, -WEAPON_FRAME_HALF)
+	# 錨點 x 偏移走 offset.x（畫布座標，渲染時自動乘 scale）；
+	# 不能用 position.x（世界座標不乘自身 scale，會把畫布偏移放大 4 倍）。
+	sp.offset = Vector2(_armor_anchor_offset(), -WEAPON_FRAME_HALF)
 	sp.scale = Vector2.ONE * _game_scale_for(WEAPON_CANVAS)
+	sp.position = Vector2.ZERO
 	_armor_keys[anchor] = item_id
 	_refresh_armor_sprite(anchor, sp)
 
@@ -1606,6 +1630,8 @@ func _refresh_armor_sprite(anchor: Marker2D, sp: Sprite2D) -> void:
 	var item_id: String = _armor_keys.get(anchor, "")
 	if item_id.is_empty():
 		return
+	# 錨點 x 偏移隨朝向同步（身體側身時分件同偏，避免「套不上」）；offset 畫布座標自動乘 scale
+	sp.offset.x = _armor_anchor_offset()
 	# 外觀檔：與角色換色檔同稀有度（common/未計算 = 素材原色目錄）
 	var dir_id := item_id
 	if _visual_tier_rarity > GameConstants.Rarity.COMMON \
